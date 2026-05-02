@@ -1,0 +1,7 @@
+# Local-only Claude Code settings
+.claude/settings.local.json
+
+# Python build/cache artefacts (for tests/conformance/)
+__pycache__/
+*.pyc
+.pytest_cache/
