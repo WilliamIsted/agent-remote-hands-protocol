@@ -1,10 +1,11 @@
 # Changelog
 
 Per-release notes for the Agent Remote Hands wire protocol. The detailed
-release notes for each spec version live in [`PROTOCOL.md`](PROTOCOL.md)
-§12.5 — this file is a brief index pointing at them.
+release notes for each spec version live in `dist/PROTOCOL.md` §12.5 (run
+`python Tools/gen.py` to render) — this file is a brief index pointing at
+them.
 
-Versioning is per-family-branched (see [`PROTOCOL.md`](PROTOCOL.md) §12 and
+Versioning is per-family-branched (see `dist/PROTOCOL.md` §12 and
 [`CLAUDE.md`](CLAUDE.md)). The leading "v" tag form (`v2.1.0`, `v2.0.0`, …)
 matches the spec version embedded in the document frontmatter and reported
 by `system.info.protocol`.

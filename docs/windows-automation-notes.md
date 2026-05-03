@@ -5,7 +5,7 @@ unique to Agent Remote Hands — they apply to any Windows automation tool —
 but they're cheap to document and save callers a diagnostic round.
 
 The deeper, agent-specific behaviours (UIPI, foreground locks, wire desync)
-live in [`PROTOCOL.md`](../PROTOCOL.md). This file collects the
+live in [`dist/PROTOCOL.md`](../dist/PROTOCOL.md). This file collects the
 **OS-level** footguns that surface in real automation flows.
 
 ## MSI installs serialise via a global mutex
@@ -76,7 +76,7 @@ case where another app has just stolen focus.
 If a verb returns `ERR lock_held` repeatedly:
 
 1. Check `system.info.integrity` — UIPI may also be in play (see
-   [`PROTOCOL.md` §8](../PROTOCOL.md#8-elevation-and-integrity-levels)). A
+   [`dist/PROTOCOL.md` §8](../dist/PROTOCOL.md#8-elevation-and-integrity-levels)). A
    higher-IL window simply isn't reachable from a lower-IL agent.
 2. Use `screen.capture` and `element.list` to confirm the target is
    actually drawn — lock denial sometimes correlates with the window
@@ -87,7 +87,7 @@ If a verb returns `ERR lock_held` repeatedly:
 ## Integrity levels and UIPI
 
 The biggest non-obvious failure mode for installer automation. Covered in
-detail at [`PROTOCOL.md` §8](../PROTOCOL.md#8-elevation-and-integrity-levels).
+detail at [`dist/PROTOCOL.md` §8](../dist/PROTOCOL.md#8-elevation-and-integrity-levels).
 Summary:
 
 - The agent runs at Medium IL when started via Task Scheduler logon-task
@@ -169,14 +169,14 @@ only paths that reach DirectInput / RawInput keyboard polling:
 
 If you find yourself wondering why a target's UI responds to `input.click`
 but not `input.key`, this is the first thing to check. See
-[`PROTOCOL.md` §4.4](../PROTOCOL.md#44-input) for the in-spec note and
+[`dist/PROTOCOL.md` §4.4](../dist/PROTOCOL.md#44-input) for the in-spec note and
 [#64](https://github.com/WilliamIsted/agent-remote-hands/issues/64) for the
 empirical chain that confirmed the boundary.
 
 ## Cross-references
 
-- Wire protocol: [`PROTOCOL.md`](../PROTOCOL.md)
-- UIPI / integrity levels: [`PROTOCOL.md` §8](../PROTOCOL.md#8-elevation-and-integrity-levels)
-- Foreground lock surfaces: [`PROTOCOL.md` §10.4](../PROTOCOL.md#104-foreground-locks)
-- Wire desync recovery: [`PROTOCOL.md` §10.6](../PROTOCOL.md#106-wire-desync-recovery)
-- Synthetic-keyboard limitation: [`PROTOCOL.md` §4.4](../PROTOCOL.md#44-input) and [#64](https://github.com/WilliamIsted/agent-remote-hands/issues/64)
+- Wire protocol: [`dist/PROTOCOL.md`](../dist/PROTOCOL.md)
+- UIPI / integrity levels: [`dist/PROTOCOL.md` §8](../dist/PROTOCOL.md#8-elevation-and-integrity-levels)
+- Foreground lock surfaces: [`dist/PROTOCOL.md` §10.4](../dist/PROTOCOL.md#104-foreground-locks)
+- Wire desync recovery: [`dist/PROTOCOL.md` §10.6](../dist/PROTOCOL.md#106-wire-desync-recovery)
+- Synthetic-keyboard limitation: [`dist/PROTOCOL.md` §4.4](../dist/PROTOCOL.md#44-input) and [#64](https://github.com/WilliamIsted/agent-remote-hands/issues/64)

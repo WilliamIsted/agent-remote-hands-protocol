@@ -65,7 +65,7 @@ tests/conformance/
 
 When wire-protocol changes land:
 
-1. Update `PROTOCOL.md` (the canonical spec).
+1. Update `spec/verbs/<verb>.json` (per-verb spec — feeds `dist/PROTOCOL.md` §4) or `spec/framing/*.md` (framing-section content). Run `python Tools/gen.py` to regenerate `dist/`.
 2. Implement the verb in `agents/<target>/...`.
 3. Add a test case in the appropriate `test_<namespace>.py` (or a new file for a new namespace).
 4. The test SHOULD use `needs_verb(capabilities, "<verb>")` so older agents that don't implement it are skipped, not failed.
