@@ -1,0 +1,56 @@
+# Static checks for the protocol spec tree.
+#
+# Scope: everything we can verify WITHOUT a running agent. The end-to-end
+# conformance suite (`tests/conformance/`) needs a live agent on a port and
+# is not part of this workflow — it runs against agent builds in the agent
+# repo's CI.
+#
+# What this catches:
+#   - Malformed spec/verbs/*.json (parse errors, missing keys, bad CRUDX
+#     letters, namespace mismatches, additionalProperties:false missing).
+#   - Unknown family references in x-families maps.
+#   - Wire-quoting reference grammar regressions (round-trip and error paths
+#     in tests/conformance/wire.py).
+#   - Conformance suite collection failures (broken imports, undefined
+#     fixtures) — pytest --collect-only without execution.
+#
+# Runs on Linux (cheapest). Nothing in the spec tree is Windows-specific at
+# the file-system level, so ubuntu-latest is fine.
+
+name: spec-checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: pip install pytest
+
+      - name: Validate spec/verbs/*.json + spec/families.json
+        run: python tests/check_spec.py
+
+      - name: Wire-quoting round-trip tests
+        run: python -m pytest tests/test_wire_quoting.py -v
+
+      - name: Conformance suite collection check
+        # --collect-only verifies pytest can discover and import every test
+        # without running them. Catches broken fixtures, missing imports,
+        # syntax errors. Doesn't connect to any agent.
+        run: python -m pytest tests/conformance --collect-only -q

@@ -1,5 +1,6 @@
 # Agent Remote Hands — Protocol
 
+[![spec-checks](https://github.com/WilliamIsted/agent-remote-hands-protocol/actions/workflows/spec-checks.yml/badge.svg?branch=main)](https://github.com/WilliamIsted/agent-remote-hands-protocol/actions/workflows/spec-checks.yml)
 [![License](https://img.shields.io/github/license/WilliamIsted/agent-remote-hands-protocol)](LICENSE)
 [![Spec status](https://img.shields.io/badge/spec-2.1%20stable-brightgreen)](PROTOCOL.md)
 [![Conformance: pytest](https://img.shields.io/badge/conformance-pytest-0A9EDC)](tests/conformance/)
