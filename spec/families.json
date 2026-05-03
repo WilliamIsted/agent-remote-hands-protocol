@@ -18,6 +18,8 @@
         "webp",
         "bmp"
       ],
+      "token_file_path": "%ProgramData%\\AgentRemoteHands\\token",
+      "token_file_acl": "Local Administrators (full control) + agent run-as account (read). Inherited permissions disabled. Token rotates on every agent start.",
       "protocol_versions_spoken": [
         "2.0"
       ]
@@ -37,6 +39,8 @@
       "image_formats_runtime_extra": [
         "png"
       ],
+      "token_file_path": "%ALLUSERSPROFILE%\\Application Data\\AgentRemoteHands\\token",
+      "token_file_acl": "Local Administrators (full control) + agent run-as account (read), enforceable on NTFS only. On FAT32 the token file is plaintext-readable by every user on the machine; tier elevation degrades to a per-machine-trust model. Token rotates on every agent start.",
       "protocol_versions_spoken": [
         "2.0"
       ]
