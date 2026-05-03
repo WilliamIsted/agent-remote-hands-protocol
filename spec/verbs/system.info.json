@@ -32,6 +32,14 @@
         "enum": ["windows-modern", "windows-classic"],
         "description": "Agent product family. Strict enum sourced from spec/families.json keys."
       },
+      "agent": {
+        "type": "string",
+        "description": "Agent software name, e.g. \"AgentRemoteHands\". Mirrored by `connection.hello.agent`."
+      },
+      "agent_protocol": {
+        "type": "string",
+        "description": "Wire-protocol version this agent speaks, e.g. \"2.1\". Negotiated to highest-mutual at connection.hello time. Mirrored by `connection.hello.agent_protocol`."
+      },
       "os_name": {
         "type": "string",
         "description": "Human-readable OS product name, e.g. `\"Windows 11 Pro\"`, `\"Windows NT 4.0 SP6a\"`. Added per issue #80."
@@ -64,7 +72,7 @@
         "description": "Open-ended per-family sub-capability map. Common keys (per the windows-modern / windows-classic families): `ui_automation`, `wgc`, `gdi`, `uipi`, `integrity_levels`, `image_formats`, `wake_timer_supported` (issue #82), `input_settings` (issue #86)."
       }
     },
-    "required": ["family", "os_name", "os_version", "hostname", "screens", "capabilities"],
+    "required": ["family", "agent", "agent_protocol", "os_name", "os_version", "hostname", "screens", "capabilities"],
     "additionalProperties": false
   },
   "x-errors": [],

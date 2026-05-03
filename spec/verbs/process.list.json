@@ -1,13 +1,18 @@
 {
   "name": "process.list",
   "strict": true,
-  "description": "Enumerate running processes. Returns pid, image name, parent pid, and basic resource counters per entry. Read-only.",
+  "description": "Enumerate running processes. Returns pid, image name, and parent pid per entry. Pass `include_counters: true` to include CPU/memory/handle counts. Read-only.",
   "input_schema": {
     "type": "object",
     "properties": {
-      "filter": {
+      "pattern": {
         "type": "string",
         "description": "Case-insensitive substring matched against the image name (e.g. `notepad` matches `Notepad.exe`). Omit to list all processes."
+      },
+      "include_counters": {
+        "type": "boolean",
+        "default": false,
+        "description": "If true, each entry adds resource counters: CPU%, RSS, working set, private bytes, thread count, handle count, start time. Adds modest cost (per-pid OpenProcess + GetProcessTimes + GetProcessMemoryInfo + GetProcessHandleCount), so opt-in."
       }
     },
     "additionalProperties": false
@@ -25,7 +30,37 @@
           "properties": {
             "pid":   { "type": "integer", "description": "Process id." },
             "image": { "type": "string",  "description": "Executable name (filename without path), e.g. `Notepad.exe`. Empty string for kernel-internal processes the agent can't query." },
-            "ppid":  { "type": "integer", "description": "Parent process id. May be 0 or refer to a no-longer-running process if the parent has exited." }
+            "ppid":  { "type": "integer", "description": "Parent process id. May be 0 or refer to a no-longer-running process if the parent has exited." },
+            "cpu_percent": {
+              "type": "number",
+              "description": "CPU usage as a percentage of one core (0.0–100.0 per core; multi-core processes can exceed 100). Computed over a short sampling interval at the snapshot moment. Only present when `include_counters: true`."
+            },
+            "rss_bytes": {
+              "type": "integer",
+              "description": "Resident set size — physical memory currently in RAM (Win32 `WorkingSetSize` from PROCESS_MEMORY_COUNTERS). Only present when `include_counters: true`."
+            },
+            "working_set_bytes": {
+              "type": "integer",
+              "description": "Same as `rss_bytes` on Windows; preserved for cross-platform clarity. Only present when `include_counters: true`."
+            },
+            "private_bytes": {
+              "type": "integer",
+              "description": "Private (non-shared) memory committed for the process (Win32 `PagefileUsage` from PROCESS_MEMORY_COUNTERS_EX). Only present when `include_counters: true`."
+            },
+            "thread_count": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Number of threads currently in the process. Only present when `include_counters: true`."
+            },
+            "handle_count": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Number of open Win32 handles (Win32 `GetProcessHandleCount`). Only present when `include_counters: true`."
+            },
+            "start_time_unix_s": {
+              "type": "integer",
+              "description": "Process start time as Unix epoch seconds (Win32 `GetProcessTimes.lpCreationTime` converted from FILETIME). Only present when `include_counters: true`."
+            }
           },
           "required": ["pid", "image", "ppid"],
           "additionalProperties": false
@@ -41,22 +76,22 @@
       "name": "create_toolhelp32_snapshot",
       "detect": { "type": "always" },
       "available_on": ["windows-modern", "windows-classic"],
-      "description": "Win32 `CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS)` + `Process32FirstW` / `Process32NextW` walk. Each PROCESSENTRY32W carries th32ProcessID, th32ParentProcessID, and szExeFile."
+      "description": "Win32 `CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS)` + `Process32FirstW` / `Process32NextW` walk. Each PROCESSENTRY32W carries th32ProcessID, th32ParentProcessID, and szExeFile. With `include_counters`, the agent additionally calls OpenProcess + GetProcessTimes + GetProcessMemoryInfo + GetProcessHandleCount per entry."
     },
     {
       "name": "enum_processes",
       "detect": { "type": "always" },
       "available_on": ["windows-modern"],
-      "description": "Win32 `EnumProcesses` + `OpenProcess` + `GetModuleBaseNameW` per pid. More verbose, sometimes catches edge cases Toolhelp misses."
+      "description": "Win32 `EnumProcesses` + `OpenProcess` + `GetModuleBaseNameW` per pid. More verbose, sometimes catches edge cases Toolhelp misses. Same per-pid counter calls under `include_counters`."
     }
   ],
   "x-families": {
     "windows-modern": {
-      "description": "CreateToolhelp32Snapshot is the primary path; falls back to EnumProcesses + GetModuleBaseName when Toolhelp fails (rare). Filter applied client-side after enumeration. Per-process reads of image name may fail with ERR permission_denied for protected processes (anti-cheat / antivirus); those entries report `image: \"\"`.",
+      "description": "CreateToolhelp32Snapshot is the primary path; falls back to EnumProcesses + GetModuleBaseName when Toolhelp fails (rare). Filter applied client-side after enumeration. Per-process reads of image name may fail with ERR permission_denied for protected processes (anti-cheat / antivirus); those entries report `image: \"\"`. With `include_counters`, protected processes also have empty/zero counter fields when OpenProcess fails for them.",
       "implementations_in_order": ["create_toolhelp32_snapshot", "enum_processes"]
     },
     "windows-classic": {
-      "description": "CreateToolhelp32Snapshot on NT 5+ and Win 9x (kernel32 export). NT 4 lacks Toolhelp in kernel32; the agent loads PSAPI.DLL and uses EnumProcesses on NT 4. Otherwise behaviour matches modern.",
+      "description": "CreateToolhelp32Snapshot on NT 5+ and Win 9x (kernel32 export). NT 4 lacks Toolhelp in kernel32; the agent loads PSAPI.DLL and uses EnumProcesses on NT 4. With `include_counters`, GetProcessHandleCount is NT 5.1+ — pre-XP agents return 0 for `handle_count`.",
       "implementations_in_order": ["create_toolhelp32_snapshot"]
     }
   }

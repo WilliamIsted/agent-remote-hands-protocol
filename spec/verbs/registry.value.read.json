@@ -1,0 +1,59 @@
+{
+  "name": "registry.value.read",
+  "strict": true,
+  "description": "Read a single registry value's type and data. Use `registry.key.read` to enumerate a key's subkeys and value names.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "path": {
+        "type": "string",
+        "description": "Registry key path in `HKLM\\Software\\...` form (or `HKCU`, `HKCR`, `HKU`, `HKCC` roots). Hive abbreviations expanded server-side."
+      },
+      "value": {
+        "type": "string",
+        "description": "Value name. Empty string for the (Default) value."
+      }
+    },
+    "required": ["path", "value"],
+    "additionalProperties": false
+  },
+  "x-crudx": "R",
+  "x-since": "2.1",
+  "x-renamed-from": "registry.read",
+  "x-namespace": "registry",
+  "x-output-schema": {
+    "type": "object",
+    "properties": {
+      "type": {
+        "type": "string",
+        "enum": ["REG_SZ", "REG_EXPAND_SZ", "REG_BINARY", "REG_DWORD", "REG_DWORD_BIG_ENDIAN", "REG_LINK", "REG_MULTI_SZ", "REG_QWORD", "REG_NONE"],
+        "description": "Win32 registry value type."
+      },
+      "data": {
+        "type": "string",
+        "description": "Value data as a string. REG_SZ/REG_EXPAND_SZ/REG_LINK: the literal string. REG_DWORD/REG_QWORD: decimal-stringified integer. REG_BINARY: base64. REG_MULTI_SZ: null-byte-separated, with a trailing null."
+      }
+    },
+    "required": ["type", "data"],
+    "additionalProperties": false
+  },
+  "x-errors": ["not_found", "permission_denied", "invalid_args"],
+  "x-implementations": [
+    {
+      "name": "reg_open_query_value",
+      "detect": { "type": "always" },
+      "available_on": ["windows-modern", "windows-classic"],
+      "description": "Win32 `RegOpenKeyExW(KEY_READ)` + `RegQueryValueExW`."
+    }
+  ],
+  "x-families": {
+    "windows-modern": {
+      "description": "RegOpenKeyExW + RegQueryValueExW. KEY_READ access. WoW64 redirection follows the agent's bitness.",
+      "implementations_in_order": ["reg_open_query_value"]
+    },
+    "windows-classic": {
+      "description": "Same Win32 APIs since NT 3.1. NT 4 / 9x agents use RegQueryValueExA with ANSI transcoding.",
+      "implementations_in_order": ["reg_open_query_value"]
+    }
+  }
+}

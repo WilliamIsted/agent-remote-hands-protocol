@@ -1,0 +1,56 @@
+{
+  "name": "registry.value.update",
+  "strict": true,
+  "description": "Overwrite an existing registry value. Errors with `not_found` if the value doesn't exist; use `registry.value.create` to create a new value.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "path": {
+        "type": "string",
+        "description": "Registry key path in `HKLM\\Software\\...` form. The key must exist."
+      },
+      "value": {
+        "type": "string",
+        "description": "Value name. Empty string for the (Default) value. The value must exist."
+      },
+      "type": {
+        "type": "string",
+        "enum": ["REG_SZ", "REG_EXPAND_SZ", "REG_BINARY", "REG_DWORD", "REG_DWORD_BIG_ENDIAN", "REG_LINK", "REG_MULTI_SZ", "REG_QWORD", "REG_NONE"],
+        "description": "Win32 registry value type. May change the value's type during update (RegSetValueExW supports this)."
+      },
+      "data": {
+        "type": "string",
+        "description": "Value data, formatted per `type`. Same encoding conventions as registry.value.create."
+      }
+    },
+    "required": ["path", "value", "type", "data"],
+    "additionalProperties": false
+  },
+  "x-crudx": "U",
+  "x-since": "2.1",
+  "x-renamed-from": "registry.write",
+  "x-namespace": "registry",
+  "x-output-schema": {
+    "type": "null",
+    "description": "Empty body — wire response is the literal `OK 0`."
+  },
+  "x-errors": ["not_found", "permission_denied", "invalid_args", "not_supported"],
+  "x-implementations": [
+    {
+      "name": "reg_open_set_existing",
+      "detect": { "type": "always" },
+      "available_on": ["windows-modern", "windows-classic"],
+      "description": "Win32 `RegOpenKeyExW(KEY_QUERY_VALUE | KEY_SET_VALUE)` + `RegQueryValueExW` (probe to confirm existing value) + `RegSetValueExW`. Returns ERR not_found when the key is missing OR the value is absent."
+    }
+  ],
+  "x-families": {
+    "windows-modern": {
+      "description": "RegOpenKeyExW + probe + RegSetValueExW. Distinguishes update from create at this layer. HKLM writes typically require admin; ERR permission_denied without elevation.",
+      "implementations_in_order": ["reg_open_set_existing"]
+    },
+    "windows-classic": {
+      "description": "Same APIs since NT 3.1. NT 4 / 9x agents use RegSetValueExA with ANSI transcoding. REG_QWORD / REG_LINK on 9x return ERR not_supported.",
+      "implementations_in_order": ["reg_open_set_existing"]
+    }
+  }
+}

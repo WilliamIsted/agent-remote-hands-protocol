@@ -1,5 +1,5 @@
 {
-  "name": "system.lock",
+  "name": "system.power.lock",
   "strict": true,
   "description": "Lock the workstation. Equivalent to Win+L — the user must re-authenticate to resume.",
   "input_schema": {
@@ -7,8 +7,9 @@
     "properties": {},
     "additionalProperties": false
   },
-  "x-crudx": "R",
+  "x-crudx": "X",
   "x-since": "2.0",
+  "x-renamed-from": "system.lock",
   "x-namespace": "system",
   "x-output-schema": {
     "type": "null",

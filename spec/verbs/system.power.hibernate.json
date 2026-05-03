@@ -1,0 +1,65 @@
+{
+  "name": "system.power.hibernate",
+  "strict": true,
+  "description": "Hibernate the machine (write RAM to disk, power off). With `delay_seconds: 0`, the connection may drop before any response. With `delay_seconds > 0`, the OK with `scheduled_at` arrives before hibernation is issued.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "delay_seconds": {
+        "type": "integer",
+        "minimum": 0,
+        "default": 0,
+        "description": "Seconds to wait before initiating hibernation. Zero means immediate."
+      },
+      "wake_at": {
+        "type": "integer",
+        "minimum": 0,
+        "description": "Unix epoch (seconds) to wake the machine. The agent uses a Win32 waitable timer to schedule the wake. Returns `ERR not_supported {\"reason\":\"vm_environment\"}` when `system.info.capabilities.wake_timer_supported` is false; pass `bypass_vm_check: true` to bypass the gate."
+      },
+      "bypass_vm_check": {
+        "type": "boolean",
+        "default": false,
+        "description": "Bypass the VM-environment check for `wake_at`. No effect when `wake_at` is not specified."
+      },
+      "reason": {
+        "type": "string",
+        "description": "Free-form reason logged with the hibernate event. Surfaced in Windows Event Log on platforms that record it."
+      }
+    },
+    "additionalProperties": false
+  },
+  "x-crudx": "X",
+  "x-since": "2.0",
+  "x-renamed-from": "system.hibernate",
+  "x-namespace": "system",
+  "x-output-schema": {
+    "type": "object",
+    "properties": {
+      "scheduled_at": {
+        "type": "string",
+        "format": "date-time",
+        "description": "ISO 8601 timestamp of when hibernation will fire. Equals now+delay_seconds. Only present when delay_seconds > 0."
+      }
+    },
+    "additionalProperties": false
+  },
+  "x-errors": ["insufficient_privilege", "not_supported"],
+  "x-implementations": [
+    {
+      "name": "set_suspend_state",
+      "detect": { "type": "always" },
+      "available_on": ["windows-modern", "windows-classic"],
+      "description": "Win32 `SetSuspendState(Hibernate=TRUE, ForceCritical=FALSE, DisableWakeEvent=FALSE)`. Available NT 5+ (Win 2000 onwards). When `wake_at` is supplied, the agent first arms a `SetWaitableTimerEx` wake timer."
+    }
+  ],
+  "x-families": {
+    "windows-modern": {
+      "description": "SetSuspendState with Hibernate=TRUE. Returns ERR not_supported when hibernation is disabled (powercfg /hibernate off, no hiberfil.sys, or hardware lacks S4 support). VM guests typically report `system.info.capabilities.wake_timer_supported: false`; `wake_at` requests on such guests return ERR not_supported {\"reason\":\"vm_environment\"} unless `bypass_vm_check: true`. Modern Hyper-V on Win 11 hosts is the most reliable VM target; VMware/VirtualBox/older Hyper-V vary.",
+      "implementations_in_order": ["set_suspend_state"]
+    },
+    "windows-classic": {
+      "description": "SetSuspendState with Hibernate=TRUE. Available NT 5+ (Win 2000, XP, Vista, 7, 8, 8.1). NT 4 returns ERR not_supported (no power management subsystem). `wake_at` with `SetWaitableTimerEx` is available NT 5.1+ (XP); NT 4 / 2000 reject `wake_at` with ERR not_supported regardless of `bypass_vm_check`.",
+      "implementations_in_order": ["set_suspend_state"]
+    }
+  }
+}

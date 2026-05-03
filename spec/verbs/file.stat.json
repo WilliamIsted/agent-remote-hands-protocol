@@ -1,7 +1,7 @@
 {
   "name": "file.stat",
   "strict": true,
-  "description": "Returns metadata for a file or directory: type, size, timestamps, and Win32 attributes. Tolerates both files and directories.",
+  "description": "Returns metadata for a file: size, timestamps, and Win32 attributes. Files only — use `directory.stat` for directories.",
   "input_schema": {
     "type": "object",
     "properties": {
@@ -29,15 +29,15 @@
         "minimum": 0,
         "description": "Byte size. Zero for directories. Symlink size is the target's size when resolved."
       },
-      "mtime_unix": {
+      "mtime_unix_s": {
         "type": "integer",
         "description": "Modification time as Unix epoch seconds. Last write to the content."
       },
-      "ctime_unix": {
+      "ctime_unix_s": {
         "type": "integer",
         "description": "Creation time as Unix epoch seconds. NT-era FAT filesystems may report 0 (no creation timestamp tracking)."
       },
-      "atime_unix": {
+      "atime_unix_s": {
         "type": "integer",
         "description": "Access time as Unix epoch seconds. May be 0 if access-time tracking is disabled (FAT12/16, or NTFS with disablelastaccess set)."
       },
@@ -50,7 +50,7 @@
         "description": "Win32 FILE_ATTRIBUTE_* flags currently set. Per issue #93 — zero-cost set sourced from GetFileAttributesEx output. Cloud-file flags (recall_on_*) are Windows 10+; older Windows omits them."
       }
     },
-    "required": ["type", "size", "mtime_unix", "ctime_unix", "atime_unix", "flags"],
+    "required": ["type", "size", "mtime_unix_s", "ctime_unix_s", "atime_unix_s", "flags"],
     "additionalProperties": false
   },
   "x-errors": ["not_found", "permission_denied", "invalid_args"],

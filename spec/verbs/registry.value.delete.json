@@ -1,0 +1,47 @@
+{
+  "name": "registry.value.delete",
+  "strict": true,
+  "description": "Delete a single registry value. Use `registry.key.delete` to delete an entire key.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "path": {
+        "type": "string",
+        "description": "Registry key path in `HKLM\\Software\\...` form."
+      },
+      "value": {
+        "type": "string",
+        "description": "Value name to delete. Empty string for the (Default) value."
+      }
+    },
+    "required": ["path", "value"],
+    "additionalProperties": false
+  },
+  "x-crudx": "D",
+  "x-since": "2.1",
+  "x-renamed-from": "registry.delete",
+  "x-namespace": "registry",
+  "x-output-schema": {
+    "type": "null",
+    "description": "Empty body — wire response is the literal `OK 0`."
+  },
+  "x-errors": ["not_found", "permission_denied", "invalid_args"],
+  "x-implementations": [
+    {
+      "name": "reg_delete_value",
+      "detect": { "type": "always" },
+      "available_on": ["windows-modern", "windows-classic"],
+      "description": "Win32 `RegOpenKeyExW(KEY_SET_VALUE)` + `RegDeleteValueW`. Returns ERR not_found when the key or value is missing."
+    }
+  ],
+  "x-families": {
+    "windows-modern": {
+      "description": "RegDeleteValueW. HKLM writes typically require admin; ERR permission_denied without elevation. WoW64 redirection follows the agent's bitness.",
+      "implementations_in_order": ["reg_delete_value"]
+    },
+    "windows-classic": {
+      "description": "RegDeleteValueW available since NT 3.1. NT 4 / 9x agents use RegDeleteValueA with ANSI transcoding.",
+      "implementations_in_order": ["reg_delete_value"]
+    }
+  }
+}

@@ -20,6 +20,12 @@
       "automation_id": {
         "type": "string",
         "description": "Stable automation identifier; preferred over `name` when available."
+      },
+      "timeout_ms": {
+        "type": "integer",
+        "minimum": 0,
+        "default": 2000,
+        "description": "Time to keep retrying the find before returning ERR not_found. Default 2000 ms (mirrors element.find); pass 0 to disable retry."
       }
     },
     "additionalProperties": false
@@ -27,6 +33,7 @@
   "x-crudx": "U",
   "x-since": "2.0",
   "x-namespace": "element",
+  "x-mutually-exclusive": ["name", "automation_id"],
   "x-output-schema": {
     "type": "null",
     "description": "Empty body — wire response is the literal `OK 0`. Failures of either step surface as the relevant ERR (`not_found` / `uia_blind` from find; `not_supported_by_target` / `target_gone` from invoke)."

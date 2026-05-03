@@ -21,6 +21,7 @@
       },
       "double": {
         "type": "boolean",
+        "default": false,
         "description": "If true, synthesises a double-click (two press/release pairs within the OS double-click time, see system.info.capabilities.input_settings.double_click_time_ms)."
       },
       "modifiers": {
@@ -62,7 +63,7 @@
     "required": ["synthesised", "target_handle", "actual_position"],
     "additionalProperties": false
   },
-  "x-errors": ["uipi_blocked", "permission_denied"],
+  "x-errors": ["uipi_blocked", "permission_denied", "not_found", "invalid_args"],
   "x-implementations": [
     {
       "name": "send_input",

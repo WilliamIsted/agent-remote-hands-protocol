@@ -13,7 +13,7 @@
       },
       "stdin": {
         "type": "string",
-        "description": "Optional UTF-8 text piped to the child's stdin. Closed after writing. Use base64 for binary input via `binary` encoding (see future stdin-encoding extension)."
+        "description": "Optional UTF-8 text piped to the child's stdin. Closed after writing."
       },
       "cwd": {
         "type": "string",

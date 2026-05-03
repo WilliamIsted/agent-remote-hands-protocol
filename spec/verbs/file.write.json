@@ -1,13 +1,13 @@
 {
   "name": "file.write",
   "strict": true,
-  "description": "Write content to a file. Atomic by default — content lands in a temp file then renames into place. Overwrites existing files unless `create_only: true`.",
+  "description": "Overwrite an existing file with new content. The file must already exist (use `file.create` to create a new file). Atomic by default — content lands in a temp file then renames into place.",
   "input_schema": {
     "type": "object",
     "properties": {
       "path": {
         "type": "string",
-        "description": "Absolute path. Parent directory must exist (use directory.create first)."
+        "description": "Absolute path. The file must exist (returns ERR not_found otherwise)."
       },
       "content": {
         "type": "string",
@@ -23,11 +23,6 @@
         "type": "boolean",
         "default": true,
         "description": "When true, write to a temp file and rename into place (no half-written file visible to other readers). When false, writes directly to path — required for files held open by other processes via FILE_SHARE_WRITE."
-      },
-      "create_only": {
-        "type": "boolean",
-        "default": false,
-        "description": "If true, fails with ERR already_exists rather than overwriting an existing file."
       }
     },
     "required": ["path", "content"],
@@ -52,19 +47,19 @@
     "required": ["bytes_written", "encoding"],
     "additionalProperties": false
   },
-  "x-errors": ["not_found", "already_exists", "permission_denied", "invalid_args"],
+  "x-errors": ["not_found", "permission_denied", "invalid_args"],
   "x-implementations": [
     {
       "name": "create_file_w_atomic",
       "detect": { "type": "always" },
       "available_on": ["windows-modern", "windows-classic"],
-      "description": "Win32 `CreateFileW` to a sibling temp file (`<path>.tmp.<random>`) + `WriteFile` + `MoveFileExW(MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH)`. NT 5+. Used when `atomic: true`."
+      "description": "Win32 `CreateFileW` to a sibling temp file (`<path>.tmp.<random>`) with CREATE_NEW disposition + `WriteFile` + `MoveFileExW(MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH)`. The TRUNCATE_EXISTING precondition is enforced by checking the target exists first; ERR not_found if absent. NT 5+. Used when `atomic: true`."
     },
     {
-      "name": "create_file_w_direct",
+      "name": "create_file_w_truncate",
       "detect": { "type": "always" },
       "available_on": ["windows-modern", "windows-classic"],
-      "description": "Win32 `CreateFileW` directly + `WriteFile`. CREATE_NEW disposition when `create_only: true`, CREATE_ALWAYS otherwise. Used when `atomic: false`."
+      "description": "Win32 `CreateFileW` directly with TRUNCATE_EXISTING disposition + `WriteFile`. Returns ERR not_found if the file doesn't exist. Used when `atomic: false`."
     },
     {
       "name": "copy_delete_fallback",
@@ -75,12 +70,12 @@
   ],
   "x-families": {
     "windows-modern": {
-      "description": "CreateFileW + WriteFile to a sibling temp file, then atomic MoveFileExW with MOVEFILE_REPLACE_EXISTING. `create_only: true` opens with CREATE_NEW (returns ERR already_exists if the file exists). Long paths via `\\\\?\\` prefix automatic when input exceeds MAX_PATH.",
-      "implementations_in_order": ["create_file_w_atomic", "create_file_w_direct"]
+      "description": "CreateFileW + WriteFile to a sibling temp file, then atomic MoveFileExW with MOVEFILE_REPLACE_EXISTING. The agent verifies the target exists first to surface ERR not_found cleanly. Long paths via `\\\\?\\` prefix automatic when input exceeds MAX_PATH.",
+      "implementations_in_order": ["create_file_w_atomic", "create_file_w_truncate"]
     },
     "windows-classic": {
-      "description": "CreateFileA on NT 4 / 9x; CreateFileW on NT 5+. Atomic rename via MoveFileEx (NT 4+). 9x falls back to CopyFile + DeleteFile (NOT atomic — a concurrent reader can see the file mid-replace). Same `create_only` semantics on all classic versions via CREATE_NEW disposition.",
-      "implementations_in_order": ["create_file_w_atomic", "create_file_w_direct", "copy_delete_fallback"]
+      "description": "CreateFileA on NT 4 / 9x; CreateFileW on NT 5+. Atomic rename via MoveFileEx (NT 4+). 9x falls back to CopyFile + DeleteFile (NOT atomic — a concurrent reader can see the file mid-replace).",
+      "implementations_in_order": ["create_file_w_atomic", "create_file_w_truncate", "copy_delete_fallback"]
     }
   }
 }

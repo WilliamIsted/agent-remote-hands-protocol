@@ -1,7 +1,7 @@
 {
   "name": "file.exists",
   "strict": true,
-  "description": "Check whether a path exists; if so, report its type. Tolerates files and directories. Cheaper than file.stat when only existence + type matters.",
+  "description": "Check whether a file exists. Files only — use `directory.exists` for directories. Cheaper than file.stat when only existence matters.",
   "input_schema": {
     "type": "object",
     "properties": {

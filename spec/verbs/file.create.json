@@ -1,0 +1,75 @@
+{
+  "name": "file.create",
+  "strict": true,
+  "description": "Create a new file with the given content. Errors with `already_exists` if the file is already present; use `file.write` to overwrite an existing file. Atomic by default — content lands in a temp file then renames into place.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "path": {
+        "type": "string",
+        "description": "Absolute path. Parent directory must exist (use directory.create first)."
+      },
+      "content": {
+        "type": "string",
+        "description": "Content to write. base64-encoded if encoding=binary; decoded text otherwise."
+      },
+      "encoding": {
+        "type": "string",
+        "enum": ["utf-8", "utf-16le", "utf-16be", "ascii", "latin-1", "cp1252", "binary"],
+        "default": "utf-8",
+        "description": "Encoding used to interpret `content`. `binary` decodes from base64 to raw bytes; all others encode the text into the named encoding."
+      },
+      "atomic": {
+        "type": "boolean",
+        "default": true,
+        "description": "When true, write to a temp file and rename into place. When false, writes directly to path."
+      }
+    },
+    "required": ["path", "content"],
+    "additionalProperties": false
+  },
+  "x-crudx": "C",
+  "x-since": "2.1",
+  "x-namespace": "file",
+  "x-output-schema": {
+    "type": "object",
+    "properties": {
+      "bytes_written": {
+        "type": "integer",
+        "description": "Number of bytes actually written to disk (after encoding from `content`). For `encoding: binary` this equals the decoded base64 length."
+      },
+      "encoding": {
+        "type": "string",
+        "enum": ["utf-8", "utf-16le", "utf-16be", "ascii", "latin-1", "cp1252", "binary"],
+        "description": "Echo of the encoding used to write. Confirms the agent honoured the requested encoding (no silent fallback)."
+      }
+    },
+    "required": ["bytes_written", "encoding"],
+    "additionalProperties": false
+  },
+  "x-errors": ["not_found", "already_exists", "permission_denied", "invalid_args"],
+  "x-implementations": [
+    {
+      "name": "create_file_w_atomic_new",
+      "detect": { "type": "always" },
+      "available_on": ["windows-modern", "windows-classic"],
+      "description": "Win32 `CreateFileW` to a sibling temp file with CREATE_NEW disposition + `WriteFile` + `MoveFileExW(MOVEFILE_WRITE_THROUGH)` (no MOVEFILE_REPLACE_EXISTING — fails if target exists, surfaced as ERR already_exists). Used when `atomic: true`."
+    },
+    {
+      "name": "create_file_w_new",
+      "detect": { "type": "always" },
+      "available_on": ["windows-modern", "windows-classic"],
+      "description": "Win32 `CreateFileW` directly with CREATE_NEW disposition + `WriteFile`. Returns ERR already_exists if the file exists. Used when `atomic: false`."
+    }
+  ],
+  "x-families": {
+    "windows-modern": {
+      "description": "CreateFileW with CREATE_NEW disposition. The atomic path writes to a temp file and renames in (the rename fails if target exists, returning ERR already_exists). Long paths via `\\\\?\\` prefix automatic when input exceeds MAX_PATH.",
+      "implementations_in_order": ["create_file_w_atomic_new", "create_file_w_new"]
+    },
+    "windows-classic": {
+      "description": "CreateFileA on NT 4 / 9x; CreateFileW on NT 5+. CREATE_NEW disposition is universally supported; the `already_exists` semantic is identical across all classic versions.",
+      "implementations_in_order": ["create_file_w_atomic_new", "create_file_w_new"]
+    }
+  }
+}

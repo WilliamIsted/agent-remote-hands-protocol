@@ -20,7 +20,8 @@
     "type": "object",
     "properties": {
       "type": {
-        "const": "directory",
+        "type": "string",
+        "enum": ["directory"],
         "description": "Always `directory` on success — this verb returns ERR not_a_directory for non-directories rather than reporting a different type."
       },
       "entry_count": {
@@ -28,7 +29,7 @@
         "minimum": 0,
         "description": "Count of immediate entries (subdirectories + files + links + other). Recursive descent NOT included — use directory.list and walk if recursive count is needed."
       },
-      "mtime_unix": {
+      "mtime_unix_s": {
         "type": "integer",
         "description": "Modification time as Unix epoch seconds. Updated by the OS when entries are added / removed / renamed in the directory."
       },
@@ -41,7 +42,7 @@
         "description": "Win32 FILE_ATTRIBUTE_* flags currently set on the directory. Per issue #93 (extended to directory.stat for parity with file.stat)."
       }
     },
-    "required": ["type", "entry_count", "mtime_unix", "flags"],
+    "required": ["type", "entry_count", "mtime_unix_s", "flags"],
     "additionalProperties": false
   },
   "x-errors": ["not_found", "permission_denied", "not_a_directory", "invalid_args"],

@@ -1,7 +1,7 @@
 {
   "name": "process.wait",
   "strict": true,
-  "description": "Wait for a process to exit. Returns its exit code. Per issue #76: `timeout_ms` is optional — when omitted, waits indefinitely until exit (or connection close, which cancels silently).",
+  "description": "Wait for a process to exit. Returns its exit code. `timeout_ms` is optional — when omitted, waits indefinitely until exit (or connection close, which cancels silently).",
   "input_schema": {
     "type": "object",
     "properties": {

@@ -1,7 +1,7 @@
 {
   "name": "watch.registry",
   "strict": true,
-  "description": "Subscribe to registry-key changes. Emits EVENT frames per change until cancelled. Unlike registry.wait (one-shot), this verb fires on every change.",
+  "description": "Observe registry-key changes. With `until_change: false` (default), returns a subscription_id and emits EVENT frames per change until cancelled. With `until_change: true`, blocks the connection synchronously and returns when the first change fires (one-shot wait — replaces the v2.0 `registry.wait`).",
   "input_schema": {
     "type": "object",
     "properties": {
@@ -13,6 +13,17 @@
         "type": "boolean",
         "default": false,
         "description": "If true, fire on changes anywhere in the key's subtree. Without this, only direct changes to `path` itself trigger."
+      },
+      "until_change": {
+        "type": "boolean",
+        "default": false,
+        "description": "If true, behave as a synchronous one-shot wait: block the connection until the first change fires (or `timeout_ms` expires), then return with the change payload as the regular sync response — no subscription created, no EVENT frames. If false (default), create a streaming subscription and return its `subscription_id` immediately."
+      },
+      "timeout_ms": {
+        "type": "integer",
+        "minimum": 0,
+        "default": 30000,
+        "description": "Only meaningful when `until_change: true`. Maximum sync wait in milliseconds. Returns ERR timeout if no change fires within this window. Default 30 seconds. Ignored in subscription mode (subscriptions are open-ended)."
       }
     },
     "required": ["path"],
@@ -22,41 +33,45 @@
   "x-since": "2.0",
   "x-namespace": "watch",
   "x-output-schema": {
+    "description": "Output shape depends on `until_change`. With `until_change: false` (subscription mode), returns `{subscription_id}`. With `until_change: true` (sync one-shot mode), returns the same payload as the EVENT frame: `{path}`.",
     "type": "object",
     "properties": {
       "subscription_id": {
         "type": "string",
-        "description": "Subscription identifier in `sub:N` form."
+        "description": "Subscription identifier in `sub:N` form. Present only in subscription mode (`until_change: false`)."
+      },
+      "path": {
+        "type": "string",
+        "description": "The registry key that changed. Present only in sync one-shot mode (`until_change: true`); echoes the input `path`."
       }
     },
-    "required": ["subscription_id"],
     "additionalProperties": false
   },
   "x-event-schema": {
     "type": "object",
-    "description": "EVENT frames emitted per registry change. Win32 RegNotifyChangeKeyValue does NOT identify which value changed — the EVENT is a coarse `something in this key changed` signal; consumers re-read the key to see what changed.",
+    "description": "EVENT frames emitted in subscription mode (`until_change: false`). Win32 RegNotifyChangeKeyValue does NOT identify which value changed — the EVENT is a coarse `something in this key changed` signal; consumers re-read the key to see what changed.",
     "properties": {
       "path": { "type": "string", "description": "The registry key that changed (echoes the input `path`; useful when multiple watch.registry subscriptions are active on the same connection)." }
     },
     "required": ["path"],
     "additionalProperties": false
   },
-  "x-errors": ["not_found", "permission_denied", "invalid_args"],
+  "x-errors": ["not_found", "timeout", "permission_denied", "invalid_args"],
   "x-implementations": [
     {
       "name": "reg_notify_change_key_value_loop",
       "detect": { "type": "always" },
       "available_on": ["windows-modern", "windows-classic"],
-      "description": "Win32 `RegNotifyChangeKeyValue` in a loop on a dedicated thread — the API is one-shot (signals, must be re-armed). Each signal fires an EVENT and re-arms; loop exits on watch.cancel."
+      "description": "Win32 `RegNotifyChangeKeyValue` in a loop on a dedicated thread for subscription mode (re-arms after each signal). For `until_change: true`, a single one-shot RegNotifyChangeKeyValue + WaitForMultipleObjects(event, connection_cancel_event, timeout) returns synchronously."
     }
   ],
   "x-families": {
     "windows-modern": {
-      "description": "RegNotifyChangeKeyValue with REG_NOTIFY_CHANGE_NAME | LAST_SET | ATTRIBUTES | SECURITY classes. Re-armed in a loop after each signal.",
+      "description": "RegNotifyChangeKeyValue with REG_NOTIFY_CHANGE_NAME | LAST_SET | ATTRIBUTES | SECURITY classes. Subscription mode re-arms in a loop. Sync mode uses a single arm + WaitForMultipleObjects with the connection-cancel event for clean shutdown.",
       "implementations_in_order": ["reg_notify_change_key_value_loop"]
     },
     "windows-classic": {
-      "description": "RegNotifyChangeKeyValue available since NT 3.1. Win 9x has limited registry-change support; classic agent on 9x falls back to a polling read loop.",
+      "description": "RegNotifyChangeKeyValue available since NT 3.1. Win 9x has limited registry-change support; classic agent on 9x falls back to a polling read loop. Both modes (subscription and until_change) share the polling path on 9x.",
       "implementations_in_order": ["reg_notify_change_key_value_loop"]
     }
   }

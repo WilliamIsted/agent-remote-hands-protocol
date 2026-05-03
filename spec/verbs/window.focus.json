@@ -22,23 +22,28 @@
       "prior_handle": {
         "type": "string",
         "description": "Handle of the window that was foreground before the focus change. Empty string if there was no foreground window (rare)."
+      },
+      "focused_status": {
+        "type": "string",
+        "enum": ["ok", "lock_held"],
+        "description": "Outcome of the focus attempt. `ok`: the window is now foreground. `lock_held`: the OS foreground-lock restriction prevented the change (a process that hasn't received recent input is blocked from stealing focus). Mirrors window.move's `foreground_status` shape — same condition, success-with-status rather than ERR."
       }
     },
-    "required": ["prior_handle"],
+    "required": ["prior_handle", "focused_status"],
     "additionalProperties": false
   },
-  "x-errors": ["not_found", "lock_held", "invalid_args"],
+  "x-errors": ["not_found", "invalid_args"],
   "x-implementations": [
     {
       "name": "set_foreground_window",
       "detect": { "type": "always" },
       "available_on": ["windows-modern", "windows-classic"],
-      "description": "Win32 `GetForegroundWindow` (capture prior) + `SetForegroundWindow` (request focus). Subject to foreground-lock restrictions on NT 5+ (`SystemParametersInfo(SPI_GETFOREGROUNDLOCKTIMEOUT)`); denied requests surface as `ERR lock_held`."
+      "description": "Win32 `GetForegroundWindow` (capture prior) + `SetForegroundWindow` (request focus). Subject to foreground-lock restrictions on NT 5+ (`SystemParametersInfo(SPI_GETFOREGROUNDLOCKTIMEOUT)`); denied requests return success with `focused_status: \"lock_held\"`."
     }
   ],
   "x-families": {
     "windows-modern": {
-      "description": "SetForegroundWindow with GetForegroundWindow capture. Foreground-lock restrictions apply: a process that hasn't received recent input is blocked from stealing focus, returning `ERR lock_held`. The agent does NOT bypass the lock — callers can use `AllowSetForegroundWindow` from a privileged helper if needed.",
+      "description": "SetForegroundWindow with GetForegroundWindow capture. Foreground-lock restrictions apply: a process that hasn't received recent input is blocked from stealing focus, returning success with `focused_status: \"lock_held\"`. The agent does NOT bypass the lock — callers can use `AllowSetForegroundWindow` from a privileged helper if needed.",
       "implementations_in_order": ["set_foreground_window"]
     },
     "windows-classic": {

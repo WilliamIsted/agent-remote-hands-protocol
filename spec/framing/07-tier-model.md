@@ -10,9 +10,18 @@ The tier vocabulary follows CRUDX — each verb's required tier matches the side
 | `create` | C | All `read` capabilities plus operations that bring something new into existence: `directory.create`, `process.start`, `process.shell`. |
 | `update` | U | All `create` capabilities plus operations that overwrite or move existing things: synthetic input, file writes, registry writes, focus changes, element invocations, window moves, file rename. |
 | `delete` | D | All `update` capabilities plus operations that make existing things cease to be: `file.delete`, `process.kill`, `registry.delete`. |
-| `extra_risky` | X | All `delete` capabilities plus operations that affect connection / system / power state: `system.shutdown`, `system.reboot`, `system.logoff`, `system.hibernate`, `system.sleep`, `system.power.cancel`. |
+| `extra_risky` | X | All `delete` capabilities plus operations that affect system / power state: `system.shutdown`, `system.reboot`, `system.logoff`, `system.hibernate`, `system.sleep`, `system.lock`. |
 
 The ladder is strict — holding a higher tier subsumes every lower tier. A connection at `delete` can call any `R`/`C`/`U`/`D`-tier verb (but not `X`-tier).
+
+### Exemptions from CRUDX
+
+Two classes of verb are **CRUDX-exempt** — they carry an `R` letter despite mutating state, because the state they mutate is not user-visible:
+
+- **`connection.*` (5 verbs)** — `connection.hello`, `connection.close`, `connection.reset`, `connection.tier_raise`, `connection.tier_drop`. These operate on protocol-layer state (session lifecycle, framing parser, per-connection tier). The CRUDX model is for user-visible-state side-effects; protocol-layer mutations are tier-orthogonal. `tier_raise` is gated by token, not tier; `close`/`reset` always available; `hello` is the handshake.
+- **`watch.*` subscription creators (`watch.region`, `watch.process`, `watch.window`, `watch.element`, `watch.file`, `watch.registry`)** plus **`watch.cancel`** — subscriptions are connection-scoped observation handles, not durable agent state. Creating a watch is `R` (you're observing); cancelling is `R` (you're observing the lack of further events). The underlying observed state is what gets gated — e.g. `watch.region` requires `read` for screen content. See `06-subscriptions.md` for the subscription lifecycle model.
+
+`system.power.cancel` was previously listed as X-tier; it is now classified as `U` because cancellation mutates pending-action state but does not introduce new risk.
 
 ### 7.2 Tier enforcement
 

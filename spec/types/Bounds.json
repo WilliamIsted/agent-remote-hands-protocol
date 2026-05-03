@@ -1,0 +1,14 @@
+{
+  "_doc": "Canonical Bounds shape. Verb files declare $defs.Bounds inline; tests/check_spec.py validates that every inline copy matches this file exactly. Don't $ref across files — the strict-tool subset disallows it. When Bounds appears in 3+ verbs, copy this block verbatim into each verb's $defs.",
+  "schema": {
+    "type": "object",
+    "properties": {
+      "x": { "type": "integer", "description": "Top-left X in virtual-screen coordinates." },
+      "y": { "type": "integer", "description": "Top-left Y in virtual-screen coordinates." },
+      "w": { "type": "integer", "description": "Width in physical pixels." },
+      "h": { "type": "integer", "description": "Height in physical pixels." }
+    },
+    "required": ["x", "y", "w", "h"],
+    "additionalProperties": false
+  }
+}

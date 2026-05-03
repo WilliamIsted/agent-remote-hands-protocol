@@ -57,6 +57,7 @@ REQUIRED_VERB_KEYS = (
     "x-namespace",
     "x-output-schema",
     "x-errors",
+    "x-implementations",
     "x-families",
 )
 REQUIRED_FAMILY_KEYS = (
@@ -258,6 +259,137 @@ def check_verb_file(path: pathlib.Path,
         _err(failures, path, "x-errors must be an array of strings")
 
 
+def load_error_dictionary(spec_dir: pathlib.Path,
+                          failures: list[str]) -> set[str]:
+    """Parse spec/framing/05-errors.md and return the set of error codes
+    declared in the §5.1 and §5.2 tables. Codes are recognised as backticked
+    identifiers in the first column of the markdown tables."""
+    errors_path = spec_dir / "framing" / "05-errors.md"
+    if not errors_path.is_file():
+        _err(failures, errors_path, "missing — error-code dictionary required")
+        return set()
+    text = errors_path.read_text(encoding="utf-8")
+    codes: set[str] = set()
+    in_table = False
+    for line in text.splitlines():
+        stripped = line.strip()
+        # Detect markdown table rows; first cell with a backticked identifier.
+        if stripped.startswith("| `") and stripped.endswith("|"):
+            in_table = True
+            # Extract first cell between `...`
+            try:
+                first = stripped.split("|", 2)[1].strip()
+                if first.startswith("`") and "`" in first[1:]:
+                    code = first[1:].split("`", 1)[0]
+                    if code and " " not in code:
+                        codes.add(code)
+            except (IndexError, ValueError):
+                pass
+        elif in_table and not stripped.startswith("|"):
+            in_table = False
+    return codes
+
+
+def check_error_codes(verb_files: list[pathlib.Path],
+                      dictionary: set[str],
+                      failures: list[str]) -> None:
+    """For each verb's x-errors, verify every code is in the dictionary."""
+    if not dictionary:
+        return
+    for path in verb_files:
+        try:
+            spec = json.loads(path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            continue
+        errors_list = spec.get("x-errors", [])
+        if not isinstance(errors_list, list):
+            continue
+        for code in errors_list:
+            if not isinstance(code, str):
+                continue
+            if code not in dictionary:
+                _err(failures, path,
+                     f"x-errors contains {code!r} which is not declared in "
+                     f"spec/framing/05-errors.md. Add it to the dictionary "
+                     f"(or fix the verb's x-errors entry).")
+
+
+def load_shared_types(spec_dir: pathlib.Path,
+                      failures: list[str]) -> dict[str, dict]:
+    """Return {shape_name: {"schema": ..., "validation": "exact"|"structure-only"}}.
+    Loaded from spec/types/*.json. Empty dict if directory missing."""
+    types_dir = spec_dir / "types"
+    if not types_dir.is_dir():
+        return {}
+    out: dict[str, dict] = {}
+    for path in sorted(types_dir.glob("*.json")):
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as e:
+            _err(failures, path, f"JSON parse error: {e}")
+            continue
+        if not isinstance(data.get("schema"), dict):
+            _err(failures, path, "missing or non-object 'schema' key")
+            continue
+        out[path.stem] = {
+            "schema": data["schema"],
+            "validation": data.get("_validation", "exact"),
+        }
+    return out
+
+
+def _check_shape_match(canonical: dict, observed: dict, mode: str) -> str | None:
+    """Return None on match, or an error message string on mismatch."""
+    if mode == "exact":
+        if canonical != observed:
+            return "inline shape diverges from canonical (exact match required)"
+        return None
+    if mode == "structure-only":
+        # Compare type, required, additionalProperties, and property keys.
+        for key in ("type", "additionalProperties"):
+            if canonical.get(key) != observed.get(key):
+                return f"`{key}` differs (canonical={canonical.get(key)!r}, observed={observed.get(key)!r})"
+        if sorted(canonical.get("required", [])) != sorted(observed.get("required", [])):
+            return "`required` array differs"
+        canonical_keys = sorted((canonical.get("properties") or {}).keys())
+        observed_keys = sorted((observed.get("properties") or {}).keys())
+        if canonical_keys != observed_keys:
+            return f"property keys differ (canonical={canonical_keys}, observed={observed_keys})"
+        for prop_key in canonical_keys:
+            ct = (canonical["properties"][prop_key] or {}).get("type")
+            ot = (observed["properties"][prop_key] or {}).get("type")
+            if ct != ot:
+                return f"property `{prop_key}` type differs (canonical={ct!r}, observed={ot!r})"
+        return None
+    return f"unknown validation mode {mode!r}"
+
+
+def check_shared_types(verb_files: list[pathlib.Path],
+                       shared_types: dict[str, dict],
+                       failures: list[str]) -> None:
+    """For each verb, if it declares $defs.<TypeName> matching a shared type,
+    verify the inline shape matches the canonical."""
+    if not shared_types:
+        return
+    for path in verb_files:
+        try:
+            spec = json.loads(path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            continue  # parse error already reported
+        defs = spec.get("$defs")
+        if not isinstance(defs, dict):
+            continue
+        for type_name, type_meta in shared_types.items():
+            if type_name not in defs:
+                continue
+            err = _check_shape_match(
+                type_meta["schema"], defs[type_name], type_meta["validation"]
+            )
+            if err is not None:
+                _err(failures, path,
+                     f"$defs.{type_name} {err} — see spec/types/{type_name}.json")
+
+
 def main() -> int:
     root = _repo_root()
     spec_dir = root / "spec"
@@ -268,6 +400,8 @@ def main() -> int:
     failures: list[str] = []
     families = check_families_json(spec_dir, failures)
     reserved = load_reserved_names(spec_dir, failures)
+    shared_types = load_shared_types(spec_dir, failures)
+    error_dict = load_error_dictionary(spec_dir, failures)
 
     verbs_dir = spec_dir / "verbs"
     if not verbs_dir.is_dir():
@@ -278,10 +412,14 @@ def main() -> int:
     for vf in verb_files:
         check_verb_file(vf, families.keys(), failures)
     check_reserved_collisions(verb_files, reserved, failures)
+    check_shared_types(verb_files, shared_types, failures)
+    check_error_codes(verb_files, error_dict, failures)
 
     print(f"check_spec: {len(verb_files)} verb files, "
           f"{len(families)} families, "
-          f"{len(reserved)} reserved names")
+          f"{len(reserved)} reserved names, "
+          f"{len(shared_types)} shared types, "
+          f"{len(error_dict)} error codes")
 
     if failures:
         print(f"\n{len(failures)} failure(s):", file=sys.stderr)

@@ -20,7 +20,7 @@
     "type": "null",
     "description": "Empty body — wire response is the literal `OK 0`."
   },
-  "x-errors": ["not_found", "invalid_args"],
+  "x-errors": ["not_found", "invalid_args", "uipi_blocked"],
   "x-implementations": [
     {
       "name": "post_message_close",

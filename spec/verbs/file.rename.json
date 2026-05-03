@@ -1,7 +1,7 @@
 {
   "name": "file.rename",
   "strict": true,
-  "description": "Move or rename a file or directory. Same operation handles both — the destination's parent directory determines whether it's a rename (same parent) or a move (different parent).",
+  "description": "Move or rename a file. Files only — use `directory.rename` for directories. The destination's parent directory determines whether it's a rename (same parent) or a move (different parent).",
   "input_schema": {
     "type": "object",
     "properties": {

@@ -1,7 +1,7 @@
 {
   "name": "file.wait",
   "strict": true,
-  "description": "Block until at least one path matching `glob` appears on the filesystem, or `timeout_ms` expires. Returns the first matched path. Tolerates files and directories.",
+  "description": "Block until at least one file matching `glob` appears on the filesystem, or `timeout_ms` expires. Returns the first matched path. Files only — use `watch.file` if you need to observe directory creation events.",
   "input_schema": {
     "type": "object",
     "properties": {

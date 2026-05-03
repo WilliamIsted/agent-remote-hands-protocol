@@ -5,7 +5,7 @@
   "input_schema": {
     "type": "object",
     "properties": {
-      "hwnd": {
+      "handle": {
         "type": "string",
         "description": "Target window handle in `win:0x<hex>` form."
       },
@@ -20,9 +20,23 @@
       "lparam": {
         "type": "integer",
         "description": "Message-specific LPARAM. Signed 64-bit. The bridge accepts hex strings."
+      },
+      "wparam_string": {
+        "type": "string",
+        "description": "UTF-8 string used as wparam when the message expects a string-pointer (rare; e.g. WM_COPYDATA + COPYDATASTRUCT). Mutually exclusive with `wparam`. Agent allocates the buffer, marshals to UTF-16 if the target expects WCHAR, and frees after the synchronous send returns."
+      },
+      "lparam_string": {
+        "type": "string",
+        "description": "UTF-8 string used as lparam when the message expects a string-pointer (e.g. WM_SETTEXT). Mutually exclusive with `lparam`. Agent allocates the buffer, marshals as needed, and frees after the synchronous send returns."
+      },
+      "timeout_ms": {
+        "type": "integer",
+        "minimum": 0,
+        "default": 5000,
+        "description": "Max time to block waiting for the target wndproc. Returns ERR timeout if exceeded. 0 disables the timeout (block indefinitely — risk: agent stalls if target is unresponsive)."
       }
     },
-    "required": ["hwnd", "msg", "wparam", "lparam"],
+    "required": ["handle", "msg"],
     "additionalProperties": false
   },
   "x-crudx": "U",
@@ -39,7 +53,7 @@
     "required": ["lresult"],
     "additionalProperties": false
   },
-  "x-errors": ["not_found", "uipi_blocked", "permission_denied", "invalid_args"],
+  "x-errors": ["not_found", "uipi_blocked", "permission_denied", "invalid_args", "timeout"],
   "x-implementations": [
     {
       "name": "send_message",
@@ -54,7 +68,7 @@
       "implementations_in_order": ["send_message"]
     },
     "windows-classic": {
-      "description": "SendMessageW (NT 5+) or SendMessageA (NT 4 / 9x, with input transcoding from UTF-8 wparam/lparam strings). No UIPI on classic — sends cross all process boundaries.",
+      "description": "SendMessageW (NT 5+) or SendMessageA (NT 4 / 9x). No UIPI on classic — sends cross all process boundaries.",
       "implementations_in_order": ["send_message"]
     }
   }

@@ -40,16 +40,16 @@
         "type": "string",
         "description": "Decoded text in the requested encoding, or base64-encoded raw bytes when `encoding: binary`."
       },
-      "size": {
+      "bytes_read": {
         "type": "integer",
-        "description": "Byte length of the content returned (after decoding for text encodings, or the original-bytes length for binary). NOT the total file size — use `file.stat` for that."
+        "description": "Byte length of the content returned (after decoding for text encodings, or the original-bytes length for binary). Distinct from `file.stat.size` (the total file size)."
       },
       "truncated": {
         "type": "boolean",
         "description": "True when `length` was supplied AND the file had more bytes after `offset + length`. False when the read reached EOF (including the case where `length` is omitted)."
       }
     },
-    "required": ["content", "size", "truncated"],
+    "required": ["content", "bytes_read", "truncated"],
     "additionalProperties": false
   },
   "x-errors": ["not_found", "permission_denied", "invalid_args"],

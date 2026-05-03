@@ -1,17 +1,19 @@
 {
-  "name": "system.reboot",
+  "name": "system.power.reboot",
   "strict": true,
-  "description": "Initiates an OS-level reboot. Connection drops once the OS issues the reboot signal — clients should treat absence of an OK as expected. Extra-risky (X) verb; agents may require an elevated tier or explicit policy grant before honouring it.",
+  "description": "Initiates an OS-level reboot. With `delay_seconds: 0`, the connection may drop before any response. With `delay_seconds > 0`, the OK with `scheduled_at` arrives before the reboot is issued. Extra-risky (X) verb; agents may require an elevated tier or explicit policy grant before honouring it.",
   "input_schema": {
     "type": "object",
     "properties": {
       "delay_seconds": {
         "type": "integer",
         "minimum": 0,
+        "default": 0,
         "description": "Seconds to wait before initiating reboot. Zero means immediate."
       },
-      "force": {
+      "force_close_apps": {
         "type": "boolean",
+        "default": false,
         "description": "Force-close applications without prompting. Maps to EWX_FORCE on Windows."
       },
       "reason": {
@@ -23,6 +25,7 @@
   },
   "x-crudx": "X",
   "x-since": "2.0",
+  "x-renamed-from": "system.reboot",
   "x-namespace": "system",
   "x-output-schema": {
     "type": "object",
@@ -30,10 +33,9 @@
       "scheduled_at": {
         "type": "string",
         "format": "date-time",
-        "description": "ISO 8601 timestamp of when the OS-level reboot will fire. Equals now+delay_seconds."
+        "description": "ISO 8601 timestamp of when the OS-level reboot will fire. Equals now+delay_seconds. Only present when delay_seconds > 0."
       }
     },
-    "required": ["scheduled_at"],
     "additionalProperties": false
   },
   "x-errors": ["insufficient_privilege", "policy_blocked"],

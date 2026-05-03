@@ -63,6 +63,7 @@
   "x-crudx": "R",
   "x-since": "2.0",
   "x-namespace": "element",
+  "x-mutually-exclusive": ["name", "automation_id"],
   "x-output-schema": {
     "type": "object",
     "properties": {
@@ -133,7 +134,7 @@
     },
     "windows-classic": {
       "implemented": false,
-      "reason": "UIA does not exist pre-Vista. system.info.capabilities.ui_automation: no. The compiler/generator excludes this verb from windows-classic dist/<family>/VERBS.md output."
+      "reason": "Requires UI Automation (Vista+)."
     }
   }
 }

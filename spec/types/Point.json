@@ -1,0 +1,13 @@
+{
+  "_doc": "Canonical Point shape (structural only). Used by input.click/move/scroll's actual_position output. Per-verb description text varies (the actual position has a slightly different semantic in each verb — clamped landing point vs cursor target vs synthesised wheel position). Validator (tests/check_spec.py) checks structure only: type, required, additionalProperties, and the property keys. Description text is a per-verb override.",
+  "schema": {
+    "type": "object",
+    "properties": {
+      "x": { "type": "integer" },
+      "y": { "type": "integer" }
+    },
+    "required": ["x", "y"],
+    "additionalProperties": false
+  },
+  "_validation": "structure-only"
+}

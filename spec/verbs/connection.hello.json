@@ -7,7 +7,7 @@
     "properties": {
       "client_version": {
         "type": "string",
-        "description": "Protocol version the client wishes to speak, e.g. '2.0'. Server picks the highest mutually-supported version and echoes it in the response."
+        "description": "Protocol version the client wishes to speak, e.g. '2.1'. Server picks the highest mutually-supported version and echoes it in the response's `agent_protocol` field."
       }
     },
     "required": ["client_version"],
@@ -20,12 +20,13 @@
     "type": "object",
     "properties": {
       "protocol":       { "const": "arh", "description": "Protocol identifier — always the literal \"arh\" (Agent Remote Hands). Lets clients verify the wire protocol upfront." },
-      "version":        { "type": "string", "description": "Protocol version the agent negotiated for this connection, e.g. \"2.2\". Echoes the highest mutually-supported version." },
-      "server":         { "type": "string", "description": "Agent product family, e.g. \"windows-modern\" or \"windows-classic\". Mirrors `system.info.server`." },
-      "server_version": { "type": "string", "description": "Agent build version, e.g. \"0.3.1\". Mirrors `system.info.server_version`." },
+      "agent":          { "type": "string", "description": "Agent software name, e.g. \"AgentRemoteHands\". Mirrors `system.info.agent`." },
+      "agent_protocol": { "type": "string", "description": "Wire-protocol version this agent speaks for this connection, e.g. \"2.1\". The negotiated highest mutually-supported version. Mirrors `system.info.agent_protocol`." },
+      "os_name":        { "type": "string", "description": "Human-readable OS product name, e.g. \"Windows 11 Pro\". Mirrors `system.info.os_name`." },
+      "os_version":     { "type": "string", "description": "OS version designation, e.g. \"22H2\". Mirrors `system.info.os_version`." },
       "session_id":     { "type": "string", "description": "Fresh per-connection identifier for log correlation; opaque to the client." }
     },
-    "required": ["protocol", "version", "server", "server_version", "session_id"],
+    "required": ["protocol", "agent", "agent_protocol", "os_name", "os_version", "session_id"],
     "additionalProperties": false
   },
   "x-errors": ["protocol_mismatch", "invalid_args"],

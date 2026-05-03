@@ -15,7 +15,7 @@ Each stage is locked with the user before the next begins.
 Required:
 
 - `name` — namespaced, dotted, lowercase (e.g. `screen.capture`, `element.find_invoke`).
-- `strict: true` — unless the verb genuinely needs a JSON Schema feature outside the strict-tool subset (recursive `$ref: "#"`, complex regex, etc.). If `strict: false`, document why in `spec/narrative/<verb>.md` and reference it via `x-rationale-path`.
+- `strict: true` — unless the verb genuinely needs a JSON Schema feature outside the strict-tool subset (recursive `$ref: "#"`, complex regex, open-ended object maps, etc.). If `strict: false`, declare `x-strict-false-reason: <inline-string>` explaining the carve-out. The validator (`tests/check_spec.py`) enforces this requirement.
 - `description` — 1–2 sentences. Action-focused. Tuned for an LLM reading at tool-selection time; longer prose belongs under `x-families.<f>.description` or in narrative.
 - `input_schema` — `type: object`, `additionalProperties: false`. Every property typed; enums populated where a closed set applies. Use `$ref` to in-file `$defs` for repeated types like `Bounds`.
 - `x-crudx` — single letter `C` / `R` / `U` / `D` / `X`. Match the existing usage convention (see dist/PROTOCOL.md §3 / §7 for the tier model these letters feed).
@@ -28,8 +28,22 @@ Required:
 Conditional (Stage A):
 
 - `x-mutually-exclusive` — array of property names that can't co-occur. Required when applicable (e.g. `["region", "window", "monitor"]` on `screen.capture`).
-- `$defs` — for in-file type reuse (`Bounds`, `WindowHandle`, etc.). Required when the same shape appears in multiple properties.
-- `x-rationale-path` — pointer to `spec/narrative/<verb>.md`. Required when the verb has long-form rationale, migration notes, worked examples, performance notes, or edge-case prose worth preserving outside the schema. Optional otherwise. When present, the narrative file must exist.
+- `x-conditional` — array of value-conditional constraints between properties. Required when applicable (e.g. `[{when: {truncate: true}, requires: {offset: 0}}]` on `file.write_at`). Distinct from `x-mutually-exclusive`, which is field-presence-only.
+- `$defs` — for in-file type reuse (`Bounds`, `Point`, etc.). Required when the same shape appears in multiple properties of the same verb.
+- Narrative files: when a verb has long-form rationale, migration notes, worked examples, or edge-case prose worth preserving outside the schema, write it to `spec/narrative/<verb>.md`. The generator picks it up by convention; no schema-side pointer is needed.
+
+## Naming convention — sub-namespace vs underscore-compound
+
+When a verb name needs more than two segments, choose between two patterns:
+
+- **Dotted three-segment `foo.bar.baz`** — denotes a sub-namespace of related verbs. Use when the third segment is shared across peer verbs (e.g. `system.power.{shutdown, reboot, logoff, hibernate, sleep, cancel, blockers, lock}`; `registry.value.{read, create, update, delete}`). The validator rejects lone three-segment names — there must be at least one peer in the same `<a>.<b>.*` namespace.
+- **Underscore-compound `foo.bar_baz`** — denotes a fused atomic operation (a single wire call combining two primitives). Use when the verb is a fusion, not a member of a sub-namespace (e.g. `element.find_invoke`, `element.at_invoke`).
+
+Apply the same distinction to multi-word concepts that need disambiguation (`force_close_apps`, `bypass_vm_check`, `watch_subtree`).
+
+## Shared shapes — `Bounds`, `Point`, etc.
+
+Shared structural shapes (`Bounds = {x, y, w, h}`, `Point = {x, y}`) live in `spec/types/<name>.json` and are inlined into each consuming verb at build time by `Tools/gen.py`. Don't `$ref` across files — the strict-tool subset disallows cross-file references. Add new shared shapes to `spec/types/` when the same shape appears in three or more verb files.
 
 ## Stage B — `windows-modern` family fill
 

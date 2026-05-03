@@ -1,17 +1,19 @@
 {
-  "name": "system.shutdown",
+  "name": "system.power.shutdown",
   "strict": true,
-  "description": "Initiates an OS-level shutdown. Connection drops once the OS issues the shutdown signal — clients should treat absence of an OK as expected. Extra-risky (X) verb; agents may require an elevated tier or explicit policy grant before honouring it.",
+  "description": "Initiates an OS-level shutdown. With `delay_seconds: 0`, the connection may drop before any response. With `delay_seconds > 0`, the OK with `scheduled_at` arrives before shutdown is issued. Extra-risky (X) verb; agents may require an elevated tier or explicit policy grant before honouring it.",
   "input_schema": {
     "type": "object",
     "properties": {
       "delay_seconds": {
         "type": "integer",
         "minimum": 0,
+        "default": 0,
         "description": "Seconds to wait before initiating shutdown. Zero means immediate."
       },
-      "force": {
+      "force_close_apps": {
         "type": "boolean",
+        "default": false,
         "description": "Force-close applications without prompting. Maps to EWX_FORCE on Windows."
       },
       "reason": {
@@ -23,6 +25,7 @@
   },
   "x-crudx": "X",
   "x-since": "2.0",
+  "x-renamed-from": "system.shutdown",
   "x-namespace": "system",
   "x-output-schema": {
     "type": "object",
@@ -30,10 +33,9 @@
       "scheduled_at": {
         "type": "string",
         "format": "date-time",
-        "description": "ISO 8601 timestamp of when the OS-level shutdown will fire. Equals now+delay_seconds."
+        "description": "ISO 8601 timestamp of when the OS-level shutdown will fire. Equals now+delay_seconds. Only present when delay_seconds > 0."
       }
     },
-    "required": ["scheduled_at"],
     "additionalProperties": false
   },
   "x-errors": ["insufficient_privilege", "policy_blocked"],
@@ -42,7 +44,7 @@
       "name": "initiate_system_shutdown_ex",
       "detect": { "type": "always" },
       "available_on": ["windows-modern"],
-      "description": "Win32 `InitiateSystemShutdownExW` with `bRebootAfterShutdown=FALSE`. Honours `delay_seconds`, `force` (EWX_FORCE), `reason` (mapped to SHTDN_REASON_* constant)."
+      "description": "Win32 `InitiateSystemShutdownExW` with `bRebootAfterShutdown=FALSE`. Honours `delay_seconds`, `force_close_apps` (EWX_FORCE), `reason` (mapped to SHTDN_REASON_* constant)."
     },
     {
       "name": "exit_windows_ex",
@@ -53,7 +55,7 @@
   ],
   "x-families": {
     "windows-modern": {
-      "description": "InitiateSystemShutdownExW with delay_seconds, force, and reason mapped through. Requires SeShutdownPrivilege (auto-enabled if held). Connection drops once the OS issues the shutdown.",
+      "description": "InitiateSystemShutdownExW with delay_seconds, force_close_apps, and reason mapped through. Requires SeShutdownPrivilege (auto-enabled if held). Connection drops once the OS issues the shutdown.",
       "implementations_in_order": ["initiate_system_shutdown_ex"]
     },
     "windows-classic": {

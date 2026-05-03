@@ -19,8 +19,15 @@
   "x-since": "2.0",
   "x-namespace": "element",
   "x-output-schema": {
-    "type": "string",
-    "description": "UTF-8 text content of the element. Length reported in the wire OK header (`OK <len>\\n<bytes>`); empty body when the element has no text."
+    "type": "object",
+    "properties": {
+      "text": {
+        "type": "string",
+        "description": "UTF-8 text content of the element. Empty string when the element has no text."
+      }
+    },
+    "required": ["text"],
+    "additionalProperties": false
   },
   "x-errors": [
     "target_gone",

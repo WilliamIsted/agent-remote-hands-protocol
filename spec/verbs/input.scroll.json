@@ -19,6 +19,7 @@
       },
       "horizontal": {
         "type": "boolean",
+        "default": false,
         "description": "Horizontal wheel (tilt or shift+wheel) instead of vertical. Default false. Agents that lack horizontal-wheel support fall back to ignoring the flag."
       }
     },

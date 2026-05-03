@@ -15,7 +15,8 @@
     "additionalProperties": false
   },
   "x-crudx": "R",
-  "x-since": "2.0",
+  "x-since": "2.1",
+  "x-renamed-from": "clipboard.read",
   "x-namespace": "clipboard",
   "x-output-schema": {
     "type": "object",

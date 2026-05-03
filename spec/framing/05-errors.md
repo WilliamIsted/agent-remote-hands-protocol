@@ -22,7 +22,7 @@ Errors take the form:
 | `conflict` | varies | Verb cannot proceed because of in-flight state (e.g. `system.power` `--delay` while one is already pending — detail `{"pending_until_ms":<n>}`) |
 | `protocol_mismatch` | `{agent, client}` | Hello specified an incompatible protocol version |
 | `auth_required` | — | Reserved for v0.4 SSPI (Protocol 4.0) |
-| `auth_invalid` | — | Reserved for v0.4 SSPI (Protocol 4.0) |
+| `auth_invalid` | — | Authentication token rejected. Used today by `connection.tier_raise` when the supplied tier-elevation token is wrong; reserved for v0.4 SSPI in addition. |
 
 ### 5.2 Domain-specific codes
 
@@ -41,6 +41,14 @@ Errors take the form:
 | `not_empty` | — | Removing a non-empty directory without `--recursive`. `file.delete`, `directory.remove`. |
 | `not_a_directory` | `{message?}` | Path exists but refers to a file when the verb requires a directory (or vice versa). All `directory.*` verbs that resolve an existing path. |
 | `cross_device` | `{message?}` | Operation crosses a filesystem boundary and the verb refuses without explicit opt-in. `directory.rename` without `--cross-fs`. |
+| `empty` | — | Source has no content to read. `clipboard.get` when the clipboard has no text. |
+| `unsupported_format` | `{requested, supported?}` | Verb received a format value the connected agent cannot produce. `screen.capture` when `format` is outside the family's supported list. |
+| `no_handler` | `{message?}` | Shell-execute could not find a registered handler for the requested verb / file association. `process.shell`. |
+| `no_implementation_available` | `{tried?}` | The verb's `x-implementations` chain was exhausted on the connected agent (no detect-positive backend). `file.download` when neither curl nor wget nor any platform fallback is present. |
+| `policy_blocked` | `{policy?}` | OS / domain group policy refuses the operation. `system.power.shutdown / .reboot / .logoff` when `SeShutdownPrivilege` exists but policy denies. |
+| `size_limit_exceeded` | `{limit, observed?}` | Caller-set `max_bytes` exceeded mid-transfer. `file.download`. |
+| `transfer_failed` | `{status_code?, message?}` | Transfer aborted by the network or remote server. `file.download` for HTTP errors and connection drops. |
+| `user_cancelled` | — | UAC consent prompt or shell verb dialog was dismissed by the user. `process.shell` with `verb: runas`. |
 
 ### 5.3 Detail JSON
 

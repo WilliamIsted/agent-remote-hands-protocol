@@ -20,12 +20,17 @@
     "properties": {
       "visible_only": {
         "type": "boolean",
+        "default": true,
         "description": "Filter to windows that are currently visible. Default true. When false, includes hidden and minimised windows."
       },
       "pid": {
         "type": "integer",
         "minimum": 1,
         "description": "If supplied, restricts the listing to windows owned by this process id."
+      },
+      "pattern": {
+        "type": "string",
+        "description": "Case-insensitive substring matched against window titles (e.g. `notepad` matches `Untitled - Notepad`). Omit to list all titles."
       }
     },
     "additionalProperties": false

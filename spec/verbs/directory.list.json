@@ -1,13 +1,27 @@
 {
   "name": "directory.list",
   "strict": true,
-  "description": "List the entries in a directory. Returns name / type / size / mtime / flags per entry. Read-only.",
+  "description": "List the entries in a directory. Returns name / type / size / timestamps / flags per entry. Read-only. Pass `recursive: true` for a subtree walk; pass `pattern` to filter by name; pass `limit` to cap the result count.",
   "input_schema": {
     "type": "object",
     "properties": {
       "path": {
         "type": "string",
         "description": "Absolute directory path."
+      },
+      "recursive": {
+        "type": "boolean",
+        "default": false,
+        "description": "If true, walk the subtree depth-first and include descendants. Reparse points (junctions/symlinks) are NOT followed — they appear as `link`-type entries but the agent does not descend into them."
+      },
+      "pattern": {
+        "type": "string",
+        "description": "Optional name filter. Glob-style pattern (`*`, `?`) matched against each entry's name. Omit to include all entries."
+      },
+      "limit": {
+        "type": "integer",
+        "minimum": 1,
+        "description": "Optional cap on the returned entry count. Walk halts when the limit is reached. Omit for no cap."
       }
     },
     "required": ["path"],
@@ -15,6 +29,7 @@
   },
   "x-crudx": "R",
   "x-since": "2.1",
+  "x-renamed-from": "file.list",
   "x-namespace": "directory",
   "x-output-schema": {
     "type": "object",
@@ -26,7 +41,7 @@
           "properties": {
             "name": {
               "type": "string",
-              "description": "Entry's filename (not full path)."
+              "description": "Entry's filename (not full path) when `recursive: false`. When `recursive: true`, this is the path relative to the walk root with forward-slashes."
             },
             "type": {
               "type": "string",
@@ -38,9 +53,17 @@
               "minimum": 0,
               "description": "Byte size. Zero for directories. Symlink size is the target's size when resolvable."
             },
-            "mtime_unix": {
+            "mtime_unix_s": {
               "type": "integer",
               "description": "Modification time as Unix epoch seconds."
+            },
+            "ctime_unix_s": {
+              "type": "integer",
+              "description": "Creation time as Unix epoch seconds. (Windows tracks creation time per-file; Unix systems may report ctime as inode-change time instead.)"
+            },
+            "atime_unix_s": {
+              "type": "integer",
+              "description": "Access time as Unix epoch seconds. Many Windows configurations disable atime updates (NtfsDisableLastAccessUpdate); the value may equal mtime when atime is not maintained."
             },
             "flags": {
               "type": "array",
@@ -51,7 +74,7 @@
               "description": "Win32 FILE_ATTRIBUTE_* flags currently set. Per issue #93 — zero-cost set sourced from WIN32_FIND_DATA. Cloud-file flags (recall_on_*) are Windows 10+; older Windows omits them."
             }
           },
-          "required": ["name", "type", "size", "mtime_unix", "flags"],
+          "required": ["name", "type", "size", "mtime_unix_s", "ctime_unix_s", "atime_unix_s", "flags"],
           "additionalProperties": false
         }
       }
@@ -65,7 +88,7 @@
       "name": "find_first_file_w",
       "detect": { "type": "always" },
       "available_on": ["windows-modern", "windows-classic"],
-      "description": "Win32 `FindFirstFileW` + `FindNextFileW` loop. Each iteration's WIN32_FIND_DATA carries name, attributes, size, timestamps — the full per-entry payload in one call per entry."
+      "description": "Win32 `FindFirstFileW` + `FindNextFileW` loop. Each iteration's WIN32_FIND_DATA carries name, attributes, size, all three timestamps — the full per-entry payload in one call per entry. Recursive walks issue a fresh FindFirstFileW per descended directory; pattern matching applies after each entry is materialised."
     },
     {
       "name": "find_first_file_a",
@@ -76,11 +99,11 @@
   ],
   "x-families": {
     "windows-modern": {
-      "description": "FindFirstFileW + FindNextFileW. UTF-16 native, transcoded to UTF-8 for the wire. Long-path `\\\\?\\` prefix automatic when input exceeds MAX_PATH. Cloud-file flags (recall_on_data_access, recall_on_open) populated for OneDrive / Files-On-Demand / Dropbox-shell-extension entries on Win 10+.",
+      "description": "FindFirstFileW + FindNextFileW. UTF-16 native, transcoded to UTF-8 for the wire. Long-path `\\\\?\\` prefix automatic when input exceeds MAX_PATH. Cloud-file flags (recall_on_data_access, recall_on_open) populated for OneDrive / Files-On-Demand / Dropbox-shell-extension entries on Win 10+. Recursive walks respect `limit` precisely (halt mid-walk when reached).",
       "implementations_in_order": ["find_first_file_w"]
     },
     "windows-classic": {
-      "description": "FindFirstFileW / FindNextFileW on NT 5+; FindFirstFileA / FindNextFileA on NT 4 / 9x. No long-path support pre-NT-5.1. No cloud-file flags pre-Win-10 (FILE_ATTRIBUTE_RECALL_ON_* are Win10-and-later constants).",
+      "description": "FindFirstFileW / FindNextFileW on NT 5+; FindFirstFileA / FindNextFileA on NT 4 / 9x. No long-path support pre-NT-5.1. No cloud-file flags pre-Win-10. atime updates may be unreliable on FAT volumes — the agent reports the OS-supplied value regardless.",
       "implementations_in_order": ["find_first_file_w", "find_first_file_a"]
     }
   }

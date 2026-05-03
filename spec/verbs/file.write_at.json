@@ -1,7 +1,7 @@
 {
   "name": "file.write_at",
   "strict": true,
-  "description": "Random-access write of `content` at byte `offset`. The chunked-upload primitive — bridges call this in sequence for files over their single-shot threshold. Auto-creates the file when `offset: 0`; subsequent offsets require the file to exist.",
+  "description": "Random-access write of `content` at byte `offset`. The chunked-upload primitive — bridges call this in sequence for files over their single-shot threshold. The file must exist (use `file.write` or `file.create` first); returns ERR not_found if absent.",
   "input_schema": {
     "type": "object",
     "properties": {
@@ -12,7 +12,7 @@
       "offset": {
         "type": "integer",
         "minimum": 0,
-        "description": "Byte offset to start writing at. 0 auto-creates the file (or truncates if `truncate: true`); offset > 0 requires the file to exist (returns ERR not_found otherwise)."
+        "description": "Byte offset to start writing at. The file must already exist (returns ERR not_found otherwise)."
       },
       "content": {
         "type": "string",
@@ -27,7 +27,7 @@
       "truncate": {
         "type": "boolean",
         "default": false,
-        "description": "Only meaningful at `offset: 0`. When true, clears any existing file content before writing (the canonical first-chunk-of-chunked-upload pattern)."
+        "description": "Only meaningful at `offset: 0` (enforced — see x-conditional). When true, clears any existing file content before writing (the canonical first-chunk-of-chunked-upload pattern)."
       }
     },
     "required": ["path", "offset", "content"],
@@ -36,6 +36,14 @@
   "x-crudx": "U",
   "x-since": "2.0",
   "x-namespace": "file",
+  "x-conditional": [
+    {
+      "when": { "truncate": true },
+      "requires": { "offset": 0 },
+      "error": "invalid_args",
+      "description": "truncate: true requires offset: 0 — truncating at a non-zero offset is undefined."
+    }
+  ],
   "x-output-schema": {
     "type": "object",
     "properties": {

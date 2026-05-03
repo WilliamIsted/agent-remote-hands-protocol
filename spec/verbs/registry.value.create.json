@@ -1,0 +1,56 @@
+{
+  "name": "registry.value.create",
+  "strict": true,
+  "description": "Create a new registry value. Errors with `already_exists` if the value is already present; use `registry.value.update` to overwrite. Creates the parent key if missing.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "path": {
+        "type": "string",
+        "description": "Registry key path in `HKLM\\Software\\...` form. Created if missing."
+      },
+      "value": {
+        "type": "string",
+        "description": "Value name. Empty string for the (Default) value."
+      },
+      "type": {
+        "type": "string",
+        "enum": ["REG_SZ", "REG_EXPAND_SZ", "REG_BINARY", "REG_DWORD", "REG_DWORD_BIG_ENDIAN", "REG_LINK", "REG_MULTI_SZ", "REG_QWORD", "REG_NONE"],
+        "description": "Win32 registry value type."
+      },
+      "data": {
+        "type": "string",
+        "description": "Value data, formatted per `type`. REG_SZ/REG_EXPAND_SZ/REG_LINK: the literal string. REG_DWORD/REG_QWORD: decimal-stringified integer (or `0xHEX`). REG_BINARY: base64. REG_MULTI_SZ: lines separated by `\\n` (agent converts to null-separated)."
+      }
+    },
+    "required": ["path", "value", "type", "data"],
+    "additionalProperties": false
+  },
+  "x-crudx": "C",
+  "x-since": "2.1",
+  "x-renamed-from": "registry.write",
+  "x-namespace": "registry",
+  "x-output-schema": {
+    "type": "null",
+    "description": "Empty body — wire response is the literal `OK 0`."
+  },
+  "x-errors": ["already_exists", "permission_denied", "invalid_args", "not_supported"],
+  "x-implementations": [
+    {
+      "name": "reg_create_set_new",
+      "detect": { "type": "always" },
+      "available_on": ["windows-modern", "windows-classic"],
+      "description": "Win32 `RegCreateKeyExW` (creates parent key if missing; opens with KEY_QUERY_VALUE | KEY_SET_VALUE) + `RegQueryValueExW` (probe to detect existing value) + `RegSetValueExW`. Returns ERR already_exists when the probe finds the value present."
+    }
+  ],
+  "x-families": {
+    "windows-modern": {
+      "description": "RegCreateKeyExW + probe + RegSetValueExW. The probe step makes create vs. update explicit at this layer (Win32 RegSetValueExW itself doesn't distinguish). HKLM writes typically require admin; ERR permission_denied without elevation.",
+      "implementations_in_order": ["reg_create_set_new"]
+    },
+    "windows-classic": {
+      "description": "Same APIs since NT 3.1. NT 4 / 9x agents use RegSetValueExA with ANSI transcoding for string types. Win 9x lacks REG_QWORD and REG_LINK — those return ERR not_supported.",
+      "implementations_in_order": ["reg_create_set_new"]
+    }
+  }
+}

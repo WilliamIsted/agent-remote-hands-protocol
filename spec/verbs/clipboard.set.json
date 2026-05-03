@@ -20,17 +20,19 @@
     "additionalProperties": false
   },
   "x-crudx": "U",
-  "x-since": "2.0",
+  "x-since": "2.1",
+  "x-renamed-from": "clipboard.write",
   "x-namespace": "clipboard",
   "x-output-schema": {
     "type": "object",
     "properties": {
-      "set": {
-        "type": "boolean",
-        "description": "True on success."
+      "format": {
+        "type": "string",
+        "enum": ["text"],
+        "description": "Echo of the format that was set. Symmetric with clipboard.get's format echo."
       }
     },
-    "required": ["set"],
+    "required": ["format"],
     "additionalProperties": false
   },
   "x-errors": ["permission_denied", "invalid_args"],

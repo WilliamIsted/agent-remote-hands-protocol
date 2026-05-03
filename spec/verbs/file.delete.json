@@ -1,18 +1,13 @@
 {
   "name": "file.delete",
   "strict": true,
-  "description": "Delete a file or empty directory. Hard delete — bypasses Recycle Bin / Trash. Pass `recursive: true` to remove non-empty directories.",
+  "description": "Delete a file. Files only — use `directory.delete` for directories. Hard delete — bypasses Recycle Bin / Trash.",
   "input_schema": {
     "type": "object",
     "properties": {
       "path": {
         "type": "string",
-        "description": "Absolute path."
-      },
-      "recursive": {
-        "type": "boolean",
-        "default": false,
-        "description": "If path is a directory, delete its contents recursively. Without this flag, deleting a non-empty directory returns ERR not_empty."
+        "description": "Absolute path to a file."
       }
     },
     "required": ["path"],
@@ -22,39 +17,32 @@
   "x-since": "2.0",
   "x-namespace": "file",
   "x-output-schema": {
-    "type": "object",
-    "properties": {
-      "deleted": {
-        "type": "boolean",
-        "description": "True when the path was deleted. False is reserved for future soft-delete semantics; today the response is always true on success (errors raised otherwise)."
-      }
-    },
-    "required": ["deleted"],
-    "additionalProperties": false
+    "type": "null",
+    "description": "Empty body — wire response is the literal `OK 0`."
   },
-  "x-errors": ["not_found", "not_empty", "permission_denied", "invalid_args"],
+  "x-errors": ["not_found", "permission_denied", "not_a_directory", "invalid_args"],
   "x-implementations": [
     {
       "name": "delete_file_w",
       "detect": { "type": "always" },
       "available_on": ["windows-modern", "windows-classic"],
-      "description": "Win32 `DeleteFileW` for files. Returns ERR permission_denied for read-only files (caller must clear FILE_ATTRIBUTE_READONLY first via a future file.set_attributes verb)."
+      "description": "Win32 `DeleteFileW`. Returns ERR permission_denied for read-only files (caller must clear FILE_ATTRIBUTE_READONLY first via a future file.set_attributes verb). Returns ERR not_a_directory if path resolves to a directory — use directory.delete instead."
     },
     {
-      "name": "remove_directory_w",
+      "name": "delete_file_a",
       "detect": { "type": "always" },
-      "available_on": ["windows-modern", "windows-classic"],
-      "description": "Win32 `RemoveDirectoryW` for empty directories. With `recursive: true`, the agent walks the tree first via FindFirstFile/FindNextFile + DeleteFile, then RemoveDirectory."
+      "available_on": ["windows-classic"],
+      "description": "Win32 `DeleteFileA` legacy fallback for NT 4 / 9x. ANSI path; transcoded UTF-8 → ANSI by the agent."
     }
   ],
   "x-families": {
     "windows-modern": {
-      "description": "DeleteFileW for files, RemoveDirectoryW for directories. Hard delete — does not route through the Recycle Bin (SHFileOperation is intentionally NOT used). Reparse points are removed without traversal — `recursive: true` removes the link, not the link target.",
-      "implementations_in_order": ["delete_file_w", "remove_directory_w"]
+      "description": "DeleteFileW. Hard delete — does not route through the Recycle Bin (SHFileOperation is intentionally NOT used). Returns ERR not_a_directory if path is a directory; the caller must use directory.delete instead.",
+      "implementations_in_order": ["delete_file_w"]
     },
     "windows-classic": {
-      "description": "DeleteFileA / DeleteFileW depending on NT version, plus RemoveDirectory. Same hard-delete behaviour — Recycle Bin requires SHFileOperation, which the agent intentionally does not use. Pre-NT-5 has no reparse points; recursive delete behaves uniformly.",
-      "implementations_in_order": ["delete_file_w", "remove_directory_w"]
+      "description": "DeleteFileW on NT 5+; DeleteFileA on NT 4 / 9x. Same hard-delete behaviour. Returns ERR not_a_directory if path is a directory.",
+      "implementations_in_order": ["delete_file_w", "delete_file_a"]
     }
   }
 }

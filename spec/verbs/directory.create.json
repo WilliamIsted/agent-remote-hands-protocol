@@ -1,7 +1,7 @@
 {
   "name": "directory.create",
   "strict": true,
-  "description": "Create a directory. Brings something new into existence — classified C.",
+  "description": "Create a directory.",
   "input_schema": {
     "type": "object",
     "properties": {
@@ -26,7 +26,8 @@
     "additionalProperties": false
   },
   "x-crudx": "C",
-  "x-since": "2.0",
+  "x-since": "2.1",
+  "x-renamed-from": "file.mkdir",
   "x-namespace": "directory",
   "x-output-schema": {
     "type": "object",
@@ -56,12 +57,14 @@
   ],
   "x-families": {
     "windows-modern": {
-      "description": "CreateDirectoryW. Long-path `\\\\?\\` prefix automatic when input exceeds MAX_PATH. `parents: true` walks the path components, creating each missing one. ERR not_found when `parents: false` and a parent doesn't exist; ERR already_exists when the leaf already exists.",
-      "implementations_in_order": ["create_directory_w"]
+      "description": "CreateDirectoryW. Long-path `\\\\?\\` prefix automatic when input exceeds MAX_PATH. `parents: true` walks the path components, creating each missing one. ERR not_found when `parents: false` and a parent doesn't exist; ERR already_exists when the leaf already exists. The `mode` field is silently ignored — NTFS uses ACLs, not POSIX bits.",
+      "implementations_in_order": ["create_directory_w"],
+      "fields_ignored": ["mode"]
     },
     "windows-classic": {
-      "description": "CreateDirectoryW on NT 5+; CreateDirectoryA on NT 4 / 9x. Same `parents: true` walking behaviour. No long-path support pre-NT-5.1 — paths over MAX_PATH return ERR not_found.",
-      "implementations_in_order": ["create_directory_w", "create_directory_a"]
+      "description": "CreateDirectoryW on NT 5+; CreateDirectoryA on NT 4 / 9x. Same `parents: true` walking behaviour. No long-path support pre-NT-5.1 — paths over MAX_PATH return ERR not_found. The `mode` field is silently ignored.",
+      "implementations_in_order": ["create_directory_w", "create_directory_a"],
+      "fields_ignored": ["mode"]
     }
   }
 }

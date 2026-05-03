@@ -37,7 +37,7 @@
   ],
   "x-families": {
     "windows-modern": {
-      "description": "SendInput with KEYEVENTF_UNICODE per codepoint. Reaches user32 message-queue listeners (most apps, including modern frameworks like WPF / WinUI / Electron). Does NOT reach RawInput / DirectInput — same limitation as input.key (PROTOCOL.md §4.4 / issue #64). UIPI applies.",
+      "description": "SendInput with KEYEVENTF_UNICODE per codepoint. Reaches user32 message-queue listeners (most apps, including modern frameworks like WPF / WinUI / Electron). Does NOT reach RawInput / DirectInput — same limitation as input.key (dist/PROTOCOL.md §4.4 / issue #64). UIPI applies.",
       "implementations_in_order": ["send_input_unicode"]
     },
     "windows-classic": {

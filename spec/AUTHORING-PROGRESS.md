@@ -26,21 +26,26 @@ Status legend: ⬜ not started · 🟨 in progress · ✅ done.
 | 4 | `connection.reset` | ✅ | §4.12:460 | :152 | ❌ | ❌ | ❌ |
 | 5 | `connection.close` | ✅ | §4.12:461 | :153 | ❌ | `QUIT` / `EXIT` / `BYE` (consolidated) | `test_connection.py` |
 
-## `system.*` (11 verbs)
+## `system.*` (3 verbs)
 
 | # | Verb | Status | PROTOCOL.md | VERBS.md | spec/verbs | v1 archive | Conformance |
 |---|---|---|---|---|---|---|---|
 | 6 | `system.info` | ✅ | §4.1:284 | :23 | ✅ (mock) | `INFO` | `test_system.py` |
 | 7 | `system.capabilities` | ✅ | §4.1:285 | :24 | ❌ | `CAPS` | `test_system.py` |
 | 8 | `system.health` | ✅ | §4.1:286 | :25 | ❌ | `PING` | `test_system.py` |
-| 9 | `system.shutdown_blockers` | ✅ | §4.1:287 | :26 | ❌ | ❌ | `test_system.py` |
-| 10 | `system.lock` | ✅ | §4.1:288 | :27 | ❌ | `LOCK` | ❌ |
-| 11 | `system.reboot` | ✅ | §4.1:289 | :28 | ❌ | `REBOOT` | `test_system.py` |
-| 12 | `system.shutdown` | ✅ | §4.1:290 | :29 | ✅ (mock) | `SHUTDOWN` | `test_system.py` |
-| 13 | `system.logoff` | ✅ | §4.1:291 | :30 | ❌ | `LOGOFF` | ❌ |
-| 14 | `system.hibernate` | ✅ | §4.1:292 | :31 | ❌ | ❌ | ❌ |
-| 15 | `system.sleep` | ✅ | §4.1:293 | :32 | ❌ | ❌ | ❌ |
-| 16 | `system.power.cancel` | ✅ | §4.1:294 | :33 | ❌ | ❌ | `test_system.py` |
+
+## `system.power.*` (8 verbs — migrated from `system.*` in v2.1.0-rc.2)
+
+| # | Verb | Status | spec/verbs | v1 archive | Conformance |
+|---|---|---|---|---|---|
+| 9 | `system.power.shutdown` | ✅ | ✅ (renamed from `system.shutdown`) | `SHUTDOWN` | `test_system.py` |
+| 10 | `system.power.reboot` | ✅ | ✅ (renamed from `system.reboot`) | `REBOOT` | `test_system.py` |
+| 11 | `system.power.logoff` | ✅ | ✅ (renamed from `system.logoff`) | `LOGOFF` | ❌ |
+| 12 | `system.power.hibernate` | ✅ | ✅ (renamed from `system.hibernate`; gained `delay_seconds`+`reason`; `force`→`bypass_vm_check`) | ❌ | ❌ |
+| 13 | `system.power.sleep` | ✅ | ✅ (renamed from `system.sleep`; gained `delay_seconds`+`reason`; `force`→`bypass_vm_check`) | ❌ | ❌ |
+| 14 | `system.power.cancel` | ✅ | ✅ (CRUDX X→U) | ❌ | `test_system.py` |
+| 15 | `system.power.blockers` | ✅ | ✅ (renamed from `system.shutdown_blockers`; output `hwnd`→`handle`) | ❌ | `test_system.py` |
+| 16 | `system.power.lock` | ✅ | ✅ (renamed from `system.lock`; CRUDX R→X) | `LOCK` | ❌ |
 
 ## `screen.*` (1 verb)
 
@@ -90,70 +95,73 @@ Status legend: ⬜ not started · 🟨 in progress · ✅ done.
 | 43 | `element.text` | ✅ | §4.5:374 | :80 | ❌ | `ELEMENT_TEXT` | ❌ |
 | 44 | `element.set_text` | ✅ | §4.5:375 | :81 | ❌ | `ELEMENT_SET_TEXT` | ❌ |
 
-## `file.*` (9 verbs)
+## `file.*` (10 verbs — narrowed to files-only in v2.1.0-rc.2; `file.write` split)
 
 | # | Verb | Status | spec/verbs | v1 archive | Conformance |
 |---|---|---|---|---|---|
-| 45 | `file.read` | ✅ | ✅ (mock) | `READ` | `test_file.py` |
-| 46 | `file.write` | ✅ | ✅ (mock) | `WRITE` | `test_file.py` |
-| 47 | `file.write_at` | ✅ | ❌ | ❌ | ❌ |
-| 48 | `file.stat` | ✅ | ❌ | `STAT` | ❌ |
-| 49 | `file.delete` | ✅ | ✅ (mock) | `DELETE` | `test_file.py` |
-| 50 | `file.exists` | ✅ | ❌ | ❌ | `test_file.py` |
-| 51 | `file.wait` | ✅ | ❌ | ❌ | ❌ |
-| 52 | `file.rename` | ✅ | ❌ | `RENAME` | ❌ |
-| 53 | `file.download` | ✅ | ✅ (mock) | ❌ | ❌ |
+| 45 | `file.read` | ✅ | ✅ (mock; output `size`→`bytes_read`) | `READ` | `test_file.py` |
+| 46 | `file.create` | ✅ | ✅ (NEW; split out of `file.write`'s `create_only: true`) | ❌ | ❌ |
+| 47 | `file.write` | ✅ | ✅ (narrowed to U-only; `create_only` flag dropped; ERR not_found if missing) | `WRITE` | `test_file.py` |
+| 48 | `file.write_at` | ✅ | ✅ (auto-create-on-offset-0 dropped; ERR not_found if missing; new `x-conditional` truncate↔offset) | ❌ | ❌ |
+| 49 | `file.stat` | ✅ | ✅ (files-only; timestamps `*_unix`→`*_unix_s`) | `STAT` | ❌ |
+| 50 | `file.delete` | ✅ | ✅ (files-only; `recursive`/`not_empty` removed — use `directory.delete`) | `DELETE` | `test_file.py` |
+| 51 | `file.exists` | ✅ | ✅ (files-only) | ❌ | `test_file.py` |
+| 52 | `file.wait` | ✅ | ✅ (files-only) | ❌ | ❌ |
+| 53 | `file.rename` | ✅ | ✅ (files-only — use `directory.rename` for directories) | `RENAME` | ❌ |
+| 54 | `file.download` | ✅ | ✅ (mock; `dest_path`→`local_path`; `file.mkdir`→`directory.create` ref) | ❌ | ❌ |
 
 The PROTOCOL.md columns are dropped post-audit (PROTOCOL.md being deleted; mock-ups are the contract). `file.download` was previously listed as an "anomaly" — now formally part of the `file.*` namespace.
 
-## `directory.*` (6 verbs)
+## `directory.*` (6 verbs — `directory.remove`→`directory.delete` rename in v2.1.0-rc.2)
 
-| # | Verb | Status | PROTOCOL.md | VERBS.md | spec/verbs | v1 archive | Conformance |
-|---|---|---|---|---|---|---|---|
-| 54 | `directory.list` | ✅ | §4.7:400 | :100 | ✅ (mock) | `LIST` (renamed from `file.list`) | `test_directory.py` |
-| 55 | `directory.stat` | ✅ | §4.7:401 | :101 | ✅ (mock) | ❌ | `test_directory.py` |
-| 56 | `directory.exists` | ✅ | §4.7:402 | :102 | ✅ (mock) | ❌ | `test_directory.py` |
-| 57 | `directory.create` | ✅ | §4.7:403 | :103 | ✅ (mock) | `MKDIR` (renamed from `file.mkdir`) | `test_directory.py` |
-| 58 | `directory.rename` | ✅ | §4.7:404 | :104 | ✅ (mock) | ❌ | `test_directory.py` |
-| 59 | `directory.remove` | ✅ | §4.7:405 | :105 | ✅ (mock) | ❌ | `test_directory.py` |
+| # | Verb | Status | spec/verbs | v1 archive | Conformance |
+|---|---|---|---|---|---|
+| 55 | `directory.list` | ✅ | ✅ (gained `recursive`+`pattern`+`limit` inputs; per-entry `ctime_unix_s`+`atime_unix_s`; `_unix`→`_unix_s` suffix) | `LIST` (renamed from `file.list`) | `test_directory.py` |
+| 56 | `directory.stat` | ✅ | ✅ (mock; `_unix`→`_unix_s`; `type: const`→`enum`) | ❌ | `test_directory.py` |
+| 57 | `directory.exists` | ✅ | ✅ (mock) | ❌ | `test_directory.py` |
+| 58 | `directory.create` | ✅ | ✅ (mock; `mode` field moved to per-family `fields_ignored` overlay; x-since 2.0→2.1; x-renamed-from `file.mkdir`) | `MKDIR` (renamed from `file.mkdir`) | `test_directory.py` |
+| 59 | `directory.rename` | ✅ | ✅ (mock) | ❌ | `test_directory.py` |
+| 60 | `directory.delete` | ✅ | ✅ (renamed from `directory.remove`; `removed: true` always-true field dropped) | ❌ | `test_directory.py` |
 
 ## `process.*` (5 verbs)
 
-| # | Verb | Status | PROTOCOL.md | VERBS.md | spec/verbs | v1 archive | Conformance |
-|---|---|---|---|---|---|---|---|
-| 60 | `process.list` | ✅ | §4.8:413 | :111 | ❌ | `PS` | `test_process.py` |
-| 61 | `process.start` | ✅ | §4.8:414 | :112 | ❌ | `EXEC` | `test_process.py` |
-| 62 | `process.shell` | ✅ | §4.8:415 | :113 | ❌ | ❌ | ❌ |
-| 63 | `process.kill` | ✅ | §4.8:416 | :114 | ❌ | `KILL` | `test_process.py` |
-| 64 | `process.wait` | ✅ | §4.8:417 | :115 | ❌ | `WAIT` | `test_process.py` |
+| # | Verb | Status | spec/verbs | v1 archive | Conformance |
+|---|---|---|---|---|---|
+| 61 | `process.list` | ✅ | ✅ (gained `include_counters` flag with full counter cookbook; `filter`→`pattern`) | `PS` | `test_process.py` |
+| 62 | `process.start` | ✅ | ✅ (stripped future-extension note; narrative file added) | `EXEC` | `test_process.py` |
+| 63 | `process.shell` | ✅ | ✅ (output `pid` widened to `[integer, null]`) | ❌ | ❌ |
+| 64 | `process.kill` | ✅ | ❌ | `KILL` | `test_process.py` |
+| 65 | `process.wait` | ✅ | ✅ (stripped `Per issue #76:` prefix from description) | `WAIT` | `test_process.py` |
 
-## `registry.*` (4 verbs, all Windows-specific)
+## `registry.*` (6 verbs — restructured to resource-first CRUD in v2.1.0-rc.2; `registry.wait` consolidated into `watch.registry`)
 
-| # | Verb | Status | PROTOCOL.md | VERBS.md | spec/verbs | v1 archive | Conformance |
-|---|---|---|---|---|---|---|---|
-| 65 | `registry.read` | ✅ | §4.9:425 | :121 | ❌ | ❌ | `test_registry.py` |
-| 66 | `registry.write` | ✅ | §4.9:426 | :122 | ❌ | ❌ | ❌ |
-| 67 | `registry.delete` | ✅ | §4.9:427 | :123 | ❌ | ❌ | ❌ |
-| 68 | `registry.wait` | ✅ | §4.9:428 | :124 | ❌ | ❌ | ❌ |
+| # | Verb | Status | spec/verbs | v1 archive | Conformance |
+|---|---|---|---|---|---|
+| 66 | `registry.value.read` | ✅ | ✅ (NEW; split out of `registry.read`'s single-value mode) | ❌ | `test_registry.py` |
+| 67 | `registry.value.create` | ✅ | ✅ (NEW; split out of `registry.write` upsert; errors with `already_exists`) | ❌ | ❌ |
+| 68 | `registry.value.update` | ✅ | ✅ (NEW; split out of `registry.write` upsert; errors with `not_found`) | ❌ | ❌ |
+| 69 | `registry.value.delete` | ✅ | ✅ (NEW; split out of `registry.delete`'s single-value mode; `deleted: true` field dropped) | ❌ | ❌ |
+| 70 | `registry.key.read` | ✅ | ✅ (NEW; split out of `registry.read`'s whole-key mode; returns names+types of values, not data) | ❌ | ❌ |
+| 71 | `registry.key.delete` | ✅ | ✅ (NEW; split out of `registry.delete`'s whole-key mode; `recursive` flag preserved) | ❌ | ❌ |
 
 ## `clipboard.*` (2 verbs)
 
-| # | Verb | Status | PROTOCOL.md | VERBS.md | spec/verbs | v1 archive | Conformance |
-|---|---|---|---|---|---|---|---|
-| 69 | `clipboard.get` | ✅ | §4.10:434 | :130 | ✅ (mock) | `CLIPGET` (renamed from `clipboard.read`) | `test_clipboard.py` |
-| 70 | `clipboard.set` | ✅ | §4.10:435 | :131 | ✅ (mock) | `CLIPSET` (renamed from `clipboard.write`) | `test_clipboard.py` |
+| # | Verb | Status | spec/verbs | v1 archive | Conformance |
+|---|---|---|---|---|---|
+| 72 | `clipboard.get` | ✅ | ✅ (mock; x-since 2.0→2.1; x-renamed-from `clipboard.read`) | `CLIPGET` (renamed from `clipboard.read`) | `test_clipboard.py` |
+| 73 | `clipboard.set` | ✅ | ✅ (mock; x-since 2.0→2.1; x-renamed-from `clipboard.write`; output gained `format` echo) | `CLIPSET` (renamed from `clipboard.write`) | `test_clipboard.py` |
 
 ## `watch.*` (7 verbs)
 
-| # | Verb | Status | PROTOCOL.md | VERBS.md | spec/verbs | v1 archive | Conformance |
-|---|---|---|---|---|---|---|---|
-| 71 | `watch.region` | ✅ | §4.11:443 | :137 | ❌ | `WATCH` (screen-only — narrowed in v2) | `test_watch.py` |
-| 72 | `watch.process` | ✅ | §4.11:444 | :138 | ❌ | ❌ | `test_watch.py` |
-| 73 | `watch.window` | ✅ | §4.11:445 | :139 | ❌ | ❌ | `test_watch.py` |
-| 74 | `watch.element` | ✅ | §4.11:446 | :140 | ❌ | ❌ | ❌ |
-| 75 | `watch.file` | ✅ | §4.11:447 | :141 | ❌ | ❌ | ❌ |
-| 76 | `watch.registry` | ✅ | §4.11:448 | :142 | ❌ | ❌ | ❌ |
-| 77 | `watch.cancel` | ✅ | §4.11:449 | :143 | ❌ | `ABORT` (subscription-scoped only — see drops) | `test_watch.py` |
+| # | Verb | Status | spec/verbs | v1 archive | Conformance |
+|---|---|---|---|---|---|
+| 74 | `watch.region` | ✅ | ✅ (gained `encoding` input enum [binary, base64]; binary mode emits raw bytes, base64 mode emits JSON envelope) | `WATCH` (screen-only — narrowed in v2) | `test_watch.py` |
+| 75 | `watch.process` | ✅ | ✅ (event payload reconciled with framing) | ❌ | `test_watch.py` |
+| 76 | `watch.window` | ✅ | ✅ (event payload reconciled with framing) | ❌ | `test_watch.py` |
+| 77 | `watch.element` | ✅ | ✅ (event payload `reason` enum kept verbatim; framing updated) | ❌ | ❌ |
+| 78 | `watch.file` | ✅ | ✅ (event payload `old_path` made optional) | ❌ | ❌ |
+| 79 | `watch.registry` | ✅ | ✅ (gained `until_change` flag — consolidates the v2.0 `registry.wait` sync verb) | ❌ | ❌ |
+| 80 | `watch.cancel` | ✅ | ❌ | `ABORT` (subscription-scoped only — see drops) | `test_watch.py` |
 
 ---
 

@@ -5,7 +5,7 @@
   "input_schema": {
     "type": "object",
     "properties": {
-      "hwnd": {
+      "handle": {
         "type": "string",
         "description": "Target window handle in `win:0x<hex>` form."
       },
@@ -20,9 +20,17 @@
       "lparam": {
         "type": "integer",
         "description": "Message-specific LPARAM. Signed 64-bit."
+      },
+      "wparam_string": {
+        "type": "string",
+        "description": "UTF-8 string used as wparam when the message expects a string-pointer. Mutually exclusive with `wparam`. PostMessage is async, so the agent must keep the buffer alive until the target consumes the message — agents may impose a stricter contract (decline string-pointer posts) or buffer-lifetime limits."
+      },
+      "lparam_string": {
+        "type": "string",
+        "description": "UTF-8 string used as lparam when the message expects a string-pointer. Mutually exclusive with `lparam`. Same async-buffer-lifetime caveat as wparam_string."
       }
     },
-    "required": ["hwnd", "msg", "wparam", "lparam"],
+    "required": ["handle", "msg"],
     "additionalProperties": false
   },
   "x-crudx": "U",

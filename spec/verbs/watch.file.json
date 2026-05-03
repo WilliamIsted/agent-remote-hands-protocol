@@ -38,9 +38,9 @@
     "properties": {
       "kind":     { "type": "string", "enum": ["created", "modified", "deleted", "renamed"], "description": "Type of change." },
       "path":     { "type": "string", "description": "Absolute path of the changed file." },
-      "old_path": { "type": "string", "description": "Old path (only present for `kind: renamed`); empty otherwise." }
+      "old_path": { "type": "string", "description": "Old path. Only present when `kind` is `renamed`; absent for other event kinds." }
     },
-    "required": ["kind", "path", "old_path"],
+    "required": ["kind", "path"],
     "additionalProperties": false
   },
   "x-errors": ["not_found", "permission_denied", "invalid_args"],

@@ -10,9 +10,9 @@
         "format": "uri",
         "description": "Absolute http/https URL. ftp/file schemes accepted only when the chosen implementation supports them."
       },
-      "dest_path": {
+      "local_path": {
         "type": "string",
-        "description": "Absolute destination path. Parent directory must exist (use file.mkdir first)."
+        "description": "Absolute destination path. Parent directory must exist (use directory.create first)."
       },
       "method": {
         "type": "string",
@@ -32,17 +32,17 @@
       },
       "max_bytes": {
         "type": "integer",
-        "description": "Optional cap on response size. If exceeded, the partial file is removed and ERR size_limit_exceeded is returned. Implementations that don't support a hard cap (nc, perl) enforce it post-hoc by checking dest_path size after completion."
+        "description": "Optional cap on response size. If exceeded, the partial file is removed and ERR size_limit_exceeded is returned. Implementations that don't support a hard cap (nc, perl) enforce it post-hoc by checking local_path size after completion."
       },
       "atomic": {
         "type": "boolean",
         "default": true,
-        "description": "When true, write to a temp file and rename into place. When false, writes directly to dest_path."
+        "description": "When true, write to a temp file and rename into place. When false, writes directly to local_path."
       },
       "create_only": {
         "type": "boolean",
         "default": false,
-        "description": "If true, fails with ERR already_exists rather than overwriting an existing file at dest_path."
+        "description": "If true, fails with ERR already_exists rather than overwriting an existing file at local_path."
       },
       "follow_redirects": {
         "type": "boolean",
@@ -52,7 +52,7 @@
     },
     "required": [
       "url",
-      "dest_path"
+      "local_path"
     ],
     "additionalProperties": false
   },

@@ -1,7 +1,7 @@
 {
-  "name": "directory.remove",
+  "name": "directory.delete",
   "strict": true,
-  "description": "Remove a directory. Empty directories require no flags. Pass `recursive: true` to remove a directory and all its contents (analogous to `rm -rf`). Hard delete — bypasses Recycle Bin / Trash.",
+  "description": "Delete a directory. Empty directories require no flags. Pass `recursive: true` to delete a directory and all its contents (analogous to `rm -rf`). Hard delete — bypasses Recycle Bin / Trash.",
   "input_schema": {
     "type": "object",
     "properties": {
@@ -20,21 +20,18 @@
   },
   "x-crudx": "D",
   "x-since": "2.1",
+  "x-renamed-from": "directory.remove",
   "x-namespace": "directory",
   "x-output-schema": {
     "type": "object",
     "properties": {
-      "removed": {
-        "type": "boolean",
-        "description": "True on success."
-      },
       "entries_removed": {
         "type": "integer",
         "minimum": 0,
         "description": "Count of files + subdirectories removed inside the target when `recursive: true`. 0 for a non-recursive empty-directory removal."
       }
     },
-    "required": ["removed", "entries_removed"],
+    "required": ["entries_removed"],
     "additionalProperties": false
   },
   "x-errors": ["not_found", "not_empty", "permission_denied", "not_a_directory", "invalid_args"],

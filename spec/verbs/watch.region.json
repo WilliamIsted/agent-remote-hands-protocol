@@ -27,6 +27,12 @@
         "type": "boolean",
         "default": false,
         "description": "If true, emit only when the region's pixels differ from the last sample, then auto-cancel. Useful for `wait until something changes` patterns."
+      },
+      "encoding": {
+        "type": "string",
+        "enum": ["binary", "base64"],
+        "default": "binary",
+        "description": "Wire format for the image bytes in each EVENT frame. `binary` (default) emits raw image bytes length-prefixed in the EVENT — efficient, ~33% smaller than base64. `base64` wraps the frame in a JSON envelope `{image, format, timestamp_unix_ms}` — JSON-safe / transport-friendly. See dist/PROTOCOL.md §6.2 for the wire-level shape of each mode."
       }
     },
     "required": ["region"],
@@ -47,10 +53,10 @@
     "additionalProperties": false
   },
   "x-event-schema": {
+    "description": "EVENT payload depends on the `encoding` input. With `encoding: binary` (default), each EVENT frame carries raw image bytes length-prefixed on the wire — no JSON envelope. With `encoding: base64`, each EVENT frame carries the JSON object below. Image format follows `system.info.capabilities.image_formats`.",
     "type": "object",
-    "description": "EVENT frames emitted by this subscription carry image bytes (base64-encoded) of the region per sampling interval. Format follows `system.info.capabilities.image_formats`.",
     "properties": {
-      "image": { "type": "string", "format": "byte", "description": "Base64-encoded image bytes." },
+      "image": { "type": "string", "format": "byte", "description": "Base64-encoded image bytes (only in `encoding: base64` mode)." },
       "format": { "type": "string", "enum": ["png", "webp", "bmp", "jpeg", "heic"], "description": "Encoding of the image bytes." },
       "timestamp_unix_ms": { "type": "integer", "description": "Capture timestamp as Unix epoch milliseconds." }
     },

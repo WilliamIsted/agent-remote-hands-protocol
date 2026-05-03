@@ -29,7 +29,7 @@
           "partially_expanded",
           "leaf"
         ],
-        "description": "State after the collapse. `leaf` means the element has no expand/collapse capability to act on."
+        "description": "State after the collapse. `leaf` means the element has no children to expand into. The no-pattern case (element doesn't implement ExpandCollapse at all) is reported as ERR not_supported_by_target."
       }
     },
     "required": [

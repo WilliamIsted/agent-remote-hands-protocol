@@ -121,7 +121,7 @@
     },
     "windows-classic": {
       "implemented": false,
-      "reason": "Requires UI Automation (Vista+). Classic Windows (NT 4 / 2000 / XP) has only MSAA / IAccessible, which doesn't map cleanly to the UIA-based element model in this spec. Future enhancement could add a separate MSAA-backed verb if there's demand."
+      "reason": "Requires UI Automation (Vista+)."
     }
   }
 }

@@ -1,7 +1,7 @@
 {
-  "name": "system.shutdown_blockers",
+  "name": "system.power.blockers",
   "strict": true,
-  "description": "List windows that have registered a shutdown block reason via `ShutdownBlockReasonCreate`. Useful before issuing system.shutdown / system.reboot.",
+  "description": "List windows that have registered a shutdown block reason via `ShutdownBlockReasonCreate`. Useful before issuing system.power.shutdown / system.power.reboot.",
   "input_schema": {
     "type": "object",
     "properties": {},
@@ -9,6 +9,7 @@
   },
   "x-crudx": "R",
   "x-since": "2.0",
+  "x-renamed-from": "system.shutdown_blockers",
   "x-namespace": "system",
   "x-output-schema": {
     "type": "object",
@@ -18,10 +19,10 @@
         "items": {
           "type": "object",
           "properties": {
-            "hwnd":   { "type": "string", "description": "Window handle in `win:0x<hex>` form. Matches the convention used by window.list, window.focus, etc." },
+            "handle":   { "type": "string", "description": "Window handle in `win:0x<hex>` form. Matches the convention used by window.list, window.focus, etc." },
             "reason": { "type": "string", "description": "Free-text reason supplied by the calling app to ShutdownBlockReasonCreate (capped at 100 chars by Win32)." }
           },
-          "required": ["hwnd", "reason"],
+          "required": ["handle", "reason"],
           "additionalProperties": false
         },
         "description": "Empty array if no windows have registered a block."

@@ -34,9 +34,8 @@
     "type": "object",
     "properties": {
       "pid": {
-        "type": "integer",
-        "minimum": 0,
-        "description": "Process id of the spawned process. May be 0 for verbs that don't spawn a new process (e.g. `print` on a file that opens in an existing handler instance)."
+        "type": ["integer", "null"],
+        "description": "Process id of the spawned process, or `null` when no process spawns (e.g. `print` on a file that opens in an existing handler instance). Caller must null-check before passing to process.kill / process.wait (both of which require pid >= 1)."
       }
     },
     "required": ["pid"],

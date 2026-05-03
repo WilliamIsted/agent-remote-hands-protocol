@@ -1,13 +1,13 @@
 {
   "name": "system.power.cancel",
   "strict": true,
-  "description": "Abort a pending in-process delayed shutdown / reboot / logoff scheduled via `--delay`. Returns `ERR not_found` if no shutdown is pending.",
+  "description": "Abort a pending in-process delayed shutdown / reboot / logoff scheduled via `delay_seconds`. Returns `ERR not_found` if no shutdown is pending.",
   "input_schema": {
     "type": "object",
     "properties": {},
     "additionalProperties": false
   },
-  "x-crudx": "X",
+  "x-crudx": "U",
   "x-since": "2.0",
   "x-namespace": "system",
   "x-output-schema": {

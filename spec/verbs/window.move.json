@@ -40,6 +40,7 @@
       },
       "foreground": {
         "type": "boolean",
+        "default": false,
         "description": "Also bring the window to the foreground after the move. Foreground attempt is reported separately in `foreground_status` (it may fail with `lock_held` while the move succeeds). See issue #73."
       }
     },

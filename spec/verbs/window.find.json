@@ -21,7 +21,7 @@
       "pattern": {
         "type": "string",
         "minLength": 1,
-        "description": "Case-insensitive substring matched against window titles. Same convention as `window.list --filter`."
+        "description": "Case-insensitive substring matched against window titles."
       }
     },
     "required": ["pattern"],

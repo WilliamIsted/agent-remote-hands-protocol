@@ -15,6 +15,7 @@
       },
       "relative": {
         "type": "boolean",
+        "default": false,
         "description": "Treat `x` and `y` as deltas added to the current cursor position. Default false (absolute coordinates)."
       }
     },

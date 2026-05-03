@@ -46,7 +46,7 @@
         "type": "integer",
         "minimum": 0,
         "default": 5000,
-        "description": "Maximum wait in milliseconds. Returns ERR timeout if no match (with required flags) appears within this window."
+        "description": "Maximum wait in milliseconds. Returns ERR not_found if no match (with required flags) appears within this window — same code as element.find for consistency."
       }
     },
     "additionalProperties": false
@@ -54,6 +54,7 @@
   "x-crudx": "R",
   "x-since": "2.0",
   "x-namespace": "element",
+  "x-mutually-exclusive": ["name", "automation_id"],
   "x-output-schema": {
     "type": "object",
     "properties": {
@@ -74,7 +75,7 @@
     "required": ["handle", "bounds"],
     "additionalProperties": false
   },
-  "x-errors": ["timeout", "uia_blind", "permission_denied", "not_supported"],
+  "x-errors": ["not_found", "uia_blind", "permission_denied", "not_supported_by_target", "invalid_args"],
   "x-implementations": [
     {
       "name": "uia_poll",
