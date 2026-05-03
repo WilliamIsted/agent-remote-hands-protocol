@@ -1,7 +1,7 @@
 {
   "name": "window.find",
   "strict": true,
-  "description": "Find the first top-level window whose title matches the case-insensitive substring pattern. Returns `ERR not_found` if no window matches.",
+  "description": "Find the first top-level window whose title matches `pattern` according to `match` (default `substring`, case-insensitive). Returns `ERR not_found` if no window matches.",
   "$defs": {
     "Bounds": {
       "type": "object",
@@ -21,14 +21,20 @@
       "pattern": {
         "type": "string",
         "minLength": 1,
-        "description": "Case-insensitive substring matched against window titles."
+        "description": "Pattern to match against window titles. Interpretation depends on `match`."
+      },
+      "match": {
+        "type": "string",
+        "enum": ["substring", "prefix", "exact", "glob", "regex"],
+        "default": "substring",
+        "description": "Pattern semantics. `substring` (default, case-insensitive) preserves V2.0 behaviour. `prefix` matches V1 WINFIND parity (case-insensitive prefix). `exact` is case-insensitive equality. `glob` is shell-style with `*` and `?` (case-insensitive, via PathMatchSpecW). `regex` is ECMAScript regex; case-sensitivity is controlled by inline flags (e.g. `(?i)`)."
       }
     },
     "required": ["pattern"],
     "additionalProperties": false
   },
   "x-crudx": "R",
-  "x-since": "2.0",
+  "x-since": "2.1",
   "x-namespace": "window",
   "x-output-schema": {
     "type": "object",
@@ -47,16 +53,16 @@
       "name": "enum_windows",
       "detect": { "type": "always" },
       "available_on": ["windows-modern", "windows-classic"],
-      "description": "Win32 `EnumWindows` walk; first window whose `GetWindowTextW` (or A) result contains the pattern (case-folded) is returned. Walk halts on first match."
+      "description": "Win32 `EnumWindows` walk; first window whose `GetWindowTextW` (or A) result satisfies the per-`match` comparator is returned. Walk halts on first match. Comparators: `substring` / `prefix` / `exact` use `_wcsicmp` / `_wcsnicmp` for case-insensitive compare; `glob` uses `PathMatchSpecW`; `regex` uses `std::regex` ECMAScript flavour."
     }
   ],
   "x-families": {
     "windows-modern": {
-      "description": "EnumWindows + GetWindowTextW + case-fold compare. Returns the first visible top-level window whose title contains the pattern. Hidden windows are not searched (no `--all` flag here; use window.list for that).",
+      "description": "EnumWindows + GetWindowTextW + per-mode comparator. Returns the first visible top-level window whose title matches. Hidden windows are not searched (no `--all` flag here; use window.list for that). The 5 match modes: `substring` (default, case-insensitive `_wcsstr`-equivalent — V2.0 behaviour), `prefix` (case-insensitive `_wcsnicmp` — V1 WINFIND parity per issue #75), `exact` (case-insensitive `_wcsicmp`), `glob` (`PathMatchSpecW`), `regex` (`std::regex` ECMAScript).",
       "implementations_in_order": ["enum_windows"]
     },
     "windows-classic": {
-      "description": "EnumWindows + GetWindowTextW (NT 5+) or GetWindowTextA (NT 4 / 9x, transcoded to UTF-8) + case-fold compare. Same first-match semantics as modern.",
+      "description": "EnumWindows + GetWindowTextW (NT 5+) or GetWindowTextA (NT 4 / 9x, transcoded to UTF-8) + per-mode comparator. Same first-match semantics as modern. `glob` uses PathMatchSpecW (NT 5+) or PathMatchSpecA on NT 4; `regex` requires the agent's bundled regex implementation (no Win32 regex API on classic). All 5 modes available across the family.",
       "implementations_in_order": ["enum_windows"]
     }
   }

@@ -89,3 +89,16 @@ The agent advertises `max_connections` in `system.info`. The `(N+1)`th concurren
 ```
 
 before the socket is closed by the agent. Clients that need to interleave commands during a subscription open a side connection within the limit.
+
+### 2.8 Held input state cleanup
+
+`input.mouse.press` and `input.keyboard.key_down` leave a button or key held indefinitely. The OS keyboard / mouse state is system-wide — there's no kernel-level association between a synthesised down event and the connection that issued it. To prevent stuck input on connection loss, the agent maintains a per-connection **held-input set**:
+
+- `input.mouse.press {button}` adds `button` to this connection's set and issues `MOUSEEVENTF_*DOWN`.
+- `input.keyboard.key_down {vk}` adds `vk` to this connection's set and issues `KEYEVENTF_KEYDOWN`.
+- `input.mouse.release {button}` and `input.keyboard.key_up {vk}` issue the corresponding `*UP` event and remove the entry from any connection's set (cross-connection release is permitted as a fail-safe — see those verbs' descriptions).
+- On graceful `connection.close` or socket drop, the agent issues `MOUSEEVENTF_*UP` for every button in the closing connection's mouse set and `KEYEVENTF_KEYUP` for every key in its keyboard set, then drops the set.
+
+The cleanup is idempotent: if the user-app or another connection already released the button/key, the up-event is a no-op at the OS level. The contract is "the agent never leaves input state held after a connection drops"; cross-connection visibility into held state is a fail-safe layer, not a guarantee that another connection's hold is observable.
+
+`input.mouse.click {duration_ms}` and `input.keyboard.key {duration_ms}` do NOT enter the held-input set — they're synchronous (the up event always fires before the verb returns), and the agent's request thread is wedged for the duration. If the connection drops mid-`duration_ms`, the agent's per-thread deadline still fires the up event before the request thread exits.

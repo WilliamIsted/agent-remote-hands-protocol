@@ -7,7 +7,7 @@ Source-of-truth definitions for shapes that appear inline in multiple `spec/verb
 | File | Validation mode | Used by |
 |---|---|---|
 | `Bounds.json` | **exact** — inline copies must match the canonical schema verbatim including descriptions | `screen.capture` (input region); `system.info`, `window.list`, `window.find`, `window.move`, `element.find`, `element.list`, `element.tree`, `element.wait`, `element.at` (output bounds) |
-| `Point.json` | **structure-only** — inline copies must match `type`/`required`/`properties` keys/`additionalProperties`. Description text is per-verb (each verb's `actual_position` carries a slightly different semantic). | `input.click`, `input.move`, `input.scroll` (output `actual_position`) |
+| `Point.json` | **structure-only** — inline copies must match `type`/`required`/`properties` keys/`additionalProperties`. Description text is per-verb (each verb's `actual_position` carries a slightly different semantic). | `input.mouse.click`, `input.mouse.move`, `input.mouse.scroll` (output `actual_position`); `input.position` (output `{x, y}`) |
 
 ## Adding a new shared shape
 

@@ -48,7 +48,7 @@
   ],
   "x-families": {
     "windows-modern": {
-      "description": "ValuePattern.SetValue. Distinguishes ERR readonly (ValuePattern present, IsReadOnly=true — e.g. labels, disabled inputs) from ERR not_supported_by_target (ValuePattern absent — e.g. checkboxes, buttons). Use this verb instead of synthesising input.type when the target supports ValuePattern: it bypasses focus and input-event delivery, working on background windows that can't receive synthetic input.",
+      "description": "ValuePattern.SetValue. Distinguishes ERR readonly (ValuePattern present, IsReadOnly=true — e.g. labels, disabled inputs) from ERR not_supported_by_target (ValuePattern absent — e.g. checkboxes, buttons). Use this verb instead of synthesising input.keyboard.type when the target supports ValuePattern: it bypasses focus and input-event delivery, working on background windows that can't receive synthetic input.",
       "implementations_in_order": [
         "uia_value_set"
       ]

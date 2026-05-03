@@ -64,17 +64,33 @@ Status legend: ⬜ not started · 🟨 in progress · ✅ done.
 | 22 | `window.move` | ✅ | §4.3:329 | :49 | ✅ (mock) | `WINMOVE` / `WINSIZE` (consolidated) | ❌ |
 | 23 | `window.state` | ✅ | §4.3:330 | :50 | ❌ | `WINMIN` / `WINMAX` / `WINRESTORE` (consolidated → query) | `test_window.py` |
 
-## `input.*` (7 verbs)
+## `input.*` (3 top-level verbs after the v2.1.0-rc.3 split)
 
-| # | Verb | Status | PROTOCOL.md | VERBS.md | spec/verbs | v1 archive | Conformance |
-|---|---|---|---|---|---|---|---|
-| 24 | `input.click` | ✅ | §4.4:338 | :56 | ✅ (mock) | `CLICK` | `test_input.py` |
-| 25 | `input.move` | ✅ | §4.4:339 | :57 | ❌ | `MOVE` | `test_input.py` |
-| 26 | `input.scroll` | ✅ | §4.4:340 | :58 | ❌ | `WHEEL` | ❌ |
-| 27 | `input.key` | ✅ | §4.4:341 | :59 | ❌ | `KEY` | `test_input.py` |
-| 28 | `input.type` | ✅ | §4.4:342 | :60 | ❌ | `KEYS` | `test_input.py` |
-| 29 | `input.send_message` | ✅ | §4.4:343 | :61 | ❌ | ❌ | ❌ |
-| 30 | `input.post_message` | ✅ | §4.4:344 | :62 | ❌ | ❌ | ❌ |
+| # | Verb | Status | spec/verbs | v1 archive | Conformance |
+|---|---|---|---|---|---|
+| 24 | `input.position` | ✅ | ✅ (NEW in rc.3 — closes #69) | `MPOS` | ❌ |
+| 25 | `input.send_message` | ✅ | ✅ | ❌ | ❌ |
+| 26 | `input.post_message` | ✅ | ✅ | ❌ | ❌ |
+
+## `input.mouse.*` (6 verbs — sub-namespace introduced in v2.1.0-rc.3)
+
+| # | Verb | Status | spec/verbs | v1 archive | Conformance |
+|---|---|---|---|---|---|
+| 27 | `input.mouse.click` | ✅ | ✅ (renamed from `input.click`; gained `duration_ms` 0-1000ms) | `CLICK` | `test_input.py` |
+| 28 | `input.mouse.move` | ✅ | ✅ (renamed from `input.move`) | `MOVE` | `test_input.py` |
+| 29 | `input.mouse.scroll` | ✅ | ✅ (renamed from `input.scroll`) | `WHEEL` | ❌ |
+| 30 | `input.mouse.press` | ✅ | ✅ (NEW in rc.3 — closes #67 indefinite-hold half) | `MDOWN` | ❌ |
+| 31 | `input.mouse.release` | ✅ | ✅ (NEW in rc.3 — closes #67 release half; idempotent) | `MUP` | ❌ |
+| 32 | `input.mouse.drag` | ✅ | ✅ (NEW in rc.3 — closes #68) | `DRAG` | ❌ |
+
+## `input.keyboard.*` (4 verbs — sub-namespace introduced in v2.1.0-rc.3)
+
+| # | Verb | Status | spec/verbs | v1 archive | Conformance |
+|---|---|---|---|---|---|
+| 33 | `input.keyboard.key` | ✅ | ✅ (renamed from `input.key`; gained `duration_ms` 0-1000ms) | `KEY` | `test_input.py` |
+| 34 | `input.keyboard.type` | ✅ | ✅ (renamed from `input.type`) | `KEYS` | `test_input.py` |
+| 35 | `input.keyboard.key_down` | ✅ | ✅ (NEW in rc.3 — closes #70 hold half) | `KEYDOWN` | ❌ |
+| 36 | `input.keyboard.key_up` | ✅ | ✅ (NEW in rc.3 — closes #70 release half; idempotent) | `KEYUP` | ❌ |
 
 ## `element.*` (14 verbs)
 
@@ -169,14 +185,12 @@ The PROTOCOL.md columns are dropped post-audit (PROTOCOL.md being deleted; mock-
 
 | Status | Count |
 |---|---|
-| Total v2 verbs | 76 |
-| With existing `spec/verbs/*.json` mock-ups | 20 |
-| Without (need authoring from cold) | 56 |
-| Currently exercised by conformance suite | 36 |
-| With v1 ancestor verb(s) | 41 |
-| v2-only (no v1 ancestor) | 35 |
+| Total v2.1 verbs (post-rc.3) | 86 |
+| Currently exercised by conformance suite | ~36 (input.* tests need rename to test_input_mouse / test_input_keyboard) |
+| With v1 ancestor verb(s) | 47 |
+| v2-only (no v1 ancestor) | 39 |
 
-(All 76 are ⬜ because the locked plan re-authors every verb from scratch; the "with mock-ups" column is informational, not a partial-credit ✅.)
+Verb-count history: rc.1 had 77; rc.2 took it to 80 (file.write split, registry restructure); rc.3 takes it to 86 (input.* split into input.mouse.* + input.keyboard.* sub-namespaces, plus 6 new verbs to close v1.0.0 milestone parity issues).
 
 ---
 
@@ -200,15 +214,10 @@ The v1 archive (`git show af6c413:PROTOCOL.md`) is the authoritative reference f
 
 | v1 verb(s) | Capability | v2 re-intro under | Issue |
 |---|---|---|---|
-| `MPOS` | Cursor position query | `input.position` | [#69](https://github.com/WilliamIsted/agent-remote-hands-protocol/issues/69) (high-priority) |
-| `MOVEREL` | Relative cursor movement | `input.move` extension (relative offsets) | [#71](https://github.com/WilliamIsted/agent-remote-hands-protocol/issues/71) |
-| `DCLICK` | Double-click primitive | `input.click` extension (atomic double-click) | [#72](https://github.com/WilliamIsted/agent-remote-hands-protocol/issues/72) |
-| `MDOWN`, `MUP` | Mouse button hold / release | `input.mouse_down` / `input.mouse_up` | [#67](https://github.com/WilliamIsted/agent-remote-hands-protocol/issues/67) (high-priority) |
-| `DRAG` | Drag primitive (move-while-held) | `input.drag` | [#68](https://github.com/WilliamIsted/agent-remote-hands-protocol/issues/68) (high-priority) |
-| `KEYDOWN`, `KEYUP` | Key hold / release | `input.key_down` / `input.key_up` | [#70](https://github.com/WilliamIsted/agent-remote-hands-protocol/issues/70) |
-| `SCREEN` | Per-monitor dimensions query | extension to `system.info.monitors` | [#74](https://github.com/WilliamIsted/agent-remote-hands-protocol/issues/74) (high-priority) |
 
-When one of these issues is resolved, the row migrates either to the verb's `spec/verbs/<verb>.json` (with `x-since` set to the cut version) or to the hard-drops table above.
+All previously-listed entries here have been resolved — the v1.0.0 milestone closure in v2.1.0-rc.3 carried `MPOS` (→ `input.position`), `MDOWN`/`MUP` (→ `input.mouse.press` + `input.mouse.release`), `DRAG` (→ `input.mouse.drag`), `KEYDOWN`/`KEYUP` (→ `input.keyboard.key_down` + `input.keyboard.key_up`); v2.1.0-rc.2 carried `MOVEREL` (→ `input.move` `relative` flag, now `input.mouse.move`), `DCLICK` (→ `input.click.double`, now `input.mouse.click`), `SCREEN` (→ `system.info.screens`).
+
+When future issues add verbs, the row migrates either to the verb's `spec/verbs/<verb>.json` (with `x-since` set to the cut version) or to the hard-drops table above.
 
 ---
 
@@ -223,7 +232,6 @@ Cross-reference of open GitHub enhancement issues that touch verbs in this manif
 | `system.info` | [#74](https://github.com/WilliamIsted/agent-remote-hands-protocol/issues/74) — per-monitor dimensions in mock-up's `screens` field (high-priority); [#80](https://github.com/WilliamIsted/agent-remote-hands-protocol/issues/80) — `os_name` field; [#82](https://github.com/WilliamIsted/agent-remote-hands-protocol/issues/82) — `capabilities.wake_timer_supported` flag; [#86](https://github.com/WilliamIsted/agent-remote-hands-protocol/issues/86) — `capabilities.input_settings` for OS input-timing values |
 | `system.hibernate` | [#82](https://github.com/WilliamIsted/agent-remote-hands-protocol/issues/82) — `wake_at` + `force` for scheduled wake (capability-gated for VMs) |
 | `system.sleep` | [#82](https://github.com/WilliamIsted/agent-remote-hands-protocol/issues/82) — `wake_at` + `force` (same as hibernate) |
-| `window.find` | [#75](https://github.com/WilliamIsted/agent-remote-hands-protocol/issues/75) — title-pattern semantics |
 | `window.move` | [#73](https://github.com/WilliamIsted/agent-remote-hands-protocol/issues/73) — atomic move-and-foreground (formalised post-audit; `foreground` flag + `foreground_status` enum) |
 | `input.click` | [#72](https://github.com/WilliamIsted/agent-remote-hands-protocol/issues/72) — atomic double-click (mock-up has `double` flag; lock the SendInput batch implementation); [#87](https://github.com/WilliamIsted/agent-remote-hands-protocol/issues/87) — `target_handle` + `actual_position` response fields |
 | `input.move` | [#71](https://github.com/WilliamIsted/agent-remote-hands-protocol/issues/71) — relative offsets |
@@ -232,10 +240,6 @@ Cross-reference of open GitHub enhancement issues that touch verbs in this manif
 | `element.find` / `element.wait` | [#90](https://github.com/WilliamIsted/agent-remote-hands-protocol/issues/90) — `automation_id` + `root` for stable matching and subtree scoping (mock-up already has these fields; #90 formalises them) |
 | `element.list` / `element.find` / `element.at` / `element.tree` / `element.wait` | [#92](https://github.com/WilliamIsted/agent-remote-hands-protocol/issues/92) — `flags` array (UIA boolean state) on result-bearing verbs + `flags_required` matcher on element.wait |
 | `process.wait` | [#76](https://github.com/WilliamIsted/agent-remote-hands-protocol/issues/77) — optional/indefinite timeout |
-| _(new verb)_ | [#69](https://github.com/WilliamIsted/agent-remote-hands-protocol/issues/69) — `input.position` (high-priority) |
-| _(new verb)_ | [#67](https://github.com/WilliamIsted/agent-remote-hands-protocol/issues/67) — `input.mouse_down` / `input.mouse_up` (high-priority) |
-| _(new verb)_ | [#68](https://github.com/WilliamIsted/agent-remote-hands-protocol/issues/68) — `input.drag` (high-priority) |
-| _(new verb)_ | [#70](https://github.com/WilliamIsted/agent-remote-hands-protocol/issues/70) — `input.key_down` / `input.key_up` |
 
 **Closed during the audit** (PROTOCOL.md→mock-up alignment issues, obsoleted by PROTOCOL.md deletion): #78 (os/arch renames — mock-up already used `family`), #79 (integrity null→none — mock-up has no integrity field), #81 (PROTOCOL.md §4.1:291 logoff flags fix — PROTOCOL.md deleted), #84 (project-wide bounds standardization — mock-ups already consistent), #85 (window.list filter semantics — mock-up has no filter field).
 

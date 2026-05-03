@@ -18,7 +18,7 @@
 ### 11.2 Tier elevation and input
 
 ```
-> input.click 100 200
+> input.mouse.click 100 200
 < ERR tier_required 38
 {"required":"update","current":"read"}
 
@@ -30,14 +30,14 @@ a3f1c8...e9b2
 < OK 23
 {"new_tier":"update"}
 
-> input.click 100 200
+> input.mouse.click 100 200
 < OK 0
 ```
 
 ### 11.3 UIPI surfacing
 
 ```
-> input.type 11
+> input.keyboard.type 11
 hello world
 
 < ERR uipi_blocked 47

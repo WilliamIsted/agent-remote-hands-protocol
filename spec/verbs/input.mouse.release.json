@@ -1,0 +1,49 @@
+{
+  "name": "input.mouse.release",
+  "strict": true,
+  "description": "Release a mouse button if held by anything (this connection or another). Idempotent — returns `OK 0` whether or not the button was held. Use to lift a button held by `input.mouse.press`, or as a cross-connection fail-safe to recover from a stuck state. Per issue #67.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "button": {
+        "type": "string",
+        "enum": ["left", "right", "middle"],
+        "default": "left",
+        "description": "Mouse button to release."
+      }
+    },
+    "additionalProperties": false
+  },
+  "x-crudx": "U",
+  "x-since": "2.1",
+  "x-namespace": "input",
+  "x-output-schema": {
+    "type": "null",
+    "description": "Empty body — wire response is the literal `OK 0`. Idempotent: no error if the button wasn't held. The agent removes the button from any connection's held-input set (cross-connection cleanup permitted; see lifecycle §2.8)."
+  },
+  "x-errors": ["permission_denied", "invalid_args"],
+  "x-implementations": [
+    {
+      "name": "send_input",
+      "detect": { "type": "always" },
+      "available_on": ["windows-modern", "windows-classic"],
+      "description": "Win32 `SendInput` with INPUT_MOUSE + the appropriate `MOUSEEVENTF_*UP` flag. No matching down event. Always issued — the OS no-ops gracefully when the button wasn't actually down."
+    },
+    {
+      "name": "mouse_event",
+      "detect": { "type": "always" },
+      "available_on": ["windows-classic"],
+      "description": "Win32 `mouse_event` legacy fallback for NT 4 / 9x where SendInput is unavailable."
+    }
+  ],
+  "x-families": {
+    "windows-modern": {
+      "description": "SendInput with MOUSEEVENTF_*UP. Agent removes the button from the per-connection held-input set (and any other connection's set that holds it — cross-connection release is the documented fail-safe). Idempotent — no `not_held` error since the verb's purpose is cleanup. UIPI does not apply on the up event in practice (the kernel sends the up event regardless of where the button was pressed).",
+      "implementations_in_order": ["send_input"]
+    },
+    "windows-classic": {
+      "description": "SendInput on NT 5+; mouse_event on NT 4 / 9x. Same idempotent cross-connection-release semantics as modern.",
+      "implementations_in_order": ["send_input", "mouse_event"]
+    }
+  }
+}

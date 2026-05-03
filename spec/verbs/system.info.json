@@ -71,7 +71,7 @@
         "items": {
           "type": "object",
           "properties": {
-            "index":   { "type": "integer", "description": "0-based monitor index. Matches `window.list.monitor_index` and `screen.capture --monitor`." },
+            "index":   { "type": "integer", "description": "0-based monitor index. Matches `window.list.monitor_index` (when `include_monitor: true`), `input.position.monitor_index` (when `include_monitor: true`), and `screen.capture.monitor`." },
             "bounds":  { "$ref": "#/$defs/Bounds", "description": "Monitor's screen position and size in virtual-screen coordinates." },
             "primary": { "type": "boolean", "description": "True for the monitor `EnumDisplayMonitors` reports first." },
             "scale":   { "type": "number",  "description": "DPI scaling factor (1.0=96 DPI, 1.5=144, 2.0=192). Optional; omit if the agent is DPI-unaware." }

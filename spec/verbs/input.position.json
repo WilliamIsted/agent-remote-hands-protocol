@@ -1,0 +1,58 @@
+{
+  "name": "input.position",
+  "strict": true,
+  "description": "Return the current cursor position in virtual-screen coordinates. Pass `include_monitor: true` to also return the index of the monitor the cursor is on (matches `system.info.screens[].index`). Per issue #69.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "include_monitor": {
+        "type": "boolean",
+        "default": false,
+        "description": "When true, the response includes a `monitor_index` field identifying the monitor under the cursor. Adds one `MonitorFromPoint` call per request. Default false keeps the typical-case payload minimal."
+      }
+    },
+    "additionalProperties": false
+  },
+  "x-crudx": "R",
+  "x-since": "2.1",
+  "x-namespace": "input",
+  "x-output-schema": {
+    "type": "object",
+    "properties": {
+      "x": {
+        "type": "integer",
+        "description": "Cursor X in virtual-screen coordinates (DPI-aware on per-monitor-DPI-aware agents, matching `input.mouse.click` / `input.mouse.move` coordinate space)."
+      },
+      "y": {
+        "type": "integer",
+        "description": "Cursor Y in virtual-screen coordinates."
+      },
+      "monitor_index": {
+        "type": "integer",
+        "minimum": 0,
+        "description": "0-based monitor index from `system.info.screens[].index`. Present iff `include_monitor: true` was passed. The cursor's enclosing monitor; on NT 4 (single-monitor) always 0."
+      }
+    },
+    "required": ["x", "y"],
+    "additionalProperties": false
+  },
+  "x-errors": ["permission_denied"],
+  "x-implementations": [
+    {
+      "name": "get_cursor_pos",
+      "detect": { "type": "always" },
+      "available_on": ["windows-modern", "windows-classic"],
+      "description": "Win32 `GetCursorPos`. Returns the cursor's screen position in DPI-virtualised coordinates on DPI-unaware agents, or virtual-screen pixels on per-monitor-DPI-aware agents (the modern agent default). When `include_monitor: true`, follows up with `MonitorFromPoint` + the agent's monitor-index table to report the index."
+    }
+  ],
+  "x-families": {
+    "windows-modern": {
+      "description": "GetCursorPos in the agent's DPI awareness context. The agent runs as per-monitor-DPI-aware (DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2), so the returned coordinates are virtual-screen pixels matching the input.mouse.* coordinate space. `include_monitor: true` adds MonitorFromPoint(MONITOR_DEFAULTTONEAREST) and looks the result up in the agent's monitor-handle-to-index table, which is rebuilt on display changes via WM_DISPLAYCHANGE.",
+      "implementations_in_order": ["get_cursor_pos"]
+    },
+    "windows-classic": {
+      "description": "GetCursorPos on NT 3.1+. Pre-NT-5, single-monitor only; `monitor_index` is always 0 with `include_monitor: true`. NT 5+ supports multi-monitor; the monitor lookup uses `MonitorFromPoint`.",
+      "implementations_in_order": ["get_cursor_pos"]
+    }
+  }
+}

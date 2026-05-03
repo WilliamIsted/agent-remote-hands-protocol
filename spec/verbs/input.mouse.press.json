@@ -1,0 +1,49 @@
+{
+  "name": "input.mouse.press",
+  "strict": true,
+  "description": "Press a mouse button at the current cursor position and leave it held indefinitely. Returns immediately. Pair with `input.mouse.release` (or rely on connection-close cleanup) to lift. Use this for multi-verb chord workflows that need the button held across other operations; for single-verb timed holds use `input.mouse.click {duration_ms}`. Per issue #67.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "button": {
+        "type": "string",
+        "enum": ["left", "right", "middle"],
+        "default": "left",
+        "description": "Mouse button to press."
+      }
+    },
+    "additionalProperties": false
+  },
+  "x-crudx": "U",
+  "x-since": "2.1",
+  "x-namespace": "input",
+  "x-output-schema": {
+    "type": "null",
+    "description": "Empty body — wire response is the literal `OK 0`. The agent records the button as held on this connection; see lifecycle §2.8 for cleanup semantics."
+  },
+  "x-errors": ["uipi_blocked", "permission_denied", "invalid_args"],
+  "x-implementations": [
+    {
+      "name": "send_input",
+      "detect": { "type": "always" },
+      "available_on": ["windows-modern", "windows-classic"],
+      "description": "Win32 `SendInput` with INPUT_MOUSE + the appropriate `MOUSEEVENTF_*DOWN` flag (`MOUSEEVENTF_LEFTDOWN`, `MOUSEEVENTF_RIGHTDOWN`, `MOUSEEVENTF_MIDDLEDOWN`). No matching up event — the button stays held until `input.mouse.release` or connection close."
+    },
+    {
+      "name": "mouse_event",
+      "detect": { "type": "always" },
+      "available_on": ["windows-classic"],
+      "description": "Win32 `mouse_event` legacy fallback for NT 4 / 9x where SendInput is unavailable."
+    }
+  ],
+  "x-families": {
+    "windows-modern": {
+      "description": "SendInput with MOUSEEVENTF_*DOWN. Agent registers the button in the per-connection held-input set so lifecycle §2.8 can release it on connection close. Repeated `press` of an already-held button is a no-op (the OS treats it the same; agent state already reflects held). UIPI applies — synthesised input directed at higher-IL windows is silently dropped, returns `ERR uipi_blocked`.",
+      "implementations_in_order": ["send_input"]
+    },
+    "windows-classic": {
+      "description": "SendInput on NT 5+; mouse_event on NT 4 / 9x. Same per-connection held-input tracking as modern. No UIPI on classic — synthesised input crosses process boundaries freely.",
+      "implementations_in_order": ["send_input", "mouse_event"]
+    }
+  }
+}

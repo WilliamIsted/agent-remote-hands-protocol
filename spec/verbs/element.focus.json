@@ -1,7 +1,7 @@
 {
   "name": "element.focus",
   "strict": true,
-  "description": "Set keyboard focus on the given element. Subsequent input.key / input.type calls land in this element.",
+  "description": "Set keyboard focus on the given element. Subsequent input.keyboard.key / input.keyboard.type calls land in this element.",
   "input_schema": {
     "type": "object",
     "properties": {

@@ -1,0 +1,49 @@
+{
+  "name": "input.keyboard.key_up",
+  "strict": true,
+  "description": "Release a virtual key if held by anything (this connection or another). Idempotent — returns `OK 0` whether or not the key was held. Use to lift a key held by `input.keyboard.key_down`, or as a cross-connection fail-safe to recover from a stuck state. Per issue #70.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "vk": {
+        "type": "string",
+        "minLength": 1,
+        "description": "Key name. Same vocabulary as `input.keyboard.key`."
+      }
+    },
+    "required": ["vk"],
+    "additionalProperties": false
+  },
+  "x-crudx": "U",
+  "x-since": "2.1",
+  "x-namespace": "input",
+  "x-output-schema": {
+    "type": "null",
+    "description": "Empty body — wire response is the literal `OK 0`. Idempotent: no error if the key wasn't held. The agent removes the vk from any connection's held-input set (cross-connection cleanup permitted; see lifecycle §2.8)."
+  },
+  "x-errors": ["permission_denied", "invalid_args"],
+  "x-implementations": [
+    {
+      "name": "send_input",
+      "detect": { "type": "always" },
+      "available_on": ["windows-modern", "windows-classic"],
+      "description": "Win32 `SendInput` with INPUT_KEYBOARD + `KEYEVENTF_KEYUP`. Always issued — the OS no-ops gracefully when the key wasn't actually down."
+    },
+    {
+      "name": "keybd_event",
+      "detect": { "type": "always" },
+      "available_on": ["windows-classic"],
+      "description": "Win32 `keybd_event` legacy fallback for NT 4 / 9x where SendInput is unavailable."
+    }
+  ],
+  "x-families": {
+    "windows-modern": {
+      "description": "SendInput with KEYEVENTF_KEYUP. Agent removes the vk from the per-connection held-input set (and any other connection's set that holds it — cross-connection release is the documented fail-safe). Idempotent — no `not_held` error since the verb's purpose is cleanup.",
+      "implementations_in_order": ["send_input"]
+    },
+    "windows-classic": {
+      "description": "SendInput on NT 5+; keybd_event on NT 4 / 9x. Same idempotent cross-connection-release semantics as modern.",
+      "implementations_in_order": ["send_input", "keybd_event"]
+    }
+  }
+}

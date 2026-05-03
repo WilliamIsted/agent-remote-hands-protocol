@@ -1,5 +1,5 @@
 {
-  "name": "input.move",
+  "name": "input.mouse.move",
   "strict": true,
   "description": "Move the mouse cursor without clicking. Absolute coordinates by default; pass `relative: true` to add `x` and `y` as deltas from the current position.",
   "input_schema": {
@@ -23,7 +23,8 @@
     "additionalProperties": false
   },
   "x-crudx": "U",
-  "x-since": "2.0",
+  "x-since": "2.1",
+  "x-renamed-from": "input.move",
   "x-namespace": "input",
   "x-output-schema": {
     "type": "object",

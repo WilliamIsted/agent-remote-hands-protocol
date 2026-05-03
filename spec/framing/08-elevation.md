@@ -8,7 +8,7 @@ The OS-level integrity model is **separate** from the wire-protocol tier model i
 
 When started by a Task Scheduler logon-task with default settings, the agent runs at **Medium IL** in the logged-on user's session. Common installers — Mozilla NSIS, MSI installs, Steam, anything carrying a `requestedExecutionLevel="requireAdministrator"` manifest — auto-elevate to **High IL**.
 
-UIPI then drops every synthesised input that crosses the IL boundary upward. From the wire, every diagnostic looks fine: `element.find` returns `OK <id>`, `element.invoke` returns `OK`, `input.key` returns `OK` — but the wizard never advances. v1 agents had no observability into this; v2 agents surface it explicitly (see §8.3).
+UIPI then drops every synthesised input that crosses the IL boundary upward. From the wire, every diagnostic looks fine: `element.find` returns `OK <id>`, `element.invoke` returns `OK`, `input.keyboard.key` returns `OK` — but the wizard never advances. v1 agents had no observability into this; v2 agents surface it explicitly (see §8.3).
 
 ### 8.2 Surfacing the agent's IL
 

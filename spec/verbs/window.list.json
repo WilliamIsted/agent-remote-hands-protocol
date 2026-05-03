@@ -1,7 +1,7 @@
 {
   "name": "window.list",
   "strict": true,
-  "description": "Enumerates top-level windows. Returns an array of {handle, title, pid, bounds} entries. Read-only.",
+  "description": "Enumerates top-level windows. Returns an array of {handle, title, pid, bounds} entries. Pass `include_monitor: true` to add `monitor_index` to each entry. Read-only.",
   "$defs": {
     "Bounds": {
       "type": "object",
@@ -31,6 +31,11 @@
       "pattern": {
         "type": "string",
         "description": "Case-insensitive substring matched against window titles (e.g. `notepad` matches `Untitled - Notepad`). Omit to list all titles."
+      },
+      "include_monitor": {
+        "type": "boolean",
+        "default": false,
+        "description": "When true, each entry's output gains a `monitor_index` field identifying the monitor whose centre intersects the window's bounds (via `MonitorFromWindow`). Adds one MonitorFromWindow call per entry. Default false keeps the typical-case payload tight."
       }
     },
     "additionalProperties": false
@@ -43,10 +48,11 @@
     "items": {
       "type": "object",
       "properties": {
-        "handle": { "type": "string", "description": "Window handle, e.g. 'win:0x1A2B' on Windows or 'mac:42' on macOS." },
-        "title":  { "type": "string", "description": "Window title text." },
-        "pid":    { "type": "integer", "description": "Owning process id." },
-        "bounds": { "$ref": "#/$defs/Bounds", "description": "Window's screen position and size." }
+        "handle":        { "type": "string", "description": "Window handle, e.g. 'win:0x1A2B' on Windows or 'mac:42' on macOS." },
+        "title":         { "type": "string", "description": "Window title text." },
+        "pid":           { "type": "integer", "description": "Owning process id." },
+        "bounds":        { "$ref": "#/$defs/Bounds", "description": "Window's screen position and size." },
+        "monitor_index": { "type": "integer", "minimum": 0, "description": "0-based monitor index from `system.info.screens[].index`. Present iff `include_monitor: true` was passed in the request." }
       },
       "required": ["handle", "title", "pid", "bounds"],
       "additionalProperties": false
@@ -63,11 +69,11 @@
   ],
   "x-families": {
     "windows-modern": {
-      "description": "EnumWindows + IsWindowVisible filter; GetWindowTextW for Unicode titles. Bounds via GetWindowRect with DPI virtualisation honoured.",
+      "description": "EnumWindows + IsWindowVisible filter; GetWindowTextW for Unicode titles. Bounds via GetWindowRect with DPI virtualisation honoured. When `include_monitor: true`, `MonitorFromWindow(MONITOR_DEFAULTTONEAREST)` resolves each entry's monitor handle, looked up in the agent's monitor-handle-to-index table.",
       "implementations_in_order": ["enum_windows"]
     },
     "windows-classic": {
-      "description": "EnumWindows; GetWindowTextA on NT 4 / 9x, GetWindowTextW on NT 5+. No DPI virtualisation. Pre-NT-5 returns ANSI titles transcoded to UTF-8 by the agent.",
+      "description": "EnumWindows; GetWindowTextA on NT 4 / 9x, GetWindowTextW on NT 5+. No DPI virtualisation. Pre-NT-5 returns ANSI titles transcoded to UTF-8 by the agent. `include_monitor` works on NT 5+ via MonitorFromWindow; on NT 4 (single-monitor) every entry reports `monitor_index: 0`.",
       "implementations_in_order": ["enum_windows"]
     }
   }

@@ -1,0 +1,49 @@
+{
+  "name": "input.keyboard.key_down",
+  "strict": true,
+  "description": "Press a virtual key by name and leave it held indefinitely. Returns immediately. Pair with `input.keyboard.key_up` (or rely on connection-close cleanup) to lift. Use this for multi-verb chord workflows (Shift+drag, Ctrl across multiple invocations); for single-verb timed holds use `input.keyboard.key {duration_ms}`. Per issue #70.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "vk": {
+        "type": "string",
+        "minLength": 1,
+        "description": "Key name. Same vocabulary as `input.keyboard.key` (e.g. `shift`, `ctrl`, `alt`, `F4`, `a`). Case-insensitive."
+      }
+    },
+    "required": ["vk"],
+    "additionalProperties": false
+  },
+  "x-crudx": "U",
+  "x-since": "2.1",
+  "x-namespace": "input",
+  "x-output-schema": {
+    "type": "null",
+    "description": "Empty body — wire response is the literal `OK 0`. The agent records the key as held on this connection; see lifecycle §2.8 for cleanup semantics."
+  },
+  "x-errors": ["uipi_blocked", "permission_denied", "invalid_args"],
+  "x-implementations": [
+    {
+      "name": "send_input",
+      "detect": { "type": "always" },
+      "available_on": ["windows-modern", "windows-classic"],
+      "description": "Win32 `SendInput` with INPUT_KEYBOARD + `KEYEVENTF_KEYDOWN` (the default — no flag for plain down). No matching up event; the key stays held until `input.keyboard.key_up` or connection close."
+    },
+    {
+      "name": "keybd_event",
+      "detect": { "type": "always" },
+      "available_on": ["windows-classic"],
+      "description": "Win32 `keybd_event` legacy fallback for NT 4 / 9x where SendInput is unavailable."
+    }
+  ],
+  "x-families": {
+    "windows-modern": {
+      "description": "SendInput with KEYEVENTF_KEYDOWN. Agent registers the vk in the per-connection held-input set so lifecycle §2.8 can release it on connection close. Same RawInput / DirectInput limitation as input.keyboard.key — apps reading via GetAsyncKeyState against the kernel keyboard table will not see the held state. Targets that respect user32's keyboard-state aggregation (most apps including modern frameworks) WILL see the key as held during subsequent verbs (e.g. Shift held during a click registers as Shift+click). UIPI applies same as input.keyboard.key.",
+      "implementations_in_order": ["send_input"]
+    },
+    "windows-classic": {
+      "description": "SendInput on NT 5+; keybd_event on NT 4 / 9x. Same per-connection held-input tracking as modern. No UIPI on classic.",
+      "implementations_in_order": ["send_input", "keybd_event"]
+    }
+  }
+}

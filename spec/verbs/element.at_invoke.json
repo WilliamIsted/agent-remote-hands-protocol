@@ -48,7 +48,7 @@
   ],
   "x-families": {
     "windows-modern": {
-      "description": "ElementFromPoint + InvokePattern.Invoke. Differs from `input.click` at the same coords in two ways: (1) bypasses the foreground window and synthetic input — the invoke runs on the UIA pattern directly; (2) reaches some elements `input.click` can't (occluded under transparent layers, etc.).",
+      "description": "ElementFromPoint + InvokePattern.Invoke. Differs from `input.mouse.click` at the same coords in two ways: (1) bypasses the foreground window and synthetic input — the invoke runs on the UIA pattern directly; (2) reaches some elements `input.mouse.click` can't (occluded under transparent layers, etc.).",
       "implementations_in_order": [
         "uia_at_then_invoke"
       ]

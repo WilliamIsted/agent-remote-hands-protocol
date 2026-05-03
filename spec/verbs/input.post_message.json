@@ -51,7 +51,7 @@
   ],
   "x-families": {
     "windows-modern": {
-      "description": "PostMessageW. UIPI: cross-IL posts are silently dropped (PostMessage returns success — the message simply never delivers). Same post-check + ERR uipi_blocked path as input.send_message and input.click.",
+      "description": "PostMessageW. UIPI: cross-IL posts are silently dropped (PostMessage returns success — the message simply never delivers). Same post-check + ERR uipi_blocked path as input.send_message and input.mouse.click.",
       "implementations_in_order": ["post_message"]
     },
     "windows-classic": {

@@ -1,0 +1,64 @@
+{
+  "name": "input.mouse.drag",
+  "strict": true,
+  "description": "Press a mouse button at the current cursor position, smoothly move to (x, y) over `steps` interpolated positions, and release. Atomic: a single SendInput batch where possible, ensuring continuous-movement detection by the OS. Per issue #68.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "x": {
+        "type": "integer",
+        "description": "Target X (absolute virtual-screen) for the release position."
+      },
+      "y": {
+        "type": "integer",
+        "description": "Target Y (absolute) for the release position."
+      },
+      "button": {
+        "type": "string",
+        "enum": ["left", "right", "middle"],
+        "default": "left",
+        "description": "Mouse button to hold during the drag."
+      },
+      "steps": {
+        "type": "integer",
+        "minimum": 1,
+        "default": 10,
+        "description": "Number of intermediate move events emitted between the down and up. Linear interpolation from the starting position to (x, y). Each move is a separate INPUT_MOUSE event in the same SendInput batch. Higher values = smoother visible drag and more reliable drag-detection on slow-press-detection-sensitive targets; lower values = faster. The OS drag threshold is `GetSystemMetrics(SM_CXDRAG)` / `SM_CYDRAG` (~4 px); 10 steps over typical drag distances clears it comfortably."
+      }
+    },
+    "required": ["x", "y"],
+    "additionalProperties": false
+  },
+  "x-crudx": "U",
+  "x-since": "2.1",
+  "x-namespace": "input",
+  "x-output-schema": {
+    "type": "null",
+    "description": "Empty body — wire response is the literal `OK 0`. The cursor ends at (x, y) (or the clamped equivalent if off-screen)."
+  },
+  "x-errors": ["uipi_blocked", "permission_denied", "invalid_args"],
+  "x-implementations": [
+    {
+      "name": "send_input_batch",
+      "detect": { "type": "always" },
+      "available_on": ["windows-modern", "windows-classic"],
+      "description": "Single Win32 `SendInput` call carrying [button-down, N×MOUSEEVENTF_MOVE | MOUSEEVENTF_ABSOLUTE | MOUSEEVENTF_VIRTUALDESK, button-up] in one batch. Single call ensures the OS sees the event sequence without interleaving from real input. NT 5+."
+    },
+    {
+      "name": "mouse_event_sequence",
+      "detect": { "type": "always" },
+      "available_on": ["windows-classic"],
+      "description": "Win32 `mouse_event` sequential calls for NT 4 / 9x where SendInput is unavailable. The lack of batching means real user input can interleave; rare on automation-only machines but possible. Agent issues calls in tight loop with no Sleep between."
+    }
+  ],
+  "x-families": {
+    "windows-modern": {
+      "description": "Single SendInput batch: down + N interpolated MOUSEEVENTF_MOVE events + up. The MOUSEEVENTF_VIRTUALDESK flag ensures coordinates work across multi-monitor setups. UIPI may silently drop drags directed at higher-IL windows; the down-event's UIPI check is the authoritative signal — failures return ERR uipi_blocked. The drag does NOT enter the agent's per-connection held-input set (it's atomic — the up event always fires before the verb returns).",
+      "implementations_in_order": ["send_input_batch"]
+    },
+    "windows-classic": {
+      "description": "SendInput batch on NT 5+; sequential mouse_event calls on NT 4 / 9x. NT 4 is single-monitor only — multi-monitor coords clamp to the primary monitor. No UIPI on classic, so drags cross all process boundaries freely.",
+      "implementations_in_order": ["send_input_batch", "mouse_event_sequence"]
+    }
+  }
+}

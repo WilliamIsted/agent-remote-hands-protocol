@@ -1,5 +1,5 @@
 {
-  "name": "input.scroll",
+  "name": "input.mouse.scroll",
   "strict": true,
   "description": "Send mouse-wheel notches at virtual-screen coordinates. Each notch translates to `system.info.capabilities.input_settings.wheel_scroll_lines` lines per OS convention.",
   "input_schema": {
@@ -27,7 +27,8 @@
     "additionalProperties": false
   },
   "x-crudx": "U",
-  "x-since": "2.0",
+  "x-since": "2.1",
+  "x-renamed-from": "input.scroll",
   "x-namespace": "input",
   "x-output-schema": {
     "type": "object",
@@ -62,7 +63,7 @@
   ],
   "x-families": {
     "windows-modern": {
-      "description": "SendInput with MOUSEEVENTF_WHEEL / MOUSEEVENTF_HWHEEL. The OS lines-per-notch setting is exposed via `system.info.capabilities.input_settings.wheel_scroll_lines` (typically 3, but user-configurable via Mouse Properties). UIPI applies same as input.click.",
+      "description": "SendInput with MOUSEEVENTF_WHEEL / MOUSEEVENTF_HWHEEL. The OS lines-per-notch setting is exposed via `system.info.capabilities.input_settings.wheel_scroll_lines` (typically 3, but user-configurable via Mouse Properties). UIPI applies same as input.mouse.click.",
       "implementations_in_order": ["send_input"]
     },
     "windows-classic": {
