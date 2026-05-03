@@ -1,0 +1,63 @@
+{
+  "name": "window.find",
+  "strict": true,
+  "description": "Find the first top-level window whose title matches the case-insensitive substring pattern. Returns `ERR not_found` if no window matches.",
+  "$defs": {
+    "Bounds": {
+      "type": "object",
+      "properties": {
+        "x": { "type": "integer", "description": "Top-left X in virtual-screen coordinates." },
+        "y": { "type": "integer", "description": "Top-left Y in virtual-screen coordinates." },
+        "w": { "type": "integer", "description": "Width in physical pixels." },
+        "h": { "type": "integer", "description": "Height in physical pixels." }
+      },
+      "required": ["x", "y", "w", "h"],
+      "additionalProperties": false
+    }
+  },
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "pattern": {
+        "type": "string",
+        "minLength": 1,
+        "description": "Case-insensitive substring matched against window titles. Same convention as `window.list --filter`."
+      }
+    },
+    "required": ["pattern"],
+    "additionalProperties": false
+  },
+  "x-crudx": "R",
+  "x-since": "2.0",
+  "x-namespace": "window",
+  "x-output-schema": {
+    "type": "object",
+    "properties": {
+      "handle": { "type": "string", "description": "Window handle, e.g. 'win:0x1A2B'." },
+      "title":  { "type": "string", "description": "Window title text." },
+      "pid":    { "type": "integer", "description": "Owning process id." },
+      "bounds": { "$ref": "#/$defs/Bounds", "description": "Window's screen position and size." }
+    },
+    "required": ["handle", "title", "pid", "bounds"],
+    "additionalProperties": false
+  },
+  "x-errors": ["not_found", "invalid_args"],
+  "x-implementations": [
+    {
+      "name": "enum_windows",
+      "detect": { "type": "always" },
+      "available_on": ["windows-modern", "windows-classic"],
+      "description": "Win32 `EnumWindows` walk; first window whose `GetWindowTextW` (or A) result contains the pattern (case-folded) is returned. Walk halts on first match."
+    }
+  ],
+  "x-families": {
+    "windows-modern": {
+      "description": "EnumWindows + GetWindowTextW + case-fold compare. Returns the first visible top-level window whose title contains the pattern. Hidden windows are not searched (no `--all` flag here; use window.list for that).",
+      "implementations_in_order": ["enum_windows"]
+    },
+    "windows-classic": {
+      "description": "EnumWindows + GetWindowTextW (NT 5+) or GetWindowTextA (NT 4 / 9x, transcoded to UTF-8) + case-fold compare. Same first-match semantics as modern.",
+      "implementations_in_order": ["enum_windows"]
+    }
+  }
+}

@@ -1,0 +1,63 @@
+{
+  "name": "watch.registry",
+  "strict": true,
+  "description": "Subscribe to registry-key changes. Emits EVENT frames per change until cancelled. Unlike registry.wait (one-shot), this verb fires on every change.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "path": {
+        "type": "string",
+        "description": "Registry key path to watch."
+      },
+      "watch_subtree": {
+        "type": "boolean",
+        "default": false,
+        "description": "If true, fire on changes anywhere in the key's subtree. Without this, only direct changes to `path` itself trigger."
+      }
+    },
+    "required": ["path"],
+    "additionalProperties": false
+  },
+  "x-crudx": "R",
+  "x-since": "2.0",
+  "x-namespace": "watch",
+  "x-output-schema": {
+    "type": "object",
+    "properties": {
+      "subscription_id": {
+        "type": "string",
+        "description": "Subscription identifier in `sub:N` form."
+      }
+    },
+    "required": ["subscription_id"],
+    "additionalProperties": false
+  },
+  "x-event-schema": {
+    "type": "object",
+    "description": "EVENT frames emitted per registry change. Win32 RegNotifyChangeKeyValue does NOT identify which value changed — the EVENT is a coarse `something in this key changed` signal; consumers re-read the key to see what changed.",
+    "properties": {
+      "path": { "type": "string", "description": "The registry key that changed (echoes the input `path`; useful when multiple watch.registry subscriptions are active on the same connection)." }
+    },
+    "required": ["path"],
+    "additionalProperties": false
+  },
+  "x-errors": ["not_found", "permission_denied", "invalid_args"],
+  "x-implementations": [
+    {
+      "name": "reg_notify_change_key_value_loop",
+      "detect": { "type": "always" },
+      "available_on": ["windows-modern", "windows-classic"],
+      "description": "Win32 `RegNotifyChangeKeyValue` in a loop on a dedicated thread — the API is one-shot (signals, must be re-armed). Each signal fires an EVENT and re-arms; loop exits on watch.cancel."
+    }
+  ],
+  "x-families": {
+    "windows-modern": {
+      "description": "RegNotifyChangeKeyValue with REG_NOTIFY_CHANGE_NAME | LAST_SET | ATTRIBUTES | SECURITY classes. Re-armed in a loop after each signal.",
+      "implementations_in_order": ["reg_notify_change_key_value_loop"]
+    },
+    "windows-classic": {
+      "description": "RegNotifyChangeKeyValue available since NT 3.1. Win 9x has limited registry-change support; classic agent on 9x falls back to a polling read loop.",
+      "implementations_in_order": ["reg_notify_change_key_value_loop"]
+    }
+  }
+}

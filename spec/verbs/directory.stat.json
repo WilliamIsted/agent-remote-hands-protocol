@@ -1,7 +1,7 @@
 {
   "name": "directory.stat",
   "strict": true,
-  "description": "Stat a directory: returns entry count, total size of immediate entries, and mtime. For files, use file.stat. Read-only.",
+  "description": "Stat a directory: returns entry count and mtime. For files, use file.stat. Read-only.",
   "input_schema": {
     "type": "object",
     "properties": {
@@ -10,9 +10,7 @@
         "description": "Absolute directory path."
       }
     },
-    "required": [
-      "path"
-    ],
+    "required": ["path"],
     "additionalProperties": false
   },
   "x-crudx": "R",
@@ -22,42 +20,47 @@
     "type": "object",
     "properties": {
       "type": {
-        "type": "string",
-        "const": "dir"
+        "const": "directory",
+        "description": "Always `directory` on success — this verb returns ERR not_a_directory for non-directories rather than reporting a different type."
       },
       "entry_count": {
-        "type": "integer"
+        "type": "integer",
+        "minimum": 0,
+        "description": "Count of immediate entries (subdirectories + files + links + other). Recursive descent NOT included — use directory.list and walk if recursive count is needed."
       },
       "mtime_unix": {
-        "type": "integer"
+        "type": "integer",
+        "description": "Modification time as Unix epoch seconds. Updated by the OS when entries are added / removed / renamed in the directory."
+      },
+      "flags": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "enum": ["readonly", "hidden", "system", "archive", "temporary", "compressed", "encrypted", "sparse_file", "reparse_point", "offline", "not_indexed", "recall_on_data_access", "recall_on_open"]
+        },
+        "description": "Win32 FILE_ATTRIBUTE_* flags currently set on the directory. Per issue #93 (extended to directory.stat for parity with file.stat)."
       }
     },
-    "required": [
-      "type",
-      "entry_count"
-    ],
+    "required": ["type", "entry_count", "mtime_unix", "flags"],
     "additionalProperties": false
   },
-  "x-errors": [
-    "not_found",
-    "permission_denied",
-    "not_a_directory"
+  "x-errors": ["not_found", "permission_denied", "not_a_directory", "invalid_args"],
+  "x-implementations": [
+    {
+      "name": "get_file_attributes_ex_plus_count",
+      "detect": { "type": "always" },
+      "available_on": ["windows-modern", "windows-classic"],
+      "description": "Win32 `GetFileAttributesExW` (mtime + attributes + type check) + `FindFirstFileW` / `FindNextFileW` loop counting entries. Two passes over the directory metadata; cheap unless directories are huge."
+    }
   ],
   "x-families": {
     "windows-modern": {
-      "description": "GetFileAttributesExW + FindFirstFileW iteration for entry count.",
-      "api": [
-        "GetFileAttributesExW",
-        "FindFirstFileW"
-      ]
+      "description": "GetFileAttributesExW + FindFirstFileW iteration for entry count. Long-path `\\\\?\\` prefix automatic when input exceeds MAX_PATH.",
+      "implementations_in_order": ["get_file_attributes_ex_plus_count"]
     },
     "windows-classic": {
-      "description": "GetFileAttributesA / GetFileAttributesW + FindFirst* per NT version.",
-      "api": [
-        "GetFileAttributesA",
-        "GetFileAttributesW",
-        "FindFirstFile"
-      ]
+      "description": "GetFileAttributesA / GetFileAttributesW + FindFirst* per NT version. NT 4 / 9x use the ANSI variants; transcoded path handling.",
+      "implementations_in_order": ["get_file_attributes_ex_plus_count"]
     }
   }
 }

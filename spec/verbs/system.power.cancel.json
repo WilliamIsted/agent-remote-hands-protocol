@@ -1,0 +1,43 @@
+{
+  "name": "system.power.cancel",
+  "strict": true,
+  "description": "Abort a pending in-process delayed shutdown / reboot / logoff scheduled via `--delay`. Returns `ERR not_found` if no shutdown is pending.",
+  "input_schema": {
+    "type": "object",
+    "properties": {},
+    "additionalProperties": false
+  },
+  "x-crudx": "X",
+  "x-since": "2.0",
+  "x-namespace": "system",
+  "x-output-schema": {
+    "type": "object",
+    "properties": {
+      "cancelled_until_ms": {
+        "type": "integer",
+        "description": "Milliseconds remaining on the cancelled timer at the moment the cancel was applied. 0 if the timer was about to fire."
+      }
+    },
+    "required": ["cancelled_until_ms"],
+    "additionalProperties": false
+  },
+  "x-errors": ["not_found", "not_supported", "insufficient_privilege"],
+  "x-implementations": [
+    {
+      "name": "agent_native",
+      "detect": { "type": "always" },
+      "available_on": ["windows-modern", "windows-classic"],
+      "description": "Wakes the agent's pending-shutdown timer thread early so it skips the OS-level call. No OS API involvement; pure in-process state."
+    }
+  ],
+  "x-families": {
+    "windows-modern": {
+      "description": "Cancels the agent's in-process delayed-shutdown timer. Capability-gated — agents without delayed-shutdown bookkeeping omit the verb from `system.capabilities`. The cancel is effective only on the agent that owns the timer; if a separate agent process scheduled the shutdown, this verb returns `ERR not_found`.",
+      "implementations_in_order": ["agent_native"]
+    },
+    "windows-classic": {
+      "description": "Same in-process timer-cancel mechanism as windows-modern. No NT-era API divergence — the timer is a managed in-agent thread regardless of OS version.",
+      "implementations_in_order": ["agent_native"]
+    }
+  }
+}

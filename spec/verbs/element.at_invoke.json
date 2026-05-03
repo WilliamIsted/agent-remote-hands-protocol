@@ -1,0 +1,61 @@
+{
+  "name": "element.at_invoke",
+  "strict": true,
+  "description": "Compound: element.at + element.invoke in one round-trip. Hit-test at coordinates, then invoke the element under the cursor.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "x": {
+        "type": "integer",
+        "description": "Screen X in virtual-screen coordinates."
+      },
+      "y": {
+        "type": "integer",
+        "description": "Screen Y."
+      }
+    },
+    "required": [
+      "x",
+      "y"
+    ],
+    "additionalProperties": false
+  },
+  "x-crudx": "U",
+  "x-since": "2.0",
+  "x-namespace": "element",
+  "x-output-schema": {
+    "type": "null",
+    "description": "Empty body — wire response is the literal `OK 0`. Failures of either step surface as the relevant ERR."
+  },
+  "x-errors": [
+    "not_found",
+    "not_supported_by_target",
+    "target_gone",
+    "permission_denied",
+    "invalid_args"
+  ],
+  "x-implementations": [
+    {
+      "name": "uia_at_then_invoke",
+      "detect": {
+        "type": "always"
+      },
+      "available_on": [
+        "windows-modern"
+      ],
+      "description": "Internal: element.at (ElementFromPoint) followed by element.invoke (InvokePattern.Invoke). The intermediate elt:N id is allocated and discarded."
+    }
+  ],
+  "x-families": {
+    "windows-modern": {
+      "description": "ElementFromPoint + InvokePattern.Invoke. Differs from `input.click` at the same coords in two ways: (1) bypasses the foreground window and synthetic input — the invoke runs on the UIA pattern directly; (2) reaches some elements `input.click` can't (occluded under transparent layers, etc.).",
+      "implementations_in_order": [
+        "uia_at_then_invoke"
+      ]
+    },
+    "windows-classic": {
+      "implemented": false,
+      "reason": "Requires UI Automation (Vista+)."
+    }
+  }
+}

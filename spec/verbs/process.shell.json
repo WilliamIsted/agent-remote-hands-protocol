@@ -1,0 +1,70 @@
+{
+  "name": "process.shell",
+  "strict": true,
+  "description": "Spawn a process via ShellExecuteEx. Handles paths with spaces / unicode without shell-escape hazards, supports non-default Win32 verbs (runas for elevation, print, edit, explore).",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "path": {
+        "type": "string",
+        "description": "Absolute path to the file / executable / URL / shell item. ShellExecuteEx handles document-launch semantics — `.txt` opens in Notepad, `.url` follows the link, etc."
+      },
+      "args": {
+        "type": "string",
+        "description": "Parameter string passed verbatim to the spawned program. Optional. Used as ShellExecuteEx's lpParameters."
+      },
+      "verb": {
+        "type": "string",
+        "enum": ["open", "runas", "print", "edit", "explore", "find"],
+        "default": "open",
+        "description": "Win32 shell verb. `open` (default): standard launch. `runas`: elevate via UAC consent prompt (interactive). `print`: send to default printer. `edit`: open in editor. `explore`: open Explorer at the path. `find`: open search rooted at the path."
+      },
+      "cwd": {
+        "type": "string",
+        "description": "Working directory for the new process. Defaults to the agent's cwd."
+      }
+    },
+    "required": ["path"],
+    "additionalProperties": false
+  },
+  "x-crudx": "C",
+  "x-since": "2.0",
+  "x-namespace": "process",
+  "x-output-schema": {
+    "type": "object",
+    "properties": {
+      "pid": {
+        "type": "integer",
+        "minimum": 0,
+        "description": "Process id of the spawned process. May be 0 for verbs that don't spawn a new process (e.g. `print` on a file that opens in an existing handler instance)."
+      }
+    },
+    "required": ["pid"],
+    "additionalProperties": false
+  },
+  "x-errors": ["not_found", "permission_denied", "user_cancelled", "no_handler", "invalid_args"],
+  "x-implementations": [
+    {
+      "name": "shell_execute_ex_w",
+      "detect": { "type": "always" },
+      "available_on": ["windows-modern", "windows-classic"],
+      "description": "Win32 `ShellExecuteExW` (Unicode) with SEE_MASK_NOCLOSEPROCESS to retrieve the spawned process handle for pid extraction."
+    },
+    {
+      "name": "shell_execute_ex_a",
+      "detect": { "type": "always" },
+      "available_on": ["windows-classic"],
+      "description": "Win32 `ShellExecuteExA` legacy fallback for NT 4 / 9x. ANSI strings transcoded by the agent."
+    }
+  ],
+  "x-families": {
+    "windows-modern": {
+      "description": "ShellExecuteExW. `verb: runas` triggers UAC consent — interactive prompt blocks the agent until the user responds. `user_cancelled` ERR if the user denies the prompt. `no_handler` when no application is registered for the path's file association.",
+      "implementations_in_order": ["shell_execute_ex_w"]
+    },
+    "windows-classic": {
+      "description": "ShellExecuteExW on NT 5+; ShellExecuteExA on NT 4 / 9x. `runas` is NT 5+ — pre-NT-5 returns ERR not_supported. NT 4 lacks UAC; `runas` simply uses RunAs Service when present, else errors.",
+      "implementations_in_order": ["shell_execute_ex_w", "shell_execute_ex_a"]
+    }
+  }
+}

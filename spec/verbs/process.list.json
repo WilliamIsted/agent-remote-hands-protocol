@@ -1,0 +1,63 @@
+{
+  "name": "process.list",
+  "strict": true,
+  "description": "Enumerate running processes. Returns pid, image name, parent pid, and basic resource counters per entry. Read-only.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "filter": {
+        "type": "string",
+        "description": "Case-insensitive substring matched against the image name (e.g. `notepad` matches `Notepad.exe`). Omit to list all processes."
+      }
+    },
+    "additionalProperties": false
+  },
+  "x-crudx": "R",
+  "x-since": "2.0",
+  "x-namespace": "process",
+  "x-output-schema": {
+    "type": "object",
+    "properties": {
+      "processes": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "pid":   { "type": "integer", "description": "Process id." },
+            "image": { "type": "string",  "description": "Executable name (filename without path), e.g. `Notepad.exe`. Empty string for kernel-internal processes the agent can't query." },
+            "ppid":  { "type": "integer", "description": "Parent process id. May be 0 or refer to a no-longer-running process if the parent has exited." }
+          },
+          "required": ["pid", "image", "ppid"],
+          "additionalProperties": false
+        }
+      }
+    },
+    "required": ["processes"],
+    "additionalProperties": false
+  },
+  "x-errors": ["permission_denied", "invalid_args"],
+  "x-implementations": [
+    {
+      "name": "create_toolhelp32_snapshot",
+      "detect": { "type": "always" },
+      "available_on": ["windows-modern", "windows-classic"],
+      "description": "Win32 `CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS)` + `Process32FirstW` / `Process32NextW` walk. Each PROCESSENTRY32W carries th32ProcessID, th32ParentProcessID, and szExeFile."
+    },
+    {
+      "name": "enum_processes",
+      "detect": { "type": "always" },
+      "available_on": ["windows-modern"],
+      "description": "Win32 `EnumProcesses` + `OpenProcess` + `GetModuleBaseNameW` per pid. More verbose, sometimes catches edge cases Toolhelp misses."
+    }
+  ],
+  "x-families": {
+    "windows-modern": {
+      "description": "CreateToolhelp32Snapshot is the primary path; falls back to EnumProcesses + GetModuleBaseName when Toolhelp fails (rare). Filter applied client-side after enumeration. Per-process reads of image name may fail with ERR permission_denied for protected processes (anti-cheat / antivirus); those entries report `image: \"\"`.",
+      "implementations_in_order": ["create_toolhelp32_snapshot", "enum_processes"]
+    },
+    "windows-classic": {
+      "description": "CreateToolhelp32Snapshot on NT 5+ and Win 9x (kernel32 export). NT 4 lacks Toolhelp in kernel32; the agent loads PSAPI.DLL and uses EnumProcesses on NT 4. Otherwise behaviour matches modern.",
+      "implementations_in_order": ["create_toolhelp32_snapshot"]
+    }
+  }
+}

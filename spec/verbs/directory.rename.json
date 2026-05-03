@@ -1,7 +1,7 @@
 {
   "name": "directory.rename",
   "strict": true,
-  "description": "Rename or move a directory. The same primitive handles both (POSIX rename(2) / Win32 MoveFileEx) \u2014 supplying a different parent path moves the directory. Atomic on the same filesystem; falls back to copy+delete across filesystems if `cross_fs` is true.",
+  "description": "Rename or move a directory. The same primitive handles both — supplying a different parent path moves the directory. Atomic on the same filesystem; falls back to copy+delete across filesystems if `cross_fs: true`.",
   "input_schema": {
     "type": "object",
     "properties": {
@@ -21,13 +21,10 @@
       "cross_fs": {
         "type": "boolean",
         "default": false,
-        "description": "If true, allow a copy+delete fallback when `src` and `dst` are on different filesystems. Default refuses cross-filesystem renames with ERR cross_device."
+        "description": "If true, allow a copy+delete fallback when `src` and `dst` are on different filesystems. Default refuses cross-filesystem renames with ERR cross_device. The fallback is non-atomic (a concurrent reader may see partial state)."
       }
     },
-    "required": [
-      "src",
-      "dst"
-    ],
+    "required": ["src", "dst"],
     "additionalProperties": false
   },
   "x-crudx": "U",
@@ -37,37 +34,47 @@
     "type": "object",
     "properties": {
       "renamed": {
-        "type": "boolean"
+        "type": "boolean",
+        "description": "True on success."
       },
       "fallback_used": {
         "type": "string",
-        "description": "Set to 'copy_delete' if cross_fs fallback ran; absent otherwise."
+        "enum": ["none", "copy_delete"],
+        "description": "`copy_delete` when the cross-filesystem fallback was engaged (only possible with `cross_fs: true`); `none` otherwise."
       }
     },
-    "required": [
-      "renamed"
-    ],
+    "required": ["renamed", "fallback_used"],
     "additionalProperties": false
   },
-  "x-errors": [
-    "not_found",
-    "already_exists",
-    "permission_denied",
-    "cross_device",
-    "not_a_directory"
+  "x-errors": ["not_found", "already_exists", "permission_denied", "cross_device", "not_a_directory", "invalid_args"],
+  "x-implementations": [
+    {
+      "name": "move_file_ex",
+      "detect": { "type": "always" },
+      "available_on": ["windows-modern", "windows-classic"],
+      "description": "Win32 `MoveFileExW(src, dst, MOVEFILE_REPLACE_EXISTING? | MOVEFILE_COPY_ALLOWED?)`. Atomic same-volume; cross-volume requires `cross_fs: true` to engage MOVEFILE_COPY_ALLOWED."
+    },
+    {
+      "name": "delete_then_move",
+      "detect": { "type": "always" },
+      "available_on": ["windows-classic"],
+      "description": "NT 4 fallback: lacks MoveFileEx; the agent emulates `overwrite: true` via DeleteDirectory (recursive) + MoveFile. Non-atomic."
+    },
+    {
+      "name": "copy_delete_directory",
+      "detect": { "type": "always" },
+      "available_on": ["windows-classic"],
+      "description": "9x non-atomic cross-FS fallback: CreateDirectory + recursive copy + RemoveDirectory."
+    }
   ],
   "x-families": {
     "windows-modern": {
-      "description": "MoveFileExW with MOVEFILE_REPLACE_EXISTING when overwrite=true. Cross-volume moves use MOVEFILE_COPY_ALLOWED when cross_fs=true; rejected otherwise.",
-      "api": "MoveFileExW"
+      "description": "MoveFileExW with MOVEFILE_REPLACE_EXISTING when overwrite=true. Cross-volume moves use MOVEFILE_COPY_ALLOWED when cross_fs=true; rejected otherwise. Long paths via `\\\\?\\` prefix automatic.",
+      "implementations_in_order": ["move_file_ex"]
     },
     "windows-classic": {
-      "description": "MoveFile / MoveFileEx depending on NT version. NT 4 lacks MoveFileEx; the agent emulates overwrite via DeleteFile+MoveFile (non-atomic).",
-      "api": [
-        "MoveFile",
-        "MoveFileEx",
-        "DeleteFile"
-      ]
+      "description": "MoveFileEx on NT 5+; MoveFile + DeleteDirectory emulation on NT 4 (no MoveFileEx) — non-atomic. 9x cross-FS uses recursive copy+delete.",
+      "implementations_in_order": ["move_file_ex", "delete_then_move", "copy_delete_directory"]
     }
   }
 }

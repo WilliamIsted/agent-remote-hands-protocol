@@ -1,0 +1,65 @@
+{
+  "name": "watch.process",
+  "strict": true,
+  "description": "Subscribe to one process's exit. Emits a single EVENT carrying the exit code when the process exits, then auto-cancels.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "pid": {
+        "type": "integer",
+        "minimum": 1,
+        "description": "Process id to watch."
+      }
+    },
+    "required": ["pid"],
+    "additionalProperties": false
+  },
+  "x-crudx": "R",
+  "x-since": "2.0",
+  "x-namespace": "watch",
+  "x-output-schema": {
+    "type": "object",
+    "properties": {
+      "subscription_id": {
+        "type": "string",
+        "description": "Subscription identifier in `sub:N` form."
+      }
+    },
+    "required": ["subscription_id"],
+    "additionalProperties": false
+  },
+  "x-event-schema": {
+    "type": "object",
+    "description": "Single EVENT emitted on process exit, then auto-cancellation. Carries the exit code.",
+    "properties": {
+      "exit_code": { "type": "integer", "description": "Process exit code (or value passed to TerminateProcess if killed)." }
+    },
+    "required": ["exit_code"],
+    "additionalProperties": false
+  },
+  "x-errors": ["not_found", "permission_denied", "invalid_args"],
+  "x-implementations": [
+    {
+      "name": "register_wait_for_single_object",
+      "detect": { "type": "always" },
+      "available_on": ["windows-modern", "windows-classic"],
+      "description": "Win32 `OpenProcess(SYNCHRONIZE)` + `RegisterWaitForSingleObject` (NT 5+) — async exit notification on a thread-pool callback. Calls back to the agent's event-emitter when the process signals."
+    },
+    {
+      "name": "wait_thread",
+      "detect": { "type": "always" },
+      "available_on": ["windows-classic"],
+      "description": "Dedicated thread + `WaitForSingleObject(hProcess, INFINITE)` legacy fallback for NT 4 / 9x where RegisterWaitForSingleObject is unavailable."
+    }
+  ],
+  "x-families": {
+    "windows-modern": {
+      "description": "RegisterWaitForSingleObject for efficient async exit notification. Auto-cancels after the single event fires.",
+      "implementations_in_order": ["register_wait_for_single_object"]
+    },
+    "windows-classic": {
+      "description": "RegisterWaitForSingleObject on NT 5+; dedicated wait thread on NT 4 / 9x.",
+      "implementations_in_order": ["register_wait_for_single_object", "wait_thread"]
+    }
+  }
+}

@@ -1,7 +1,7 @@
 {
   "name": "directory.create",
   "strict": true,
-  "description": "Create a directory. Brings something new into existence \u2014 classified C. Renamed from file.mkdir in v2.1.",
+  "description": "Create a directory. Brings something new into existence — classified C.",
   "input_schema": {
     "type": "object",
     "properties": {
@@ -16,13 +16,13 @@
       },
       "mode": {
         "type": "integer",
+        "minimum": 0,
+        "maximum": 511,
         "default": 493,
-        "description": "POSIX mode bits as a decimal integer; default 493 = 0755. Ignored on Windows."
+        "description": "POSIX mode bits as a decimal integer; default 493 = 0o755. Ignored on Windows (NTFS uses ACLs, not POSIX modes)."
       }
     },
-    "required": [
-      "path"
-    ],
+    "required": ["path"],
     "additionalProperties": false
   },
   "x-crudx": "C",
@@ -32,30 +32,36 @@
     "type": "object",
     "properties": {
       "created": {
-        "type": "boolean"
+        "type": "boolean",
+        "description": "True when the directory was newly created. Reserved for future semantics where `parents: true` may report which intermediate paths existed already."
       }
     },
-    "required": [
-      "created"
-    ],
+    "required": ["created"],
     "additionalProperties": false
   },
-  "x-errors": [
-    "already_exists",
-    "permission_denied",
-    "not_found"
+  "x-errors": ["already_exists", "permission_denied", "not_found", "invalid_args"],
+  "x-implementations": [
+    {
+      "name": "create_directory_w",
+      "detect": { "type": "always" },
+      "available_on": ["windows-modern", "windows-classic"],
+      "description": "Win32 `CreateDirectoryW`. With `parents: true`, the agent walks the path components from the root, calling CreateDirectoryW for each missing component (existing intermediate dirs are skipped, not errored)."
+    },
+    {
+      "name": "create_directory_a",
+      "detect": { "type": "always" },
+      "available_on": ["windows-classic"],
+      "description": "Win32 `CreateDirectoryA` legacy fallback for NT 4 / 9x. ANSI path; transcoded UTF-8 → ANSI by the agent."
+    }
   ],
   "x-families": {
     "windows-modern": {
-      "description": "CreateDirectoryW. Long-path \\\\?\\ prefix supported. parents:true walks the path components, creating each missing one.",
-      "api": "CreateDirectoryW"
+      "description": "CreateDirectoryW. Long-path `\\\\?\\` prefix automatic when input exceeds MAX_PATH. `parents: true` walks the path components, creating each missing one. ERR not_found when `parents: false` and a parent doesn't exist; ERR already_exists when the leaf already exists.",
+      "implementations_in_order": ["create_directory_w"]
     },
     "windows-classic": {
-      "description": "CreateDirectoryA on NT 4 / 9x; CreateDirectoryW on NT 5+. parents:true walks components in either case.",
-      "api": [
-        "CreateDirectoryA",
-        "CreateDirectoryW"
-      ]
+      "description": "CreateDirectoryW on NT 5+; CreateDirectoryA on NT 4 / 9x. Same `parents: true` walking behaviour. No long-path support pre-NT-5.1 — paths over MAX_PATH return ERR not_found.",
+      "implementations_in_order": ["create_directory_w", "create_directory_a"]
     }
   }
 }

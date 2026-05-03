@@ -1,0 +1,84 @@
+{
+  "name": "file.write_at",
+  "strict": true,
+  "description": "Random-access write of `content` at byte `offset`. The chunked-upload primitive — bridges call this in sequence for files over their single-shot threshold. Auto-creates the file when `offset: 0`; subsequent offsets require the file to exist.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "path": {
+        "type": "string",
+        "description": "Absolute path. Parent directory must exist."
+      },
+      "offset": {
+        "type": "integer",
+        "minimum": 0,
+        "description": "Byte offset to start writing at. 0 auto-creates the file (or truncates if `truncate: true`); offset > 0 requires the file to exist (returns ERR not_found otherwise)."
+      },
+      "content": {
+        "type": "string",
+        "description": "Bytes to write at `offset`. base64-encoded if encoding=binary; decoded text otherwise."
+      },
+      "encoding": {
+        "type": "string",
+        "enum": ["utf-8", "utf-16le", "utf-16be", "ascii", "latin-1", "cp1252", "binary"],
+        "default": "utf-8",
+        "description": "Encoding used to interpret `content`. Same vocabulary as file.read / file.write."
+      },
+      "truncate": {
+        "type": "boolean",
+        "default": false,
+        "description": "Only meaningful at `offset: 0`. When true, clears any existing file content before writing (the canonical first-chunk-of-chunked-upload pattern)."
+      }
+    },
+    "required": ["path", "offset", "content"],
+    "additionalProperties": false
+  },
+  "x-crudx": "U",
+  "x-since": "2.0",
+  "x-namespace": "file",
+  "x-output-schema": {
+    "type": "object",
+    "properties": {
+      "bytes_written": {
+        "type": "integer",
+        "description": "Number of bytes written at `offset` (after encoding)."
+      },
+      "encoding": {
+        "type": "string",
+        "enum": ["utf-8", "utf-16le", "utf-16be", "ascii", "latin-1", "cp1252", "binary"],
+        "description": "Echo of the encoding used."
+      },
+      "new_size": {
+        "type": "integer",
+        "description": "Total file size after this write. Useful for chunked-upload progress tracking — caller knows where to set `offset` for the next chunk."
+      }
+    },
+    "required": ["bytes_written", "encoding", "new_size"],
+    "additionalProperties": false
+  },
+  "x-errors": ["not_found", "permission_denied", "invalid_args"],
+  "x-implementations": [
+    {
+      "name": "create_file_w_random_access",
+      "detect": { "type": "always" },
+      "available_on": ["windows-modern", "windows-classic"],
+      "description": "Win32 `CreateFileW` (OPEN_ALWAYS at offset=0, OPEN_EXISTING otherwise) + `SetFilePointerEx(offset)` + `WriteFile`. `truncate: true` adds `SetEndOfFile(0)` before the write."
+    },
+    {
+      "name": "create_file_a_random_access",
+      "detect": { "type": "always" },
+      "available_on": ["windows-classic"],
+      "description": "Win32 `CreateFileA` legacy fallback for NT 4 / 9x where CreateFileW is unavailable. Same SetFilePointerEx + WriteFile path."
+    }
+  ],
+  "x-families": {
+    "windows-modern": {
+      "description": "CreateFileW + SetFilePointerEx + WriteFile. NOT atomic across calls (chunked writes are inherently sequential). For atomic single-shot writes, use file.write instead. Long paths via `\\\\?\\` prefix automatic when input exceeds MAX_PATH.",
+      "implementations_in_order": ["create_file_w_random_access"]
+    },
+    "windows-classic": {
+      "description": "CreateFileA on NT 4 / 9x; CreateFileW on NT 5+. SetFilePointerEx is NT 5+; NT 4 / 9x agents use SetFilePointer (32-bit offset) — files >4GB on classic return ERR invalid_args for offsets exceeding 32-bit range.",
+      "implementations_in_order": ["create_file_w_random_access", "create_file_a_random_access"]
+    }
+  }
+}

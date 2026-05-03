@@ -1,7 +1,7 @@
 {
   "name": "directory.list",
   "strict": true,
-  "description": "List the entries in a directory. Returns name / type / size / mtime per entry. Read-only. Renamed from file.list in v2.1.",
+  "description": "List the entries in a directory. Returns name / type / size / mtime / flags per entry. Read-only.",
   "input_schema": {
     "type": "object",
     "properties": {
@@ -10,9 +10,7 @@
         "description": "Absolute directory path."
       }
     },
-    "required": [
-      "path"
-    ],
+    "required": ["path"],
     "additionalProperties": false
   },
   "x-crudx": "R",
@@ -27,56 +25,63 @@
           "type": "object",
           "properties": {
             "name": {
-              "type": "string"
+              "type": "string",
+              "description": "Entry's filename (not full path)."
             },
             "type": {
               "type": "string",
-              "enum": [
-                "file",
-                "dir",
-                "link"
-              ]
+              "enum": ["file", "directory", "link", "other"],
+              "description": "`file` for regular files; `directory` for subdirectories; `link` for reparse points / symlinks / junctions; `other` for devices / pipes / sockets."
             },
             "size": {
-              "type": "integer"
+              "type": "integer",
+              "minimum": 0,
+              "description": "Byte size. Zero for directories. Symlink size is the target's size when resolvable."
             },
             "mtime_unix": {
-              "type": "integer"
+              "type": "integer",
+              "description": "Modification time as Unix epoch seconds."
+            },
+            "flags": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": ["readonly", "hidden", "system", "archive", "temporary", "compressed", "encrypted", "sparse_file", "reparse_point", "offline", "not_indexed", "recall_on_data_access", "recall_on_open"]
+              },
+              "description": "Win32 FILE_ATTRIBUTE_* flags currently set. Per issue #93 — zero-cost set sourced from WIN32_FIND_DATA. Cloud-file flags (recall_on_*) are Windows 10+; older Windows omits them."
             }
           },
-          "required": [
-            "name",
-            "type"
-          ],
+          "required": ["name", "type", "size", "mtime_unix", "flags"],
           "additionalProperties": false
         }
       }
     },
-    "required": [
-      "entries"
-    ],
+    "required": ["entries"],
     "additionalProperties": false
   },
-  "x-errors": [
-    "not_found",
-    "permission_denied"
+  "x-errors": ["not_found", "not_a_directory", "permission_denied", "invalid_args"],
+  "x-implementations": [
+    {
+      "name": "find_first_file_w",
+      "detect": { "type": "always" },
+      "available_on": ["windows-modern", "windows-classic"],
+      "description": "Win32 `FindFirstFileW` + `FindNextFileW` loop. Each iteration's WIN32_FIND_DATA carries name, attributes, size, timestamps — the full per-entry payload in one call per entry."
+    },
+    {
+      "name": "find_first_file_a",
+      "detect": { "type": "always" },
+      "available_on": ["windows-classic"],
+      "description": "Win32 `FindFirstFileA` legacy fallback for NT 4 / 9x where FindFirstFileW is unavailable. ANSI names transcoded to UTF-8 by the agent."
+    }
   ],
   "x-families": {
     "windows-modern": {
-      "description": "FindFirstFileW / FindNextFileW. Long-path \\\\?\\ prefix supported. UTF-16 native, transcoded to UTF-8 for the wire.",
-      "api": [
-        "FindFirstFileW",
-        "FindNextFileW"
-      ]
+      "description": "FindFirstFileW + FindNextFileW. UTF-16 native, transcoded to UTF-8 for the wire. Long-path `\\\\?\\` prefix automatic when input exceeds MAX_PATH. Cloud-file flags (recall_on_data_access, recall_on_open) populated for OneDrive / Files-On-Demand / Dropbox-shell-extension entries on Win 10+.",
+      "implementations_in_order": ["find_first_file_w"]
     },
     "windows-classic": {
-      "description": "FindFirstFileA / FindNextFileA on NT 4 / 9x; wide variants on NT 5+. No long-path support pre-NT-5.1.",
-      "api": [
-        "FindFirstFileA",
-        "FindNextFileA",
-        "FindFirstFileW",
-        "FindNextFileW"
-      ]
+      "description": "FindFirstFileW / FindNextFileW on NT 5+; FindFirstFileA / FindNextFileA on NT 4 / 9x. No long-path support pre-NT-5.1. No cloud-file flags pre-Win-10 (FILE_ATTRIBUTE_RECALL_ON_* are Win10-and-later constants).",
+      "implementations_in_order": ["find_first_file_w", "find_first_file_a"]
     }
   }
 }

@@ -1,0 +1,81 @@
+{
+  "name": "file.stat",
+  "strict": true,
+  "description": "Returns metadata for a file or directory: type, size, timestamps, and Win32 attributes. Tolerates both files and directories.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "path": {
+        "type": "string",
+        "description": "Absolute path to a file or directory."
+      }
+    },
+    "required": ["path"],
+    "additionalProperties": false
+  },
+  "x-crudx": "R",
+  "x-since": "2.0",
+  "x-namespace": "file",
+  "x-output-schema": {
+    "type": "object",
+    "properties": {
+      "type": {
+        "type": "string",
+        "enum": ["file", "directory", "link", "other"],
+        "description": "`file` for regular files; `directory` for directories; `link` for reparse points / symlinks / junctions; `other` for anything else (devices, pipes, sockets)."
+      },
+      "size": {
+        "type": "integer",
+        "minimum": 0,
+        "description": "Byte size. Zero for directories. Symlink size is the target's size when resolved."
+      },
+      "mtime_unix": {
+        "type": "integer",
+        "description": "Modification time as Unix epoch seconds. Last write to the content."
+      },
+      "ctime_unix": {
+        "type": "integer",
+        "description": "Creation time as Unix epoch seconds. NT-era FAT filesystems may report 0 (no creation timestamp tracking)."
+      },
+      "atime_unix": {
+        "type": "integer",
+        "description": "Access time as Unix epoch seconds. May be 0 if access-time tracking is disabled (FAT12/16, or NTFS with disablelastaccess set)."
+      },
+      "flags": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "enum": ["readonly", "hidden", "system", "archive", "temporary", "compressed", "encrypted", "sparse_file", "reparse_point", "offline", "not_indexed", "recall_on_data_access", "recall_on_open"]
+        },
+        "description": "Win32 FILE_ATTRIBUTE_* flags currently set. Per issue #93 — zero-cost set sourced from GetFileAttributesEx output. Cloud-file flags (recall_on_*) are Windows 10+; older Windows omits them."
+      }
+    },
+    "required": ["type", "size", "mtime_unix", "ctime_unix", "atime_unix", "flags"],
+    "additionalProperties": false
+  },
+  "x-errors": ["not_found", "permission_denied", "invalid_args"],
+  "x-implementations": [
+    {
+      "name": "get_file_attributes_ex",
+      "detect": { "type": "always" },
+      "available_on": ["windows-modern", "windows-classic"],
+      "description": "Win32 `GetFileAttributesExW(GetFileExInfoStandard)` — single call yielding size, three timestamps, and attribute flags. NT 5+."
+    },
+    {
+      "name": "find_first_file",
+      "detect": { "type": "always" },
+      "available_on": ["windows-classic"],
+      "description": "Win32 `FindFirstFileA` legacy fallback for NT 4 / 9x where GetFileAttributesEx is unavailable. Same WIN32_FIND_DATA shape (size, timestamps, attributes)."
+    }
+  ],
+  "x-families": {
+    "windows-modern": {
+      "description": "GetFileAttributesExW. Reparse-point detection via FILE_ATTRIBUTE_REPARSE_POINT in attributes; resolved type is `link`. Long paths via `\\\\?\\` prefix automatic when input exceeds MAX_PATH.",
+      "implementations_in_order": ["get_file_attributes_ex"]
+    },
+    "windows-classic": {
+      "description": "GetFileAttributesExW on NT 5+; FindFirstFile on NT 4 / 9x. Reparse points are NT 5+ — classic on NT 4 / 9x reports `file` or `directory` only. FAT12/FAT16 mtime resolution is 2 seconds (DOS file time); ctime may be 0.",
+      "implementations_in_order": ["get_file_attributes_ex", "find_first_file"]
+    }
+  }
+}

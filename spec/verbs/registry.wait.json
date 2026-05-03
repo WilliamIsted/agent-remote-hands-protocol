@@ -1,0 +1,60 @@
+{
+  "name": "registry.wait",
+  "strict": true,
+  "description": "Block until a registry key changes (any of: subkey added/removed, value added/removed/modified). Returns when the change fires or the timeout expires.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "path": {
+        "type": "string",
+        "description": "Registry key path to watch."
+      },
+      "timeout_ms": {
+        "type": "integer",
+        "minimum": 0,
+        "default": 30000,
+        "description": "Maximum wait in milliseconds. Returns ERR timeout if no change occurs within this window. Default 30 seconds."
+      },
+      "watch_subtree": {
+        "type": "boolean",
+        "default": false,
+        "description": "If true, fire on changes anywhere in the key's subtree (subkeys, sub-subkeys). Without this, only direct changes to `path` itself trigger."
+      }
+    },
+    "required": ["path"],
+    "additionalProperties": false
+  },
+  "x-crudx": "R",
+  "x-since": "2.0",
+  "x-namespace": "registry",
+  "x-output-schema": {
+    "type": "object",
+    "properties": {
+      "changed": {
+        "type": "boolean",
+        "description": "True when the change notification fired. (Reserved for future semantics; today the response is always true on success.)"
+      }
+    },
+    "required": ["changed"],
+    "additionalProperties": false
+  },
+  "x-errors": ["not_found", "timeout", "permission_denied", "invalid_args"],
+  "x-implementations": [
+    {
+      "name": "reg_notify_change_key_value",
+      "detect": { "type": "always" },
+      "available_on": ["windows-modern", "windows-classic"],
+      "description": "Win32 `RegNotifyChangeKeyValue` with `REG_NOTIFY_CHANGE_NAME | REG_NOTIFY_CHANGE_LAST_SET | REG_NOTIFY_CHANGE_ATTRIBUTES | REG_NOTIFY_CHANGE_SECURITY`. Uses an event handle + `WaitForMultipleObjects(event, connection_cancel_event, timeout)` for clean cancellation on connection close."
+    }
+  ],
+  "x-families": {
+    "windows-modern": {
+      "description": "RegNotifyChangeKeyValue with all four change classes. WaitForMultipleObjects integrates the event with a connection-cancel event for shutdown semantics.",
+      "implementations_in_order": ["reg_notify_change_key_value"]
+    },
+    "windows-classic": {
+      "description": "RegNotifyChangeKeyValue available since NT 3.1. Win 9x has a more limited registry-change API; the classic agent on 9x falls back to a polling read loop (RegEnumValue + comparison).",
+      "implementations_in_order": ["reg_notify_change_key_value"]
+    }
+  }
+}

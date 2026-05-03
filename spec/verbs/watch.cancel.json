@@ -1,0 +1,42 @@
+{
+  "name": "watch.cancel",
+  "strict": true,
+  "description": "End a watch.* subscription by id. Idempotent — already-cancelled or never-existed subscription_ids return success without error (the post-condition is identical: the id no longer streams events).",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "subscription_id": {
+        "type": "string",
+        "description": "Subscription identifier in `sub:N` form, sourced from any watch.* verb's response."
+      }
+    },
+    "required": ["subscription_id"],
+    "additionalProperties": false
+  },
+  "x-crudx": "R",
+  "x-since": "2.0",
+  "x-namespace": "watch",
+  "x-output-schema": {
+    "type": "null",
+    "description": "Empty body — wire response is the literal `OK 0`."
+  },
+  "x-errors": ["invalid_args"],
+  "x-implementations": [
+    {
+      "name": "agent_native",
+      "detect": { "type": "always" },
+      "available_on": ["windows-modern", "windows-classic"],
+      "description": "Handled inline by the agent's subscription registry. Looks up the subscription_id, signals its cancellation event, and removes it from the registry. No OS-level call."
+    }
+  ],
+  "x-families": {
+    "windows-modern": {
+      "description": "Agent-internal lifecycle verb; no Windows-specific behaviour. Idempotent on missing / already-cancelled ids.",
+      "implementations_in_order": ["agent_native"]
+    },
+    "windows-classic": {
+      "description": "Agent-internal lifecycle verb; no Windows-specific behaviour. Idempotent on missing / already-cancelled ids.",
+      "implementations_in_order": ["agent_native"]
+    }
+  }
+}

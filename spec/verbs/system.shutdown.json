@@ -1,23 +1,22 @@
 {
   "name": "system.shutdown",
   "strict": true,
-  "description": "Initiates an OS-level shutdown. Connection drops once the OS issues the shutdown signal \u2014 clients should treat absence of an OK as expected. Extra-risky (X) verb; agents may require an elevated tier or explicit policy grant before honouring it.",
+  "description": "Initiates an OS-level shutdown. Connection drops once the OS issues the shutdown signal — clients should treat absence of an OK as expected. Extra-risky (X) verb; agents may require an elevated tier or explicit policy grant before honouring it.",
   "input_schema": {
     "type": "object",
     "properties": {
       "delay_seconds": {
         "type": "integer",
-        "default": 0,
+        "minimum": 0,
         "description": "Seconds to wait before initiating shutdown. Zero means immediate."
       },
       "force": {
         "type": "boolean",
-        "default": false,
-        "description": "Force-close applications without prompting. Maps to EWX_FORCE on Windows, -h on macOS."
+        "description": "Force-close applications without prompting. Maps to EWX_FORCE on Windows."
       },
       "reason": {
         "type": "string",
-        "description": "Free-form reason logged with the shutdown event. Surfaced in Windows Event Log and macOS unified log."
+        "description": "Free-form reason logged with the shutdown event. Surfaced in Windows Event Log."
       }
     },
     "additionalProperties": false
@@ -30,31 +29,36 @@
     "properties": {
       "scheduled_at": {
         "type": "string",
-        "format": "date-time"
+        "format": "date-time",
+        "description": "ISO 8601 timestamp of when the OS-level shutdown will fire. Equals now+delay_seconds."
       }
     },
-    "required": [
-      "scheduled_at"
-    ],
+    "required": ["scheduled_at"],
     "additionalProperties": false
   },
-  "x-errors": [
-    "insufficient_privilege",
-    "policy_blocked"
+  "x-errors": ["insufficient_privilege", "policy_blocked"],
+  "x-implementations": [
+    {
+      "name": "initiate_system_shutdown_ex",
+      "detect": { "type": "always" },
+      "available_on": ["windows-modern"],
+      "description": "Win32 `InitiateSystemShutdownExW` with `bRebootAfterShutdown=FALSE`. Honours `delay_seconds`, `force` (EWX_FORCE), `reason` (mapped to SHTDN_REASON_* constant)."
+    },
+    {
+      "name": "exit_windows_ex",
+      "detect": { "type": "always" },
+      "available_on": ["windows-classic"],
+      "description": "Win32 `ExitWindowsEx(EWX_SHUTDOWN [| EWX_FORCE])`. Available on NT 4 / 9x onwards. On 9x without admin this is a no-op-with-error rather than a silent fail."
+    }
   ],
   "x-families": {
     "windows-modern": {
       "description": "InitiateSystemShutdownExW with delay_seconds, force, and reason mapped through. Requires SeShutdownPrivilege (auto-enabled if held). Connection drops once the OS issues the shutdown.",
-      "api": "InitiateSystemShutdownExW",
-      "requires_privilege": "SeShutdownPrivilege"
+      "implementations_in_order": ["initiate_system_shutdown_ex"]
     },
     "windows-classic": {
       "description": "ExitWindowsEx(EWX_SHUTDOWN [| EWX_FORCE]) on NT 4 / 2000 / XP / Vista / 7 / 8.x. On 9x without admin this is a no-op-with-error rather than a silent fail.",
-      "api": "ExitWindowsEx",
-      "ewx_flags": [
-        "EWX_SHUTDOWN",
-        "EWX_FORCE"
-      ]
+      "implementations_in_order": ["exit_windows_ex"]
     }
   }
 }

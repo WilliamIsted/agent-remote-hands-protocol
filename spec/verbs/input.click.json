@@ -1,7 +1,7 @@
 {
   "name": "input.click",
   "strict": true,
-  "description": "Synthesise a mouse click at a virtual-screen coordinate. Affects desktop input state \u2014 classified U.",
+  "description": "Synthesise a mouse click at a virtual-screen coordinate. Affects desktop input state — classified U.",
   "input_schema": {
     "type": "object",
     "properties": {
@@ -15,36 +15,24 @@
       },
       "button": {
         "type": "string",
-        "enum": [
-          "left",
-          "right",
-          "middle"
-        ],
-        "default": "left"
+        "enum": ["left", "right", "middle"],
+        "default": "left",
+        "description": "Mouse button to click."
       },
       "double": {
         "type": "boolean",
-        "default": false,
-        "description": "If true, synthesises a double-click (two press/release pairs within the OS double-click time)."
+        "description": "If true, synthesises a double-click (two press/release pairs within the OS double-click time, see system.info.capabilities.input_settings.double_click_time_ms)."
       },
       "modifiers": {
         "type": "array",
         "items": {
           "type": "string",
-          "enum": [
-            "ctrl",
-            "shift",
-            "alt",
-            "meta"
-          ]
+          "enum": ["ctrl", "shift", "alt", "meta"]
         },
-        "description": "Modifier keys held while clicking."
+        "description": "Modifier keys held while clicking. Each modifier is synthesised down before the click and up after."
       }
     },
-    "required": [
-      "x",
-      "y"
-    ],
+    "required": ["x", "y"],
     "additionalProperties": false
   },
   "x-crudx": "U",
@@ -54,29 +42,49 @@
     "type": "object",
     "properties": {
       "synthesised": {
-        "type": "boolean"
+        "type": "boolean",
+        "description": "True when the input event was accepted by user32's input queue. False indicates the agent detected a UIPI silent-drop (event accepted by the API but never delivered to a higher-IL target window). ERR uipi_blocked is still returned in the latter case; this field also reflects the same signal in the response body."
+      },
+      "target_handle": {
+        "type": "string",
+        "description": "Window handle that received the click, resolved via `WindowFromPoint(actual_position)` at synth time. Empty string when the click lands on the desktop or outside any window. Compare against the expected handle to detect target-moved races between window.list/find and the click."
+      },
+      "actual_position": {
+        "type": "object",
+        "properties": {
+          "x": { "type": "integer", "description": "Actual X the click landed at; differs from input when off-screen requests are clamped to the virtual-screen edge." },
+          "y": { "type": "integer", "description": "Actual Y the click landed at." }
+        },
+        "required": ["x", "y"],
+        "additionalProperties": false
       }
     },
-    "required": [
-      "synthesised"
-    ],
+    "required": ["synthesised", "target_handle", "actual_position"],
     "additionalProperties": false
   },
-  "x-errors": [
-    "uipi_blocked",
-    "permission_denied"
+  "x-errors": ["uipi_blocked", "permission_denied"],
+  "x-implementations": [
+    {
+      "name": "send_input",
+      "detect": { "type": "always" },
+      "available_on": ["windows-modern", "windows-classic"],
+      "description": "Win32 `SendInput` with INPUT_MOUSE structures. Modifier-down events bracket the click; double batches four mouse events in a single call to stay within `GetDoubleClickTime`."
+    },
+    {
+      "name": "mouse_event",
+      "detect": { "type": "always" },
+      "available_on": ["windows-classic"],
+      "description": "Win32 `mouse_event` legacy fallback for NT 4 / 9x where `SendInput` is unavailable."
+    }
   ],
   "x-families": {
     "windows-modern": {
-      "description": "SendInput with INPUT_MOUSE structures. UIPI may silently drop synthesised input directed at higher-IL windows \u2014 agents detect this and return ERR uipi_blocked.",
-      "api": "SendInput"
+      "description": "SendInput with INPUT_MOUSE structures. UIPI may silently drop synthesised input directed at higher-IL windows — agent post-checks (e.g. via WindowFromPoint comparison or GetLastInputInfo) and returns ERR uipi_blocked plus `synthesised: false`. When the event reaches user32 the field is true.",
+      "implementations_in_order": ["send_input"]
     },
     "windows-classic": {
-      "description": "SendInput on NT 5+; mouse_event on NT 4 and 9x where SendInput is unavailable. No UIPI, so synthesised input crosses process boundaries freely.",
-      "api": [
-        "SendInput",
-        "mouse_event"
-      ]
+      "description": "SendInput on NT 5+; mouse_event on NT 4 and 9x where SendInput is unavailable. No UIPI on classic, so synthesised input crosses process boundaries freely and `synthesised` is true on success.",
+      "implementations_in_order": ["send_input", "mouse_event"]
     }
   }
 }

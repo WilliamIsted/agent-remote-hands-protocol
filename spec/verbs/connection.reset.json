@@ -1,0 +1,36 @@
+{
+  "name": "connection.reset",
+  "strict": true,
+  "description": "Recover from a wire-format error: discard in-flight payload buffer and reset the framing parser. Tier and subscriptions are preserved.",
+  "input_schema": {
+    "type": "object",
+    "properties": {},
+    "additionalProperties": false
+  },
+  "x-crudx": "R",
+  "x-since": "2.0",
+  "x-namespace": "connection",
+  "x-output-schema": {
+    "type": "null",
+    "description": "Empty body — wire response is the literal `OK 0`."
+  },
+  "x-errors": [],
+  "x-implementations": [
+    {
+      "name": "agent_native",
+      "detect": { "type": "always" },
+      "available_on": ["windows-modern", "windows-classic"],
+      "description": "Handled inline by the agent's framing layer. No OS-level backend; cannot fail."
+    }
+  ],
+  "x-families": {
+    "windows-modern": {
+      "description": "Agent-internal lifecycle verb; no Windows-specific behaviour. The reset is synchronous and atomic.",
+      "implementations_in_order": ["agent_native"]
+    },
+    "windows-classic": {
+      "description": "Agent-internal lifecycle verb; no Windows-specific behaviour. The reset is synchronous and atomic.",
+      "implementations_in_order": ["agent_native"]
+    }
+  }
+}

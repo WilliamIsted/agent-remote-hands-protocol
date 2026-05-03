@@ -1,0 +1,124 @@
+{
+  "name": "element.at",
+  "strict": true,
+  "description": "Hit-test: return the UI Automation element at the given screen coordinates. Returns `ERR not_found` if no element is hit (rare — usually the desktop or a chrome-less window).",
+  "$defs": {
+    "Bounds": {
+      "type": "object",
+      "properties": {
+        "x": {
+          "type": "integer",
+          "description": "Top-left X in virtual-screen coordinates."
+        },
+        "y": {
+          "type": "integer",
+          "description": "Top-left Y in virtual-screen coordinates."
+        },
+        "w": {
+          "type": "integer",
+          "description": "Width in physical pixels."
+        },
+        "h": {
+          "type": "integer",
+          "description": "Height in physical pixels."
+        }
+      },
+      "required": [
+        "x",
+        "y",
+        "w",
+        "h"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "x": {
+        "type": "integer",
+        "description": "Screen X in virtual-screen coordinates."
+      },
+      "y": {
+        "type": "integer",
+        "description": "Screen Y."
+      }
+    },
+    "required": [
+      "x",
+      "y"
+    ],
+    "additionalProperties": false
+  },
+  "x-crudx": "R",
+  "x-since": "2.0",
+  "x-namespace": "element",
+  "x-output-schema": {
+    "type": "object",
+    "properties": {
+      "handle": {
+        "type": "string",
+        "description": "Element handle, e.g. 'elt:7'."
+      },
+      "role": {
+        "type": "string",
+        "description": "UIA control-type name."
+      },
+      "name": {
+        "type": "string",
+        "description": "UIA Name property."
+      },
+      "automation_id": {
+        "type": "string",
+        "description": "UIA AutomationId. Empty string when the element doesn't expose one."
+      },
+      "bounds": {
+        "$ref": "#/$defs/Bounds",
+        "description": "Element's screen position and size."
+      },
+      "flags": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "enum": ["enabled", "focused", "offscreen", "password", "required"]
+        },
+        "description": "Universally-determinable UIA boolean states currently true on the element. Per issue #92."
+      }
+    },
+    "required": [
+      "handle",
+      "bounds"
+    ],
+    "additionalProperties": false
+  },
+  "x-errors": [
+    "not_found",
+    "uia_blind",
+    "permission_denied",
+    "invalid_args"
+  ],
+  "x-implementations": [
+    {
+      "name": "uia_element_from_point",
+      "detect": {
+        "type": "always"
+      },
+      "available_on": [
+        "windows-modern"
+      ],
+      "description": "UIA `IUIAutomation::ElementFromPoint`. Allocates a fresh `elt:N` id for the returned element."
+    }
+  ],
+  "x-families": {
+    "windows-modern": {
+      "description": "ElementFromPoint at the requested screen coordinate. UIPI: hits on higher-IL windows return `ERR uia_blind` rather than the element. Coordinates outside the virtual-screen bounds return `ERR not_found`.",
+      "implementations_in_order": [
+        "uia_element_from_point"
+      ]
+    },
+    "windows-classic": {
+      "implemented": false,
+      "reason": "Requires UI Automation (Vista+)."
+    }
+  }
+}

@@ -1,0 +1,71 @@
+{
+  "name": "watch.file",
+  "strict": true,
+  "description": "Subscribe to filesystem changes (file create / modify / delete) matching a glob. Emits EVENT frames per change until the subscription is cancelled.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "glob": {
+        "type": "string",
+        "description": "Filesystem glob pattern. Wildcards: `*` (any chars in a single path component), `?` (single char). The agent watches the glob's parent directory and filters notifications against the pattern."
+      },
+      "recursive": {
+        "type": "boolean",
+        "default": false,
+        "description": "If true, watch the parent directory's entire subtree (changes in any descendant directory match if the relative path matches the glob)."
+      }
+    },
+    "required": ["glob"],
+    "additionalProperties": false
+  },
+  "x-crudx": "R",
+  "x-since": "2.0",
+  "x-namespace": "watch",
+  "x-output-schema": {
+    "type": "object",
+    "properties": {
+      "subscription_id": {
+        "type": "string",
+        "description": "Subscription identifier in `sub:N` form."
+      }
+    },
+    "required": ["subscription_id"],
+    "additionalProperties": false
+  },
+  "x-event-schema": {
+    "type": "object",
+    "description": "EVENT frames emitted per filesystem change matching the glob.",
+    "properties": {
+      "kind":     { "type": "string", "enum": ["created", "modified", "deleted", "renamed"], "description": "Type of change." },
+      "path":     { "type": "string", "description": "Absolute path of the changed file." },
+      "old_path": { "type": "string", "description": "Old path (only present for `kind: renamed`); empty otherwise." }
+    },
+    "required": ["kind", "path", "old_path"],
+    "additionalProperties": false
+  },
+  "x-errors": ["not_found", "permission_denied", "invalid_args"],
+  "x-implementations": [
+    {
+      "name": "read_directory_changes_w",
+      "detect": { "type": "always" },
+      "available_on": ["windows-modern", "windows-classic"],
+      "description": "Win32 `ReadDirectoryChangesW(FILE_NOTIFY_CHANGE_FILE_NAME | LAST_WRITE | SIZE)` on the glob's parent directory. NT 5+. Filters incoming FILE_NOTIFY_INFORMATION records against the glob pattern in the agent's callback."
+    },
+    {
+      "name": "find_first_change_notification",
+      "detect": { "type": "always" },
+      "available_on": ["windows-classic"],
+      "description": "Legacy fallback for NT 4 / 9x where ReadDirectoryChangesW is unavailable. Less granular — provides directory-level change events without per-file detail; agent re-scans the directory on each notification."
+    }
+  ],
+  "x-families": {
+    "windows-modern": {
+      "description": "ReadDirectoryChangesW with FILE_NOTIFY_* flags covering name / write / size changes. Renames within the watched directory are reported as a single `renamed` event with `old_path` populated; renames across directory boundaries surface as a `deleted` + `created` pair.",
+      "implementations_in_order": ["read_directory_changes_w"]
+    },
+    "windows-classic": {
+      "description": "ReadDirectoryChangesW on NT 5+ (XP onwards); FindFirstChangeNotification + re-scan loop on NT 4 / 9x. The fallback path produces only `created` / `deleted` events (no granular `modified` or `renamed` differentiation).",
+      "implementations_in_order": ["read_directory_changes_w", "find_first_change_notification"]
+    }
+  }
+}

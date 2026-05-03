@@ -1,0 +1,68 @@
+{
+  "name": "input.move",
+  "strict": true,
+  "description": "Move the mouse cursor without clicking. Absolute coordinates by default; pass `relative: true` to add `x` and `y` as deltas from the current position.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "x": {
+        "type": "integer",
+        "description": "Target X (absolute, virtual-screen) or X delta (relative). Off-screen results are clamped; the clamped value is reported back as `actual_position`."
+      },
+      "y": {
+        "type": "integer",
+        "description": "Target Y (absolute) or Y delta (relative)."
+      },
+      "relative": {
+        "type": "boolean",
+        "description": "Treat `x` and `y` as deltas added to the current cursor position. Default false (absolute coordinates)."
+      }
+    },
+    "required": ["x", "y"],
+    "additionalProperties": false
+  },
+  "x-crudx": "U",
+  "x-since": "2.0",
+  "x-namespace": "input",
+  "x-output-schema": {
+    "type": "object",
+    "properties": {
+      "actual_position": {
+        "type": "object",
+        "properties": {
+          "x": { "type": "integer", "description": "Actual X the cursor landed at after any clamping." },
+          "y": { "type": "integer", "description": "Actual Y the cursor landed at." }
+        },
+        "required": ["x", "y"],
+        "additionalProperties": false
+      }
+    },
+    "required": ["actual_position"],
+    "additionalProperties": false
+  },
+  "x-errors": ["uipi_blocked", "permission_denied", "invalid_args"],
+  "x-implementations": [
+    {
+      "name": "send_input",
+      "detect": { "type": "always" },
+      "available_on": ["windows-modern", "windows-classic"],
+      "description": "Win32 `GetCursorPos` (when `relative: true`) + `SendInput(MOUSEEVENTF_MOVE | MOUSEEVENTF_ABSOLUTE)`. The MOUSEEVENTF_ABSOLUTE form takes 0..65535 normalised coords mapped to the primary monitor; agent maps from virtual-screen pixels to MOUSEEVENTF_VIRTUALDESK + MOUSEEVENTF_ABSOLUTE for multi-monitor reach."
+    },
+    {
+      "name": "set_cursor_pos",
+      "detect": { "type": "always" },
+      "available_on": ["windows-modern", "windows-classic"],
+      "description": "Win32 `SetCursorPos` legacy fallback. Bypasses the input-event queue, so apps that hook mouse events via SetWindowsHookEx don't see the move. Used only when SendInput fails (rare)."
+    }
+  ],
+  "x-families": {
+    "windows-modern": {
+      "description": "SendInput with MOUSEEVENTF_VIRTUALDESK | MOUSEEVENTF_ABSOLUTE for multi-monitor virtual-screen reach. UIPI silently drops moves directed at higher-IL windows; agent can't detect this for moves (unlike clicks) so callers should verify post-move position when targeting elevated apps.",
+      "implementations_in_order": ["send_input", "set_cursor_pos"]
+    },
+    "windows-classic": {
+      "description": "SendInput on NT 5+ (with MOUSEEVENTF_VIRTUALDESK on NT 5.1+ for multi-monitor); SetCursorPos on NT 4 / 9x. NT 4 single-monitor only — multi-monitor coords clamp to the primary monitor.",
+      "implementations_in_order": ["send_input", "set_cursor_pos"]
+    }
+  }
+}

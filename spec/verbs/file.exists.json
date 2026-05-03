@@ -1,0 +1,62 @@
+{
+  "name": "file.exists",
+  "strict": true,
+  "description": "Check whether a path exists; if so, report its type. Tolerates files and directories. Cheaper than file.stat when only existence + type matters.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "path": {
+        "type": "string",
+        "description": "Absolute path to test."
+      }
+    },
+    "required": ["path"],
+    "additionalProperties": false
+  },
+  "x-crudx": "R",
+  "x-since": "2.0",
+  "x-namespace": "file",
+  "x-output-schema": {
+    "type": "object",
+    "properties": {
+      "exists": {
+        "type": "boolean",
+        "description": "True iff the path resolves on the filesystem."
+      },
+      "type": {
+        "type": "string",
+        "enum": ["file", "directory", "link", "other", "absent"],
+        "description": "`absent` when `exists: false`; otherwise `file` / `directory` / `link` (reparse point) / `other` (device, pipe, socket)."
+      },
+      "flags": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "enum": ["readonly", "hidden", "system", "archive", "temporary", "compressed", "encrypted", "sparse_file", "reparse_point", "offline", "not_indexed", "recall_on_data_access", "recall_on_open"]
+        },
+        "description": "Win32 FILE_ATTRIBUTE_* flags currently set. Empty array when `exists: false` (no flags meaningful for absent paths). Per issue #93."
+      }
+    },
+    "required": ["exists", "type", "flags"],
+    "additionalProperties": false
+  },
+  "x-errors": ["permission_denied", "invalid_args"],
+  "x-implementations": [
+    {
+      "name": "get_file_attributes",
+      "detect": { "type": "always" },
+      "available_on": ["windows-modern", "windows-classic"],
+      "description": "Win32 `GetFileAttributesW`. Returns INVALID_FILE_ATTRIBUTES if the path doesn't exist (mapped to `exists: false, type: absent`); otherwise the attribute bitmask determines the type."
+    }
+  ],
+  "x-families": {
+    "windows-modern": {
+      "description": "GetFileAttributesW. Reparse-point detection via FILE_ATTRIBUTE_REPARSE_POINT → `link`. ERR permission_denied when ACL denies the read; ERR not_found becomes `exists: false, type: absent` rather than an error (the verb's purpose is the existence check itself). Long paths via `\\\\?\\` prefix automatic.",
+      "implementations_in_order": ["get_file_attributes"]
+    },
+    "windows-classic": {
+      "description": "GetFileAttributesW on NT 5+; GetFileAttributesA on NT 4 / 9x. Reparse points are NT 5+ — classic on NT 4 / 9x reports `file` or `directory` only.",
+      "implementations_in_order": ["get_file_attributes"]
+    }
+  }
+}

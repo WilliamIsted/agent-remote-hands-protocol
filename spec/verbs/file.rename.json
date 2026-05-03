@@ -1,0 +1,74 @@
+{
+  "name": "file.rename",
+  "strict": true,
+  "description": "Move or rename a file or directory. Same operation handles both — the destination's parent directory determines whether it's a rename (same parent) or a move (different parent).",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "src": {
+        "type": "string",
+        "description": "Current absolute path."
+      },
+      "dst": {
+        "type": "string",
+        "description": "New absolute path. Parent directory must exist."
+      },
+      "overwrite": {
+        "type": "boolean",
+        "default": false,
+        "description": "If true, replace `dst` if it exists. Without this flag, an existing `dst` returns ERR already_exists."
+      },
+      "cross_fs": {
+        "type": "boolean",
+        "default": false,
+        "description": "If true, allow a copy+delete fallback when `src` and `dst` are on different filesystems. Without this flag, cross-filesystem moves return ERR cross_device. The fallback is non-atomic (a concurrent reader may see partial state)."
+      }
+    },
+    "required": ["src", "dst"],
+    "additionalProperties": false
+  },
+  "x-crudx": "U",
+  "x-since": "2.0",
+  "x-namespace": "file",
+  "x-output-schema": {
+    "type": "object",
+    "properties": {
+      "renamed": {
+        "type": "boolean",
+        "description": "True on success."
+      },
+      "fallback_used": {
+        "type": "string",
+        "enum": ["none", "copy_delete"],
+        "description": "`copy_delete` when the cross-filesystem fallback was engaged (only possible with `cross_fs: true`); `none` otherwise."
+      }
+    },
+    "required": ["renamed", "fallback_used"],
+    "additionalProperties": false
+  },
+  "x-errors": ["not_found", "already_exists", "cross_device", "permission_denied", "invalid_args"],
+  "x-implementations": [
+    {
+      "name": "move_file_ex",
+      "detect": { "type": "always" },
+      "available_on": ["windows-modern", "windows-classic"],
+      "description": "Win32 `MoveFileExW(src, dst, MOVEFILE_REPLACE_EXISTING? | MOVEFILE_COPY_ALLOWED?)`. Atomic when src and dst are on the same filesystem; copies + deletes when MOVEFILE_COPY_ALLOWED is set and they're on different volumes."
+    },
+    {
+      "name": "copy_delete_fallback",
+      "detect": { "type": "always" },
+      "available_on": ["windows-classic"],
+      "description": "9x non-atomic fallback when MoveFileEx is unavailable: CopyFile + DeleteFile. For directory rename on 9x: CreateDirectory + recursive copy + RemoveDirectory."
+    }
+  ],
+  "x-families": {
+    "windows-modern": {
+      "description": "MoveFileExW. Atomic same-volume rename; cross-volume requires `cross_fs: true` to engage MOVEFILE_COPY_ALLOWED. Returns ERR already_exists when dst exists and overwrite is false. Long paths via `\\\\?\\` prefix automatic.",
+      "implementations_in_order": ["move_file_ex"]
+    },
+    "windows-classic": {
+      "description": "MoveFileEx on NT 4+; CopyFile+DeleteFile fallback on 9x. Same-volume renames are atomic on NT; 9x is never atomic. Cross-volume always copy+delete; `cross_fs: true` is the explicit opt-in.",
+      "implementations_in_order": ["move_file_ex", "copy_delete_fallback"]
+    }
+  }
+}

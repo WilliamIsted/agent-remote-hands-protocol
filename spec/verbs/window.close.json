@@ -1,0 +1,42 @@
+{
+  "name": "window.close",
+  "strict": true,
+  "description": "Send `WM_CLOSE` to the window. The window may decline (apps with unsaved work typically prompt the user instead of closing). The OK confirms the message was posted, not that the window closed.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "handle": {
+        "type": "string",
+        "description": "Window handle, e.g. 'win:0x1A2B'."
+      }
+    },
+    "required": ["handle"],
+    "additionalProperties": false
+  },
+  "x-crudx": "U",
+  "x-since": "2.0",
+  "x-namespace": "window",
+  "x-output-schema": {
+    "type": "null",
+    "description": "Empty body — wire response is the literal `OK 0`."
+  },
+  "x-errors": ["not_found", "invalid_args"],
+  "x-implementations": [
+    {
+      "name": "post_message_close",
+      "detect": { "type": "always" },
+      "available_on": ["windows-modern", "windows-classic"],
+      "description": "Win32 `PostMessage(hwnd, WM_CLOSE, 0, 0)`. Non-blocking; the window's wndproc decides whether to close, prompt, or ignore."
+    }
+  ],
+  "x-families": {
+    "windows-modern": {
+      "description": "PostMessage WM_CLOSE. Subject to UIPI: posting to a higher-IL window from a lower-IL agent surfaces no error here (PostMessage returns success) but the message never delivers. Use system.info.integrity + uiaccess to assess reach before calling.",
+      "implementations_in_order": ["post_message_close"]
+    },
+    "windows-classic": {
+      "description": "PostMessage WM_CLOSE. NT 4 / 9x / 2000: no UIPI, all messages deliver. NT 5+ behaves like windows-modern.",
+      "implementations_in_order": ["post_message_close"]
+    }
+  }
+}

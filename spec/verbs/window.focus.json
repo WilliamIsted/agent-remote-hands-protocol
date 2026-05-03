@@ -1,0 +1,49 @@
+{
+  "name": "window.focus",
+  "strict": true,
+  "description": "Bring the given window to the foreground. Returns the previously-foreground window's handle (so the caller can restore it later if desired).",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "handle": {
+        "type": "string",
+        "description": "Window handle, e.g. 'win:0x1A2B', sourced from window.list / window.find."
+      }
+    },
+    "required": ["handle"],
+    "additionalProperties": false
+  },
+  "x-crudx": "U",
+  "x-since": "2.0",
+  "x-namespace": "window",
+  "x-output-schema": {
+    "type": "object",
+    "properties": {
+      "prior_handle": {
+        "type": "string",
+        "description": "Handle of the window that was foreground before the focus change. Empty string if there was no foreground window (rare)."
+      }
+    },
+    "required": ["prior_handle"],
+    "additionalProperties": false
+  },
+  "x-errors": ["not_found", "lock_held", "invalid_args"],
+  "x-implementations": [
+    {
+      "name": "set_foreground_window",
+      "detect": { "type": "always" },
+      "available_on": ["windows-modern", "windows-classic"],
+      "description": "Win32 `GetForegroundWindow` (capture prior) + `SetForegroundWindow` (request focus). Subject to foreground-lock restrictions on NT 5+ (`SystemParametersInfo(SPI_GETFOREGROUNDLOCKTIMEOUT)`); denied requests surface as `ERR lock_held`."
+    }
+  ],
+  "x-families": {
+    "windows-modern": {
+      "description": "SetForegroundWindow with GetForegroundWindow capture. Foreground-lock restrictions apply: a process that hasn't received recent input is blocked from stealing focus, returning `ERR lock_held`. The agent does NOT bypass the lock — callers can use `AllowSetForegroundWindow` from a privileged helper if needed.",
+      "implementations_in_order": ["set_foreground_window"]
+    },
+    "windows-classic": {
+      "description": "SetForegroundWindow with GetForegroundWindow capture. NT 4 has no foreground-lock — the call always succeeds for the caller's permission level. NT 5 (Win 2000) onwards behaves like windows-modern.",
+      "implementations_in_order": ["set_foreground_window"]
+    }
+  }
+}

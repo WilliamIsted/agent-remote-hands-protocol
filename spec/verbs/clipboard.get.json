@@ -1,17 +1,15 @@
 {
   "name": "clipboard.get",
   "strict": true,
-  "description": "Read the current text contents of the system clipboard. Read-only.",
+  "description": "Read the current text contents of the system clipboard. Returns ERR empty if the clipboard has no text.",
   "input_schema": {
     "type": "object",
     "properties": {
       "format": {
         "type": "string",
-        "enum": [
-          "text"
-        ],
+        "enum": ["text"],
         "default": "text",
-        "description": "Only 'text' is defined in 2.0. Future minors may add 'image' / 'files'."
+        "description": "Only `text` is defined today. Reserved for future formats (`image`, `files`) which would be wire-additive enum extensions."
       }
     },
     "additionalProperties": false
@@ -23,41 +21,41 @@
     "type": "object",
     "properties": {
       "content": {
-        "type": "string"
+        "type": "string",
+        "description": "UTF-8 text content of the clipboard."
       },
       "format": {
-        "type": "string"
+        "type": "string",
+        "enum": ["text"],
+        "description": "Echo of the format that was retrieved."
       }
     },
-    "required": [
-      "content",
-      "format"
-    ],
+    "required": ["content", "format"],
     "additionalProperties": false
   },
-  "x-errors": [
-    "empty",
-    "permission_denied"
+  "x-errors": ["empty", "permission_denied"],
+  "x-implementations": [
+    {
+      "name": "open_clipboard_unicode",
+      "detect": { "type": "always" },
+      "available_on": ["windows-modern", "windows-classic"],
+      "description": "Win32 `OpenClipboard` + `GetClipboardData(CF_UNICODETEXT)` + `CloseClipboard`. UTF-16 native, transcoded to UTF-8 for the wire response."
+    },
+    {
+      "name": "open_clipboard_ansi",
+      "detect": { "type": "always" },
+      "available_on": ["windows-classic"],
+      "description": "Win32 `OpenClipboard` + `GetClipboardData(CF_TEXT)` legacy fallback. Used when the publishing app only set CF_TEXT (common for pre-NT-5 apps); agent transcodes from the active code page to UTF-8."
+    }
   ],
   "x-families": {
     "windows-modern": {
-      "description": "OpenClipboard + GetClipboardData(CF_UNICODETEXT). UTF-16 native, transcoded to UTF-8 for the wire response.",
-      "api": [
-        "OpenClipboard",
-        "GetClipboardData"
-      ],
-      "format": "CF_UNICODETEXT"
+      "description": "OpenClipboard + GetClipboardData(CF_UNICODETEXT). UTF-16 native, transcoded to UTF-8 for the wire. ERR empty when the clipboard has no CF_UNICODETEXT slot; ERR permission_denied when another app holds the clipboard open (transient — caller can retry).",
+      "implementations_in_order": ["open_clipboard_unicode"]
     },
     "windows-classic": {
-      "description": "Same OpenClipboard / GetClipboardData. CF_UNICODETEXT has been available since NT 3.1, but pre-NT-5 apps may only publish CF_TEXT \u2014 agent falls back to CF_TEXT and transcodes from the active code page.",
-      "api": [
-        "OpenClipboard",
-        "GetClipboardData"
-      ],
-      "format": [
-        "CF_UNICODETEXT",
-        "CF_TEXT"
-      ]
+      "description": "OpenClipboard / GetClipboardData. CF_UNICODETEXT preferred (available since NT 3.1); falls back to CF_TEXT for apps that only publish ANSI. Agent transcodes from the active code page when falling back.",
+      "implementations_in_order": ["open_clipboard_unicode", "open_clipboard_ansi"]
     }
   }
 }

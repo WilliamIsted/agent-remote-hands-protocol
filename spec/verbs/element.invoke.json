@@ -1,0 +1,55 @@
+{
+  "name": "element.invoke",
+  "strict": true,
+  "description": "Invoke the InvokePattern on the given element (analogous to a click for buttons, links, menu items).",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "handle": {
+        "type": "string",
+        "description": "Element handle in `elt:N` form, sourced from element.list / find / at / tree."
+      }
+    },
+    "required": [
+      "handle"
+    ],
+    "additionalProperties": false
+  },
+  "x-crudx": "U",
+  "x-since": "2.0",
+  "x-namespace": "element",
+  "x-output-schema": {
+    "type": "null",
+    "description": "Empty body — wire response is the literal `OK 0`."
+  },
+  "x-errors": [
+    "not_supported_by_target",
+    "target_gone",
+    "permission_denied",
+    "invalid_args"
+  ],
+  "x-implementations": [
+    {
+      "name": "uia_invoke",
+      "detect": {
+        "type": "always"
+      },
+      "available_on": [
+        "windows-modern"
+      ],
+      "description": "UIA `IUIAutomationInvokePattern::Invoke`. Returns ERR not_supported_by_target if the element doesn't expose InvokePattern (e.g. plain text labels); ERR target_gone if the underlying element was destroyed since allocation."
+    }
+  ],
+  "x-families": {
+    "windows-modern": {
+      "description": "InvokePattern.Invoke. The most universally-supported UIA pattern; works on Buttons, MenuItems, Hyperlinks, ListItems, etc. Bypasses synthetic input — no UIPI / focus concerns.",
+      "implementations_in_order": [
+        "uia_invoke"
+      ]
+    },
+    "windows-classic": {
+      "implemented": false,
+      "reason": "Requires UI Automation (Vista+)."
+    }
+  }
+}

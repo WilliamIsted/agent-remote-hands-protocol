@@ -1,7 +1,7 @@
 {
   "name": "directory.exists",
   "strict": true,
-  "description": "Check whether a path exists and is a directory. Returns false for missing paths and for paths that exist but are files. Read-only.",
+  "description": "Check whether a path exists and is a directory. Returns false for missing paths and for paths that exist but are files.",
   "input_schema": {
     "type": "object",
     "properties": {
@@ -10,9 +10,7 @@
         "description": "Absolute path to test."
       }
     },
-    "required": [
-      "path"
-    ],
+    "required": ["path"],
     "additionalProperties": false
   },
   "x-crudx": "R",
@@ -22,28 +20,30 @@
     "type": "object",
     "properties": {
       "exists": {
-        "type": "boolean"
+        "type": "boolean",
+        "description": "True iff the path resolves AND is a directory. False for missing paths, files, devices, pipes, etc. Use `file.exists` for the polymorphic test."
       }
     },
-    "required": [
-      "exists"
-    ],
+    "required": ["exists"],
     "additionalProperties": false
   },
-  "x-errors": [
-    "permission_denied"
+  "x-errors": ["permission_denied", "invalid_args"],
+  "x-implementations": [
+    {
+      "name": "get_file_attributes",
+      "detect": { "type": "always" },
+      "available_on": ["windows-modern", "windows-classic"],
+      "description": "Win32 `GetFileAttributesW`. Returns INVALID_FILE_ATTRIBUTES if the path doesn't exist (mapped to `exists: false`); otherwise checks the FILE_ATTRIBUTE_DIRECTORY bit."
+    }
   ],
   "x-families": {
     "windows-modern": {
-      "description": "GetFileAttributesW + FILE_ATTRIBUTE_DIRECTORY check.",
-      "api": "GetFileAttributesW"
+      "description": "GetFileAttributesW + FILE_ATTRIBUTE_DIRECTORY bit check. ERR permission_denied when ACL denies the read; ERR not_found becomes `exists: false` rather than an error (the verb's purpose is the existence check).",
+      "implementations_in_order": ["get_file_attributes"]
     },
     "windows-classic": {
-      "description": "GetFileAttributesA on NT 4 / 9x; GetFileAttributesW on NT 5+.",
-      "api": [
-        "GetFileAttributesA",
-        "GetFileAttributesW"
-      ]
+      "description": "GetFileAttributesW on NT 5+; GetFileAttributesA on NT 4 / 9x. Same FILE_ATTRIBUTE_DIRECTORY bit check.",
+      "implementations_in_order": ["get_file_attributes"]
     }
   }
 }

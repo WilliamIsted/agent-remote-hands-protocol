@@ -1,0 +1,66 @@
+{
+  "name": "watch.window",
+  "strict": true,
+  "description": "Subscribe to window appear / disappear events. Emits EVENT frames as windows whose title matches the optional `title_prefix` come into existence or are destroyed.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "title_prefix": {
+        "type": "string",
+        "description": "Optional prefix filter (case-insensitive). When supplied, EVENT frames fire only for windows whose title starts with this prefix. Omit to receive all top-level window appear/disappear events."
+      }
+    },
+    "additionalProperties": false
+  },
+  "x-crudx": "R",
+  "x-since": "2.0",
+  "x-namespace": "watch",
+  "x-output-schema": {
+    "type": "object",
+    "properties": {
+      "subscription_id": {
+        "type": "string",
+        "description": "Subscription identifier in `sub:N` form."
+      }
+    },
+    "required": ["subscription_id"],
+    "additionalProperties": false
+  },
+  "x-event-schema": {
+    "type": "object",
+    "description": "EVENT frames emitted on window create / destroy.",
+    "properties": {
+      "kind":   { "type": "string", "enum": ["created", "destroyed"], "description": "`created` when a window appears; `destroyed` when it disappears." },
+      "handle": { "type": "string", "description": "Window handle in `win:0x<hex>` form." },
+      "title":  { "type": "string", "description": "Window title at the moment of the event. Empty string for windows without a title." },
+      "pid":    { "type": "integer", "description": "Owning process id." }
+    },
+    "required": ["kind", "handle", "title", "pid"],
+    "additionalProperties": false
+  },
+  "x-errors": ["permission_denied", "invalid_args"],
+  "x-implementations": [
+    {
+      "name": "set_winevent_hook",
+      "detect": { "type": "always" },
+      "available_on": ["windows-modern", "windows-classic"],
+      "description": "Win32 `SetWinEventHook(EVENT_OBJECT_CREATE | EVENT_OBJECT_DESTROY, WINEVENT_OUTOFCONTEXT)`. NT 5+ — out-of-process hook with no DLL injection. Filtered to top-level windows + title_prefix in the agent's hook callback."
+    },
+    {
+      "name": "enum_windows_poll",
+      "detect": { "type": "always" },
+      "available_on": ["windows-classic"],
+      "description": "Polling fallback for NT 4 / 9x where SetWinEventHook is unavailable. EnumWindows every 250 ms; diff against previous snapshot to compute appear/disappear."
+    }
+  ],
+  "x-families": {
+    "windows-modern": {
+      "description": "SetWinEventHook with EVENT_OBJECT_CREATE / EVENT_OBJECT_DESTROY. Out-of-process, no DLL injection. Title prefix filtered in the agent's callback before emitting EVENTs.",
+      "implementations_in_order": ["set_winevent_hook"]
+    },
+    "windows-classic": {
+      "description": "SetWinEventHook on NT 5+; polling EnumWindows on NT 4 / 9x. The polling fallback may miss short-lived windows that appear and disappear within a single 250 ms interval.",
+      "implementations_in_order": ["set_winevent_hook", "enum_windows_poll"]
+    }
+  }
+}

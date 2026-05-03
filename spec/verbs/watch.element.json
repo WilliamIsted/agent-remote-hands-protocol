@@ -1,0 +1,58 @@
+{
+  "name": "watch.element",
+  "strict": true,
+  "description": "Subscribe to a UIA element's invalidation. Emits a single EVENT when the element is destroyed / re-parented / invalidated, then auto-cancels.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "handle": {
+        "type": "string",
+        "description": "Element handle in `elt:N` form, sourced from element.list / element.find / element.tree / element.at / element.wait."
+      }
+    },
+    "required": ["handle"],
+    "additionalProperties": false
+  },
+  "x-crudx": "R",
+  "x-since": "2.0",
+  "x-namespace": "watch",
+  "x-output-schema": {
+    "type": "object",
+    "properties": {
+      "subscription_id": {
+        "type": "string",
+        "description": "Subscription identifier in `sub:N` form."
+      }
+    },
+    "required": ["subscription_id"],
+    "additionalProperties": false
+  },
+  "x-event-schema": {
+    "type": "object",
+    "description": "Single EVENT emitted on element invalidation, then auto-cancellation.",
+    "properties": {
+      "reason": { "type": "string", "enum": ["destroyed", "reparented", "structure_changed"], "description": "Why the element was invalidated. `destroyed`: the element no longer exists. `reparented`: tree structure changed. `structure_changed`: child elements added/removed (the element itself still exists)." }
+    },
+    "required": ["reason"],
+    "additionalProperties": false
+  },
+  "x-errors": ["target_gone", "uia_blind", "permission_denied", "invalid_args"],
+  "x-implementations": [
+    {
+      "name": "uia_add_structure_changed_handler",
+      "detect": { "type": "always" },
+      "available_on": ["windows-modern"],
+      "description": "UIA `IUIAutomation::AddStructureChangedEventHandler` registered for the element's subtree. Callback fires on destroyed / reparented / children-changed events."
+    }
+  ],
+  "x-families": {
+    "windows-modern": {
+      "description": "AddStructureChangedEventHandler — UIA's native element-invalidation event. Auto-cancels after the first event fires.",
+      "implementations_in_order": ["uia_add_structure_changed_handler"]
+    },
+    "windows-classic": {
+      "implemented": false,
+      "reason": "Requires UI Automation (Vista+)."
+    }
+  }
+}

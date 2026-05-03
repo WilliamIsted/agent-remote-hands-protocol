@@ -1,25 +1,22 @@
 {
   "name": "clipboard.set",
   "strict": true,
-  "description": "Replace the current text contents of the system clipboard. Overwrites whatever is there \u2014 classified U.",
+  "description": "Replace the current text contents of the system clipboard. Overwrites whatever is there.",
   "input_schema": {
     "type": "object",
     "properties": {
       "content": {
         "type": "string",
-        "description": "Text to place on the clipboard."
+        "description": "UTF-8 text to place on the clipboard."
       },
       "format": {
         "type": "string",
-        "enum": [
-          "text"
-        ],
-        "default": "text"
+        "enum": ["text"],
+        "default": "text",
+        "description": "Only `text` is defined today. Reserved for future formats."
       }
     },
-    "required": [
-      "content"
-    ],
+    "required": ["content"],
     "additionalProperties": false
   },
   "x-crudx": "U",
@@ -29,38 +26,30 @@
     "type": "object",
     "properties": {
       "set": {
-        "type": "boolean"
+        "type": "boolean",
+        "description": "True on success."
       }
     },
-    "required": [
-      "set"
-    ],
+    "required": ["set"],
     "additionalProperties": false
   },
-  "x-errors": [
-    "permission_denied"
+  "x-errors": ["permission_denied", "invalid_args"],
+  "x-implementations": [
+    {
+      "name": "open_clipboard_set",
+      "detect": { "type": "always" },
+      "available_on": ["windows-modern", "windows-classic"],
+      "description": "Win32 `OpenClipboard` + `EmptyClipboard` + `SetClipboardData(CF_UNICODETEXT, hMem)` + `CloseClipboard`. Memory handed to the OS via GMEM_MOVEABLE allocation; agent does not free."
+    }
   ],
   "x-families": {
     "windows-modern": {
-      "description": "OpenClipboard + EmptyClipboard + SetClipboardData(CF_UNICODETEXT, hMem). Memory handed to the OS; agent does not free.",
-      "api": [
-        "OpenClipboard",
-        "EmptyClipboard",
-        "SetClipboardData"
-      ],
-      "format": "CF_UNICODETEXT"
+      "description": "OpenClipboard + EmptyClipboard + SetClipboardData(CF_UNICODETEXT). Modern apps consume CF_UNICODETEXT directly; the agent does not also publish CF_TEXT (modern apps don't need the ANSI fallback).",
+      "implementations_in_order": ["open_clipboard_set"]
     },
     "windows-classic": {
-      "description": "Same Win32 sequence. Emits both CF_UNICODETEXT and CF_TEXT (active code page) so pre-NT-5 readers can consume the value.",
-      "api": [
-        "OpenClipboard",
-        "EmptyClipboard",
-        "SetClipboardData"
-      ],
-      "format": [
-        "CF_UNICODETEXT",
-        "CF_TEXT"
-      ]
+      "description": "Same OpenClipboard sequence. Emits BOTH CF_UNICODETEXT and CF_TEXT (transcoded to the active code page) so pre-NT-5 / Win 9x readers can consume the value via the legacy format.",
+      "implementations_in_order": ["open_clipboard_set"]
     }
   }
 }

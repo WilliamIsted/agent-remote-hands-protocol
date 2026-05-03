@@ -1,0 +1,66 @@
+{
+  "name": "element.find_invoke",
+  "strict": true,
+  "description": "Compound: element.find + element.invoke in one round-trip. Avoids the two-call latency for the common find-then-click pattern.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "root": {
+        "type": "string",
+        "description": "Optional window handle to scope the search. If omitted, searches the desktop root."
+      },
+      "name": {
+        "type": "string",
+        "description": "Accessible name to match (UIA Name / AX kAXTitle). Case-insensitive substring."
+      },
+      "role": {
+        "type": "string",
+        "description": "Control-type / role, e.g. 'Button', 'Edit'."
+      },
+      "automation_id": {
+        "type": "string",
+        "description": "Stable automation identifier; preferred over `name` when available."
+      }
+    },
+    "additionalProperties": false
+  },
+  "x-crudx": "U",
+  "x-since": "2.0",
+  "x-namespace": "element",
+  "x-output-schema": {
+    "type": "null",
+    "description": "Empty body — wire response is the literal `OK 0`. Failures of either step surface as the relevant ERR (`not_found` / `uia_blind` from find; `not_supported_by_target` / `target_gone` from invoke)."
+  },
+  "x-errors": [
+    "not_found",
+    "uia_blind",
+    "not_supported_by_target",
+    "target_gone",
+    "permission_denied",
+    "invalid_args"
+  ],
+  "x-implementations": [
+    {
+      "name": "uia_find_then_invoke",
+      "detect": {
+        "type": "always"
+      },
+      "available_on": [
+        "windows-modern"
+      ],
+      "description": "Internal: element.find followed by element.invoke. The intermediate elt:N id is allocated, used, and discarded within the verb call (not returned to the caller)."
+    }
+  ],
+  "x-families": {
+    "windows-modern": {
+      "description": "FindFirst + InvokePattern.Invoke. Internal allocation of the intermediate element id; not returned to the caller. Halts on the first error (find or invoke) and surfaces it.",
+      "implementations_in_order": [
+        "uia_find_then_invoke"
+      ]
+    },
+    "windows-classic": {
+      "implemented": false,
+      "reason": "Requires UI Automation (Vista+)."
+    }
+  }
+}

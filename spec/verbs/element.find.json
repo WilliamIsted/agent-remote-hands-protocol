@@ -2,6 +2,36 @@
   "name": "element.find",
   "strict": true,
   "description": "Locate a UI element by accessibility role / name / automation id, optionally rooted at a window. Returns the matched element's accessible properties and bounds. Read-only.",
+  "$defs": {
+    "Bounds": {
+      "type": "object",
+      "properties": {
+        "x": {
+          "type": "integer",
+          "description": "Top-left X in virtual-screen coordinates."
+        },
+        "y": {
+          "type": "integer",
+          "description": "Top-left Y in virtual-screen coordinates."
+        },
+        "w": {
+          "type": "integer",
+          "description": "Width in physical pixels."
+        },
+        "h": {
+          "type": "integer",
+          "description": "Height in physical pixels."
+        }
+      },
+      "required": [
+        "x",
+        "y",
+        "w",
+        "h"
+      ],
+      "additionalProperties": false
+    }
+  },
   "input_schema": {
     "type": "object",
     "properties": {
@@ -11,7 +41,7 @@
       },
       "name": {
         "type": "string",
-        "description": "Accessible name to match (UIA Name / AX kAXTitle)."
+        "description": "Accessible name to match (UIA Name / AX kAXTitle). Case-insensitive substring."
       },
       "role": {
         "type": "string",
@@ -19,12 +49,13 @@
       },
       "automation_id": {
         "type": "string",
-        "description": "Stable automation identifier (UIA AutomationId, AX kAXIdentifier)."
+        "description": "Stable automation identifier (UIA AutomationId, AX kAXIdentifier). Preferred over `name` when available — survives localization."
       },
       "timeout_ms": {
         "type": "integer",
+        "minimum": 0,
         "default": 2000,
-        "description": "Time to keep retrying before returning ERR not_found."
+        "description": "Time to keep retrying before returning ERR not_found. Default 2000 ms; pass 0 to disable retry (immediate find)."
       }
     },
     "additionalProperties": false
@@ -36,40 +67,38 @@
     "type": "object",
     "properties": {
       "handle": {
-        "type": "string"
+        "type": "string",
+        "description": "Element handle, e.g. 'elt:7'."
       },
       "name": {
-        "type": "string"
+        "type": "string",
+        "description": "UIA Name property of the matched element."
       },
       "role": {
-        "type": "string"
+        "type": "string",
+        "description": "UIA control-type name."
       },
       "automation_id": {
-        "type": "string"
+        "type": "string",
+        "description": "UIA AutomationId of the matched element. Empty string when the element doesn't expose one."
       },
       "bounds": {
-        "type": "object",
-        "properties": {
-          "x": {
-            "type": "integer"
-          },
-          "y": {
-            "type": "integer"
-          },
-          "w": {
-            "type": "integer"
-          },
-          "h": {
-            "type": "integer"
-          }
+        "$ref": "#/$defs/Bounds",
+        "description": "Element's screen position and size."
+      },
+      "flags": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "enum": [
+            "enabled",
+            "focused",
+            "offscreen",
+            "password",
+            "required"
+          ]
         },
-        "required": [
-          "x",
-          "y",
-          "w",
-          "h"
-        ],
-        "additionalProperties": false
+        "description": "Universally-determinable UIA boolean states currently true on the element. Per issue #92. Absent flags are false; only \"true\" flags are listed."
       }
     },
     "required": [
@@ -83,14 +112,28 @@
     "uia_blind",
     "permission_denied"
   ],
+  "x-implementations": [
+    {
+      "name": "uia_find_first",
+      "detect": {
+        "type": "always"
+      },
+      "available_on": [
+        "windows-modern"
+      ],
+      "description": "UIA `IUIAutomationElement::FindFirst` with `TreeScope_Subtree` from the supplied root (or RootElement). Builds an `IUIAutomationCondition` from role + (automation_id OR name). Wraps the find in a 250 ms-interval poll loop bounded by `timeout_ms`."
+    }
+  ],
   "x-families": {
     "windows-modern": {
-      "description": "IUIAutomation::FindFirst with TreeScope_Subtree from the supplied root or RootElement. ERR uia_blind when the target lives across an integrity-level boundary the agent cannot cross.",
-      "api": "IUIAutomation::FindFirst"
+      "description": "IUIAutomation::FindFirst with TreeScope_Subtree from the supplied root or RootElement. Built-in retry loop polls every 250 ms until a match appears or `timeout_ms` expires. ERR uia_blind when the target lives across an integrity-level boundary the agent cannot cross. Reports `flags` per #92.",
+      "implementations_in_order": [
+        "uia_find_first"
+      ]
     },
     "windows-classic": {
       "implemented": false,
-      "reason": "UIA does not exist pre-Vista. system.info.capabilities.ui_automation: no. The compiler/generator excludes this verb from windows-classic VERBS.md output."
+      "reason": "UIA does not exist pre-Vista. system.info.capabilities.ui_automation: no. The compiler/generator excludes this verb from windows-classic dist/<family>/VERBS.md output."
     }
   }
 }

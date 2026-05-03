@@ -1,0 +1,66 @@
+{
+  "name": "element.text",
+  "strict": true,
+  "description": "Read the element's text content via TextPattern (preferred) or ValuePattern (fallback). Empty payload (`OK 0`) is valid.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "handle": {
+        "type": "string",
+        "description": "Element handle in `elt:N` form."
+      }
+    },
+    "required": [
+      "handle"
+    ],
+    "additionalProperties": false
+  },
+  "x-crudx": "R",
+  "x-since": "2.0",
+  "x-namespace": "element",
+  "x-output-schema": {
+    "type": "string",
+    "description": "UTF-8 text content of the element. Length reported in the wire OK header (`OK <len>\\n<bytes>`); empty body when the element has no text."
+  },
+  "x-errors": [
+    "target_gone",
+    "not_supported_by_target",
+    "permission_denied",
+    "invalid_args"
+  ],
+  "x-implementations": [
+    {
+      "name": "uia_text_pattern",
+      "detect": {
+        "type": "always"
+      },
+      "available_on": [
+        "windows-modern"
+      ],
+      "description": "UIA `IUIAutomationTextPattern::DocumentRange.GetText(-1)` — preferred path; returns full document text including formatting-stripped runs."
+    },
+    {
+      "name": "uia_value_pattern",
+      "detect": {
+        "type": "always"
+      },
+      "available_on": [
+        "windows-modern"
+      ],
+      "description": "UIA `IUIAutomationValuePattern::CurrentValue` — fallback for elements (Edit boxes, ComboBoxes) that expose ValuePattern but not TextPattern."
+    }
+  ],
+  "x-families": {
+    "windows-modern": {
+      "description": "TextPattern preferred, ValuePattern fallback. Returns ERR not_supported_by_target if the element exposes neither pattern (rare for visible text-bearing elements, common for icon-only controls).",
+      "implementations_in_order": [
+        "uia_text_pattern",
+        "uia_value_pattern"
+      ]
+    },
+    "windows-classic": {
+      "implemented": false,
+      "reason": "Requires UI Automation (Vista+)."
+    }
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "name": "connection.tier_drop",
+  "strict": true,
+  "description": "Voluntarily drop the connection's tier (no token required). Target must be lower than or equal to current.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "tier": {
+        "type": "string",
+        "enum": ["read", "create", "update", "delete", "extra_risky"],
+        "description": "Target tier. Must be ≤ the connection's current tier; raising returns `ERR invalid_args`."
+      }
+    },
+    "required": ["tier"],
+    "additionalProperties": false
+  },
+  "x-crudx": "R",
+  "x-since": "2.0",
+  "x-namespace": "connection",
+  "x-output-schema": {
+    "type": "object",
+    "properties": {
+      "new_tier": {
+        "type": "string",
+        "enum": ["read", "create", "update", "delete", "extra_risky"],
+        "description": "Tier now active on the connection."
+      }
+    },
+    "required": ["new_tier"],
+    "additionalProperties": false
+  },
+  "x-errors": ["invalid_args"],
+  "x-implementations": [
+    {
+      "name": "agent_native",
+      "detect": { "type": "always" },
+      "available_on": ["windows-modern", "windows-classic"],
+      "description": "Handled inline by the agent's lifecycle layer. Idempotent on equal-tier drops."
+    }
+  ],
+  "x-families": {
+    "windows-modern": {
+      "description": "Agent-internal lifecycle verb; no Windows-specific behaviour. The downgrade is recorded synchronously before the OK is sent.",
+      "implementations_in_order": ["agent_native"]
+    },
+    "windows-classic": {
+      "description": "Agent-internal lifecycle verb; no Windows-specific behaviour. The downgrade is recorded synchronously before the OK is sent.",
+      "implementations_in_order": ["agent_native"]
+    }
+  }
+}

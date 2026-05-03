@@ -1,0 +1,36 @@
+{
+  "name": "connection.close",
+  "strict": true,
+  "description": "Close the connection cleanly. Pending EVENT frames are drained first.",
+  "input_schema": {
+    "type": "object",
+    "properties": {},
+    "additionalProperties": false
+  },
+  "x-crudx": "R",
+  "x-since": "2.0",
+  "x-namespace": "connection",
+  "x-output-schema": {
+    "type": "null",
+    "description": "Empty body — wire response is the literal `OK 0`, after which the agent closes the socket."
+  },
+  "x-errors": [],
+  "x-implementations": [
+    {
+      "name": "agent_native",
+      "detect": { "type": "always" },
+      "available_on": ["windows-modern", "windows-classic"],
+      "description": "Handled inline by the agent's lifecycle layer. Drains active subscriptions before acknowledging."
+    }
+  ],
+  "x-families": {
+    "windows-modern": {
+      "description": "Agent-internal lifecycle verb; no Windows-specific behaviour. EVENT-frame drain blocks the OK acknowledgement until the subscription buffer is empty.",
+      "implementations_in_order": ["agent_native"]
+    },
+    "windows-classic": {
+      "description": "Agent-internal lifecycle verb; no Windows-specific behaviour. EVENT-frame drain blocks the OK acknowledgement until the subscription buffer is empty.",
+      "implementations_in_order": ["agent_native"]
+    }
+  }
+}

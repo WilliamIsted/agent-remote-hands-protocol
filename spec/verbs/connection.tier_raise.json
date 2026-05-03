@@ -1,0 +1,55 @@
+{
+  "name": "connection.tier_raise",
+  "strict": true,
+  "description": "Raise the connection's tier on the strict ladder (read < create < update < delete < extra_risky). Token-gated.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "tier": {
+        "type": "string",
+        "enum": ["read", "create", "update", "delete", "extra_risky"],
+        "description": "Target tier. Must be reachable from the current tier."
+      },
+      "token": {
+        "type": "string",
+        "description": "Contents of the agent's token file. Wrong token returns `ERR auth_invalid`."
+      }
+    },
+    "required": ["tier", "token"],
+    "additionalProperties": false
+  },
+  "x-crudx": "R",
+  "x-since": "2.0",
+  "x-namespace": "connection",
+  "x-output-schema": {
+    "type": "object",
+    "properties": {
+      "new_tier": {
+        "type": "string",
+        "enum": ["read", "create", "update", "delete", "extra_risky"],
+        "description": "Tier now active on the connection. Equals the requested tier on success."
+      }
+    },
+    "required": ["new_tier"],
+    "additionalProperties": false
+  },
+  "x-errors": ["auth_invalid", "invalid_args"],
+  "x-implementations": [
+    {
+      "name": "agent_native",
+      "detect": { "type": "always" },
+      "available_on": ["windows-modern", "windows-classic"],
+      "description": "Handled inline by the agent's lifecycle layer. Token verification reads the per-family token file and compares constant-time."
+    }
+  ],
+  "x-families": {
+    "windows-modern": {
+      "description": "Agent-internal lifecycle verb. Token file path and ACL are declared on the family record in spec/families.json.",
+      "implementations_in_order": ["agent_native"]
+    },
+    "windows-classic": {
+      "description": "Agent-internal lifecycle verb. Token file path and ACL are declared on the family record in spec/families.json. NTFS-only ACL enforcement applies; FAT32 hosts cannot enforce per-user read restriction.",
+      "implementations_in_order": ["agent_native"]
+    }
+  }
+}

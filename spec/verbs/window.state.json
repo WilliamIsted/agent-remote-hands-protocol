@@ -1,0 +1,50 @@
+{
+  "name": "window.state",
+  "strict": true,
+  "description": "Report whether the window is minimised, maximised, normal, or hidden. Read-only; for state changes use window.move (size) or future window.minimise / window.maximise verbs.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "handle": {
+        "type": "string",
+        "description": "Window handle, e.g. 'win:0x1A2B'."
+      }
+    },
+    "required": ["handle"],
+    "additionalProperties": false
+  },
+  "x-crudx": "R",
+  "x-since": "2.0",
+  "x-namespace": "window",
+  "x-output-schema": {
+    "type": "object",
+    "properties": {
+      "state": {
+        "type": "string",
+        "enum": ["minimised", "maximised", "normal", "hidden"],
+        "description": "Current window state. `hidden` means the window has WS_VISIBLE clear (not just minimised)."
+      }
+    },
+    "required": ["state"],
+    "additionalProperties": false
+  },
+  "x-errors": ["not_found", "invalid_args"],
+  "x-implementations": [
+    {
+      "name": "get_window_placement",
+      "detect": { "type": "always" },
+      "available_on": ["windows-modern", "windows-classic"],
+      "description": "Win32 `IsWindowVisible` (test for `hidden`) + `GetWindowPlacement` (`SW_SHOWMINIMIZED`/`SW_SHOWMAXIMIZED`/`SW_SHOWNORMAL`). Maps the Win32 showCmd values to the spec's four states."
+    }
+  ],
+  "x-families": {
+    "windows-modern": {
+      "description": "IsWindowVisible + GetWindowPlacement. The `hidden` state is reported even for windows that ARE actually minimised but lack WS_VISIBLE — visibility takes precedence over placement.",
+      "implementations_in_order": ["get_window_placement"]
+    },
+    "windows-classic": {
+      "description": "Same Win32 APIs (available NT 3.1+). Identical state-mapping behaviour as windows-modern.",
+      "implementations_in_order": ["get_window_placement"]
+    }
+  }
+}

@@ -1,0 +1,55 @@
+{
+  "name": "process.wait",
+  "strict": true,
+  "description": "Wait for a process to exit. Returns its exit code. Per issue #76: `timeout_ms` is optional — when omitted, waits indefinitely until exit (or connection close, which cancels silently).",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "pid": {
+        "type": "integer",
+        "minimum": 1,
+        "description": "Process id to wait on."
+      },
+      "timeout_ms": {
+        "type": "integer",
+        "minimum": 0,
+        "description": "Optional wait deadline in milliseconds. When omitted, waits indefinitely. Returns ERR timeout if the deadline expires before the process exits."
+      }
+    },
+    "required": ["pid"],
+    "additionalProperties": false
+  },
+  "x-crudx": "R",
+  "x-since": "2.0",
+  "x-namespace": "process",
+  "x-output-schema": {
+    "type": "object",
+    "properties": {
+      "exit_code": {
+        "type": "integer",
+        "description": "Process exit code (or value passed to TerminateProcess if killed). Returns successfully even if the process had already exited before the wait began."
+      }
+    },
+    "required": ["exit_code"],
+    "additionalProperties": false
+  },
+  "x-errors": ["not_found", "timeout", "permission_denied", "invalid_args"],
+  "x-implementations": [
+    {
+      "name": "wait_for_multiple_objects",
+      "detect": { "type": "always" },
+      "available_on": ["windows-modern", "windows-classic"],
+      "description": "Win32 `OpenProcess(SYNCHRONIZE | PROCESS_QUERY_LIMITED_INFORMATION, ...)` + `WaitForMultipleObjects(hProcess, connection_cancel_event, timeout)` + `GetExitCodeProcess`. The connection-cancel event is signalled by the framing layer when the wire connection drops; the wait returns silently in that case (no response sent — the connection is gone)."
+    }
+  ],
+  "x-families": {
+    "windows-modern": {
+      "description": "OpenProcess (limited-information access) + WaitForMultipleObjects with a connection-cancel event for clean shutdown semantics. ERR not_found when OpenProcess fails (process exited and pid was recycled).",
+      "implementations_in_order": ["wait_for_multiple_objects"]
+    },
+    "windows-classic": {
+      "description": "Same APIs across NT 4 / 9x onwards. NT 4 has `PROCESS_QUERY_INFORMATION` instead of `PROCESS_QUERY_LIMITED_INFORMATION` (the latter is NT 6+) — agent uses the former on classic.",
+      "implementations_in_order": ["wait_for_multiple_objects"]
+    }
+  }
+}

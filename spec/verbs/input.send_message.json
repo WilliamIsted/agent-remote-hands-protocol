@@ -1,0 +1,61 @@
+{
+  "name": "input.send_message",
+  "strict": true,
+  "description": "Synchronous Win32 `SendMessage` escape hatch. Posts the message and waits for the target's wndproc to return; the LRESULT is returned in the response body.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "hwnd": {
+        "type": "string",
+        "description": "Target window handle in `win:0x<hex>` form."
+      },
+      "msg": {
+        "type": "integer",
+        "description": "Win32 message identifier (e.g. `0x0010` for WM_CLOSE, `0x000E` for WM_GETTEXTLENGTH). The bridge accepts hex strings (`\"0x0010\"`) and decimal."
+      },
+      "wparam": {
+        "type": "integer",
+        "description": "Message-specific WPARAM. Signed 64-bit. The bridge accepts hex strings."
+      },
+      "lparam": {
+        "type": "integer",
+        "description": "Message-specific LPARAM. Signed 64-bit. The bridge accepts hex strings."
+      }
+    },
+    "required": ["hwnd", "msg", "wparam", "lparam"],
+    "additionalProperties": false
+  },
+  "x-crudx": "U",
+  "x-since": "2.0",
+  "x-namespace": "input",
+  "x-output-schema": {
+    "type": "object",
+    "properties": {
+      "lresult": {
+        "type": "integer",
+        "description": "LRESULT returned by SendMessage. Interpretation is message-specific — refer to Win32 docs for the relevant WM_* or app-defined message. Signed 64-bit on x64."
+      }
+    },
+    "required": ["lresult"],
+    "additionalProperties": false
+  },
+  "x-errors": ["not_found", "uipi_blocked", "permission_denied", "invalid_args"],
+  "x-implementations": [
+    {
+      "name": "send_message",
+      "detect": { "type": "always" },
+      "available_on": ["windows-modern", "windows-classic"],
+      "description": "Win32 `SendMessageW`. Blocks the agent's request thread until the target's wndproc returns. If the target is unresponsive, prefer `input.post_message` to avoid agent stalls."
+    }
+  ],
+  "x-families": {
+    "windows-modern": {
+      "description": "SendMessageW. UIPI: cross-IL sends are silently no-op'd by the OS (no error returned by SendMessage itself); agent post-checks via GetWindowThreadProcessId / integrity comparison and returns ERR uipi_blocked when the IL barrier blocks delivery. Long-running wndprocs can stall the request thread; agent applies a configurable timeout (defaults to 5s) and returns ERR timeout if exceeded.",
+      "implementations_in_order": ["send_message"]
+    },
+    "windows-classic": {
+      "description": "SendMessageW (NT 5+) or SendMessageA (NT 4 / 9x, with input transcoding from UTF-8 wparam/lparam strings). No UIPI on classic — sends cross all process boundaries.",
+      "implementations_in_order": ["send_message"]
+    }
+  }
+}

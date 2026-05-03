@@ -1,0 +1,69 @@
+{
+  "name": "element.toggle",
+  "strict": true,
+  "description": "Toggle a TogglePattern element (checkbox, switch, toggle button). Returns the new state.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "handle": {
+        "type": "string",
+        "description": "Element handle in `elt:N` form."
+      }
+    },
+    "required": [
+      "handle"
+    ],
+    "additionalProperties": false
+  },
+  "x-crudx": "U",
+  "x-since": "2.0",
+  "x-namespace": "element",
+  "x-output-schema": {
+    "type": "object",
+    "properties": {
+      "new_state": {
+        "type": "string",
+        "enum": [
+          "on",
+          "off",
+          "indeterminate"
+        ],
+        "description": "State after the toggle. `indeterminate` is the third state of a tri-state checkbox."
+      }
+    },
+    "required": [
+      "new_state"
+    ],
+    "additionalProperties": false
+  },
+  "x-errors": [
+    "not_supported_by_target",
+    "target_gone",
+    "permission_denied",
+    "invalid_args"
+  ],
+  "x-implementations": [
+    {
+      "name": "uia_toggle",
+      "detect": {
+        "type": "always"
+      },
+      "available_on": [
+        "windows-modern"
+      ],
+      "description": "UIA `IUIAutomationTogglePattern::Toggle` followed by reading `CurrentToggleState` for the response."
+    }
+  ],
+  "x-families": {
+    "windows-modern": {
+      "description": "TogglePattern.Toggle. Works on standard checkboxes (binary) and tri-state checkboxes (cycles on→indeterminate→off→on). The new_state is the OS-reported value after the toggle; tri-state apps decide the cycle order.",
+      "implementations_in_order": [
+        "uia_toggle"
+      ]
+    },
+    "windows-classic": {
+      "implemented": false,
+      "reason": "Requires UI Automation (Vista+)."
+    }
+  }
+}

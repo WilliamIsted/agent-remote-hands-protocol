@@ -1,0 +1,79 @@
+{
+  "name": "watch.region",
+  "strict": true,
+  "description": "Stream image frames of a screen region. Returns a subscription_id; the agent emits EVENT frames carrying image bytes per `interval_ms` (or only when the region changes if `until_change: true`).",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "region": {
+        "type": "object",
+        "properties": {
+          "x": { "type": "integer" },
+          "y": { "type": "integer" },
+          "w": { "type": "integer", "minimum": 1 },
+          "h": { "type": "integer", "minimum": 1 }
+        },
+        "required": ["x", "y", "w", "h"],
+        "additionalProperties": false,
+        "description": "Screen sub-rectangle to capture in virtual-screen coordinates."
+      },
+      "interval_ms": {
+        "type": "integer",
+        "minimum": 50,
+        "default": 250,
+        "description": "Sampling interval in milliseconds. Lower values increase CPU + bandwidth cost. Default 250 ms (4 FPS)."
+      },
+      "until_change": {
+        "type": "boolean",
+        "default": false,
+        "description": "If true, emit only when the region's pixels differ from the last sample, then auto-cancel. Useful for `wait until something changes` patterns."
+      }
+    },
+    "required": ["region"],
+    "additionalProperties": false
+  },
+  "x-crudx": "R",
+  "x-since": "2.0",
+  "x-namespace": "watch",
+  "x-output-schema": {
+    "type": "object",
+    "properties": {
+      "subscription_id": {
+        "type": "string",
+        "description": "Subscription identifier in `sub:N` form. Use with watch.cancel to end the stream."
+      }
+    },
+    "required": ["subscription_id"],
+    "additionalProperties": false
+  },
+  "x-event-schema": {
+    "type": "object",
+    "description": "EVENT frames emitted by this subscription carry image bytes (base64-encoded) of the region per sampling interval. Format follows `system.info.capabilities.image_formats`.",
+    "properties": {
+      "image": { "type": "string", "format": "byte", "description": "Base64-encoded image bytes." },
+      "format": { "type": "string", "enum": ["png", "webp", "bmp", "jpeg", "heic"], "description": "Encoding of the image bytes." },
+      "timestamp_unix_ms": { "type": "integer", "description": "Capture timestamp as Unix epoch milliseconds." }
+    },
+    "required": ["image", "format", "timestamp_unix_ms"],
+    "additionalProperties": false
+  },
+  "x-errors": ["permission_denied", "invalid_args"],
+  "x-implementations": [
+    {
+      "name": "screen_capture_loop",
+      "detect": { "type": "always" },
+      "available_on": ["windows-modern", "windows-classic"],
+      "description": "Reuses screen.capture's implementation chain (WGC / GDI BitBlt) on a timer thread. `until_change` adds a cheap pixel-hash compare against the previous frame."
+    }
+  ],
+  "x-families": {
+    "windows-modern": {
+      "description": "WGC capture loop on a timer thread; emits EVENT frames per interval. WebP encoding (default) saves ~70% bandwidth vs PNG. `until_change` uses a quick CRC64 compare to skip unchanged frames.",
+      "implementations_in_order": ["screen_capture_loop"]
+    },
+    "windows-classic": {
+      "description": "GDI BitBlt loop. BMP-only on classic (PNG with GDI+ runtime if probed). Higher per-frame cost than modern; lower interval values may saturate CPU.",
+      "implementations_in_order": ["screen_capture_loop"]
+    }
+  }
+}

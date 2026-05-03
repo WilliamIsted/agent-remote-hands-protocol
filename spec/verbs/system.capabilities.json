@@ -1,0 +1,49 @@
+{
+  "name": "system.capabilities",
+  "strict": false,
+  "description": "Verb-to-tier capability map. Returns every verb this agent implements with its required tier; absent verbs are unimplemented and MUST NOT be issued.",
+  "input_schema": {
+    "type": "object",
+    "properties": {},
+    "additionalProperties": false
+  },
+  "x-crudx": "R",
+  "x-since": "2.0",
+  "x-namespace": "system",
+  "x-strict-false-reason": "The response is an open-ended map keyed by verb name; agents implement variable subsets of the spec, so a closed key enumeration would defeat the discovery role of this verb. Per Option 13 design subsection C, strict mode is per-tool — system.capabilities opts out while every verb-call tool stays strict.",
+  "x-output-schema": {
+    "type": "object",
+    "description": "Map of verb name → capability descriptor. Keys are dotted-namespace verb names matching `spec/verbs/<verb>.json`.",
+    "additionalProperties": {
+      "type": "object",
+      "properties": {
+        "tier": {
+          "type": "string",
+          "enum": ["read", "create", "update", "delete", "extra_risky"],
+          "description": "Required tier to call this verb. Connection must be at this tier or higher."
+        }
+      },
+      "required": ["tier"],
+      "additionalProperties": false
+    }
+  },
+  "x-errors": [],
+  "x-implementations": [
+    {
+      "name": "agent_native",
+      "detect": { "type": "always" },
+      "available_on": ["windows-modern", "windows-classic"],
+      "description": "Built at agent startup from the verb dispatcher's registered handler set."
+    }
+  ],
+  "x-families": {
+    "windows-modern": {
+      "description": "Reports every verb the modern agent's dispatcher has registered. Modern agents typically implement the full v2.1 verb surface plus optional extras (element.wait, system.power.cancel, etc.) when the underlying Windows APIs are reachable.",
+      "implementations_in_order": ["agent_native"]
+    },
+    "windows-classic": {
+      "description": "Reports a narrower verb set than modern: no element.* (no UI Automation), no UIPI-dependent verbs, image_formats limited to BMP. Verbs that depend on absent capabilities are simply omitted from the map.",
+      "implementations_in_order": ["agent_native"]
+    }
+  }
+}

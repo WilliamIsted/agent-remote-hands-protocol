@@ -1,0 +1,96 @@
+{
+  "name": "element.wait",
+  "strict": true,
+  "description": "Polling form of element.find: re-runs the search every 250 ms until a match appears (and optionally meets `flags_required`) or the timeout expires. Capability-gated — check `system.capabilities` before calling.",
+  "$defs": {
+    "Bounds": {
+      "type": "object",
+      "properties": {
+        "x": { "type": "integer", "description": "Top-left X in virtual-screen coordinates." },
+        "y": { "type": "integer", "description": "Top-left Y in virtual-screen coordinates." },
+        "w": { "type": "integer", "description": "Width in physical pixels." },
+        "h": { "type": "integer", "description": "Height in physical pixels." }
+      },
+      "required": ["x", "y", "w", "h"],
+      "additionalProperties": false
+    }
+  },
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "root": {
+        "type": "string",
+        "description": "Optional window handle to scope the search. If omitted, searches the desktop root."
+      },
+      "name": {
+        "type": "string",
+        "description": "Accessible name to match (UIA Name / AX kAXTitle). Case-insensitive substring."
+      },
+      "role": {
+        "type": "string",
+        "description": "Control-type / role, e.g. 'Button', 'Edit', 'AXButton'."
+      },
+      "automation_id": {
+        "type": "string",
+        "description": "Stable automation identifier. Preferred over `name` when available — survives localization."
+      },
+      "flags_required": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "enum": ["enabled", "focused", "offscreen", "password", "required"]
+        },
+        "description": "Wait until the matched element's `flags` include EVERY entry here. Lets callers wait for state transitions (becomes-enabled, becomes-focused) on the matching element. Per issue #92."
+      },
+      "timeout_ms": {
+        "type": "integer",
+        "minimum": 0,
+        "default": 5000,
+        "description": "Maximum wait in milliseconds. Returns ERR timeout if no match (with required flags) appears within this window."
+      }
+    },
+    "additionalProperties": false
+  },
+  "x-crudx": "R",
+  "x-since": "2.0",
+  "x-namespace": "element",
+  "x-output-schema": {
+    "type": "object",
+    "properties": {
+      "handle":        { "type": "string", "description": "Element handle, e.g. 'elt:7'." },
+      "name":          { "type": "string", "description": "UIA Name property of the matched element." },
+      "role":          { "type": "string", "description": "UIA control-type name." },
+      "automation_id": { "type": "string", "description": "UIA AutomationId. Empty string when the element doesn't expose one." },
+      "bounds":        { "$ref": "#/$defs/Bounds", "description": "Element's screen position and size." },
+      "flags": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "enum": ["enabled", "focused", "offscreen", "password", "required"]
+        },
+        "description": "Universally-determinable UIA boolean states currently true on the element. Per issue #92."
+      }
+    },
+    "required": ["handle", "bounds"],
+    "additionalProperties": false
+  },
+  "x-errors": ["timeout", "uia_blind", "permission_denied", "not_supported"],
+  "x-implementations": [
+    {
+      "name": "uia_poll",
+      "detect": { "type": "always" },
+      "available_on": ["windows-modern"],
+      "description": "Wraps `element.find` in a 250 ms-interval poll loop with deadline. Each iteration walks the visible-element subtree from the root, applies the role/name/automation_id condition, and (if flags_required is set) checks the matched element's flags."
+    }
+  ],
+  "x-families": {
+    "windows-modern": {
+      "description": "Polling FindFirst loop. The 250 ms interval balances responsiveness against UIA query cost (a full subtree walk on a complex window can take 50-100 ms). With `flags_required`, the loop also queries the matched element's UIA boolean properties each iteration. UIPI: the initial search may succeed but the wait blocks under the same uia_blind constraints — the polled subtree may become visible mid-wait if the agent's IL changes (rare).",
+      "implementations_in_order": ["uia_poll"]
+    },
+    "windows-classic": {
+      "implemented": false,
+      "reason": "Requires UI Automation (Vista+)."
+    }
+  }
+}

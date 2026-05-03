@@ -1,42 +1,36 @@
 {
   "name": "file.write",
   "strict": true,
-  "description": "Write content to a file. Atomic by default \u2014 content lands in a temp file then renames into place. Overwrites existing files; classified U.",
+  "description": "Write content to a file. Atomic by default — content lands in a temp file then renames into place. Overwrites existing files unless `create_only: true`.",
   "input_schema": {
     "type": "object",
     "properties": {
       "path": {
         "type": "string",
-        "description": "Absolute path. Parent directory must exist (use file.mkdir first)."
+        "description": "Absolute path. Parent directory must exist (use directory.create first)."
       },
       "content": {
         "type": "string",
-        "description": "Content to write. base64-encoded if encoding=binary."
+        "description": "Content to write. base64-encoded if encoding=binary; decoded text otherwise."
       },
       "encoding": {
         "type": "string",
-        "enum": [
-          "utf-8",
-          "utf-16le",
-          "binary"
-        ],
-        "default": "utf-8"
+        "enum": ["utf-8", "utf-16le", "utf-16be", "ascii", "latin-1", "cp1252", "binary"],
+        "default": "utf-8",
+        "description": "Encoding used to interpret `content`. `binary` decodes from base64 to raw bytes; all others encode the text into the named encoding."
       },
       "atomic": {
         "type": "boolean",
         "default": true,
-        "description": "When true, write to a temp file and rename into place. When false, writes directly to path."
+        "description": "When true, write to a temp file and rename into place (no half-written file visible to other readers). When false, writes directly to path — required for files held open by other processes via FILE_SHARE_WRITE."
       },
       "create_only": {
         "type": "boolean",
         "default": false,
-        "description": "If true, fails with ERR already_exists rather than overwriting."
+        "description": "If true, fails with ERR already_exists rather than overwriting an existing file."
       }
     },
-    "required": [
-      "path",
-      "content"
-    ],
+    "required": ["path", "content"],
     "additionalProperties": false
   },
   "x-crudx": "U",
@@ -46,38 +40,47 @@
     "type": "object",
     "properties": {
       "bytes_written": {
-        "type": "integer"
+        "type": "integer",
+        "description": "Number of bytes actually written to disk (after encoding from `content`). For `encoding: binary` this equals the decoded base64 length."
+      },
+      "encoding": {
+        "type": "string",
+        "enum": ["utf-8", "utf-16le", "utf-16be", "ascii", "latin-1", "cp1252", "binary"],
+        "description": "Echo of the encoding used to write. Confirms the agent honoured the requested encoding (no silent fallback)."
       }
     },
-    "required": [
-      "bytes_written"
-    ],
+    "required": ["bytes_written", "encoding"],
     "additionalProperties": false
   },
-  "x-errors": [
-    "not_found",
-    "already_exists",
-    "permission_denied"
+  "x-errors": ["not_found", "already_exists", "permission_denied", "invalid_args"],
+  "x-implementations": [
+    {
+      "name": "create_file_w_atomic",
+      "detect": { "type": "always" },
+      "available_on": ["windows-modern", "windows-classic"],
+      "description": "Win32 `CreateFileW` to a sibling temp file (`<path>.tmp.<random>`) + `WriteFile` + `MoveFileExW(MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH)`. NT 5+. Used when `atomic: true`."
+    },
+    {
+      "name": "create_file_w_direct",
+      "detect": { "type": "always" },
+      "available_on": ["windows-modern", "windows-classic"],
+      "description": "Win32 `CreateFileW` directly + `WriteFile`. CREATE_NEW disposition when `create_only: true`, CREATE_ALWAYS otherwise. Used when `atomic: false`."
+    },
+    {
+      "name": "copy_delete_fallback",
+      "detect": { "type": "always" },
+      "available_on": ["windows-classic"],
+      "description": "9x non-atomic fallback: write temp + CopyFile + DeleteFile. Used when MoveFileEx is unavailable."
+    }
   ],
   "x-families": {
     "windows-modern": {
-      "description": "CreateFileW + WriteFile to a sibling temp file, then atomic MoveFileExW with MOVEFILE_REPLACE_EXISTING.",
-      "api": [
-        "CreateFileW",
-        "WriteFile",
-        "MoveFileExW"
-      ]
+      "description": "CreateFileW + WriteFile to a sibling temp file, then atomic MoveFileExW with MOVEFILE_REPLACE_EXISTING. `create_only: true` opens with CREATE_NEW (returns ERR already_exists if the file exists). Long paths via `\\\\?\\` prefix automatic when input exceeds MAX_PATH.",
+      "implementations_in_order": ["create_file_w_atomic", "create_file_w_direct"]
     },
     "windows-classic": {
-      "description": "CreateFileA on NT 4 / 9x; CreateFileW on NT 5+. Atomic rename via MoveFileEx (NT 4+). 9x falls back to CopyFile + DeleteFile (non-atomic).",
-      "api": [
-        "CreateFileA",
-        "CreateFileW",
-        "WriteFile",
-        "MoveFileEx",
-        "CopyFile",
-        "DeleteFile"
-      ]
+      "description": "CreateFileA on NT 4 / 9x; CreateFileW on NT 5+. Atomic rename via MoveFileEx (NT 4+). 9x falls back to CopyFile + DeleteFile (NOT atomic — a concurrent reader can see the file mid-replace). Same `create_only` semantics on all classic versions via CREATE_NEW disposition.",
+      "implementations_in_order": ["create_file_w_atomic", "create_file_w_direct", "copy_delete_fallback"]
     }
   }
 }

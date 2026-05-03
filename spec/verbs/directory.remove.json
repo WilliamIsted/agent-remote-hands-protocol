@@ -1,7 +1,7 @@
 {
   "name": "directory.remove",
   "strict": true,
-  "description": "Remove a directory. Empty directories require no flags. Pass `recursive=true` to remove a directory and all its contents (analogous to `rm -rf`). Hard delete \u2014 bypasses Recycle Bin / Trash. Makes something cease to be \u2014 classified D.",
+  "description": "Remove a directory. Empty directories require no flags. Pass `recursive: true` to remove a directory and all its contents (analogous to `rm -rf`). Hard delete — bypasses Recycle Bin / Trash.",
   "input_schema": {
     "type": "object",
     "properties": {
@@ -15,9 +15,7 @@
         "description": "If true, recursively delete the directory's contents before removing the directory itself. Without this flag, removing a non-empty directory returns ERR not_empty."
       }
     },
-    "required": [
-      "path"
-    ],
+    "required": ["path"],
     "additionalProperties": false
   },
   "x-crudx": "D",
@@ -27,41 +25,41 @@
     "type": "object",
     "properties": {
       "removed": {
-        "type": "boolean"
+        "type": "boolean",
+        "description": "True on success."
       },
       "entries_removed": {
         "type": "integer",
-        "description": "Count of files + directories removed inside the target when recursive=true. 0 for a non-recursive empty-directory removal."
+        "minimum": 0,
+        "description": "Count of files + subdirectories removed inside the target when `recursive: true`. 0 for a non-recursive empty-directory removal."
       }
     },
-    "required": [
-      "removed"
-    ],
+    "required": ["removed", "entries_removed"],
     "additionalProperties": false
   },
-  "x-errors": [
-    "not_found",
-    "not_empty",
-    "permission_denied",
-    "not_a_directory"
+  "x-errors": ["not_found", "not_empty", "permission_denied", "not_a_directory", "invalid_args"],
+  "x-implementations": [
+    {
+      "name": "remove_directory_w",
+      "detect": { "type": "always" },
+      "available_on": ["windows-modern", "windows-classic"],
+      "description": "Win32 `RemoveDirectoryW` for the empty-directory case. With `recursive: true`, the agent performs a depth-first walk via FindFirstFileW / FindNextFileW + DeleteFileW for files + RemoveDirectoryW for subdirectories. Reparse points are NOT traversed — `recursive` removes the link, not the link target."
+    },
+    {
+      "name": "remove_directory_a",
+      "detect": { "type": "always" },
+      "available_on": ["windows-classic"],
+      "description": "Win32 `RemoveDirectoryA` legacy fallback for NT 4 / 9x. Same recursive walk pattern with the ANSI variants."
+    }
   ],
   "x-families": {
     "windows-modern": {
-      "description": "RemoveDirectoryW for the empty case. Recursive walk uses FindFirstFileW / FindNextFileW + DeleteFileW for files, RemoveDirectoryW for subdirectories. Reparse points are not traversed.",
-      "api": [
-        "RemoveDirectoryW",
-        "FindFirstFileW",
-        "DeleteFileW"
-      ]
+      "description": "RemoveDirectoryW for the empty case. Recursive walk uses FindFirstFileW / FindNextFileW + DeleteFileW for files + RemoveDirectoryW for subdirectories. Reparse points (symlinks, junctions, mount points) are removed without traversal — protects against accidentally deleting the link target.",
+      "implementations_in_order": ["remove_directory_w"]
     },
     "windows-classic": {
-      "description": "RemoveDirectory / RemoveDirectoryW per NT version. Same recursive walk pattern; reparse points not traversed.",
-      "api": [
-        "RemoveDirectory",
-        "RemoveDirectoryW",
-        "FindFirstFile",
-        "DeleteFile"
-      ]
+      "description": "RemoveDirectoryW on NT 5+; RemoveDirectoryA on NT 4 / 9x. Same recursive walk pattern. Pre-NT-5 has no reparse points, so the no-traversal protection is moot.",
+      "implementations_in_order": ["remove_directory_w", "remove_directory_a"]
     }
   }
 }

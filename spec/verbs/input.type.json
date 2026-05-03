@@ -1,0 +1,48 @@
+{
+  "name": "input.type",
+  "strict": true,
+  "description": "Type a UTF-8 string into the focused window. Handles Unicode (including supplementary-plane chars) and avoids the quote-escape hazards of synthesising it as individual `input.key` calls. Same RawInput / DirectInput limitation as input.key.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "text": {
+        "type": "string",
+        "description": "UTF-8 text to type. Each codepoint is synthesised via `SendInput` with `KEYEVENTF_UNICODE` (skips the keyboard-layout translation step, so the character lands as-typed regardless of the user's keyboard layout). Empty string is valid and a no-op."
+      }
+    },
+    "required": ["text"],
+    "additionalProperties": false
+  },
+  "x-crudx": "U",
+  "x-since": "2.0",
+  "x-namespace": "input",
+  "x-output-schema": {
+    "type": "null",
+    "description": "Empty body — wire response is the literal `OK 0`. The focused window receives the text; no per-character status (errors are all-or-nothing at the synthesis level)."
+  },
+  "x-errors": ["uipi_blocked", "permission_denied", "invalid_args"],
+  "x-implementations": [
+    {
+      "name": "send_input_unicode",
+      "detect": { "type": "always" },
+      "available_on": ["windows-modern", "windows-classic"],
+      "description": "Win32 `SendInput` with INPUT_KEYBOARD events using `KEYEVENTF_UNICODE`. One down + up event pair per codepoint; supplementary-plane chars use surrogate-pair pairs. NT 5+. Bypasses keyboard-layout translation so non-ASCII chars land correctly regardless of the user's active layout."
+    },
+    {
+      "name": "set_clipboard_paste",
+      "detect": { "type": "always" },
+      "available_on": ["windows-classic"],
+      "description": "Fallback for NT 4 / 9x where SendInput / KEYEVENTF_UNICODE is unavailable: sets clipboard to the text via OpenClipboard + SetClipboardData(CF_UNICODETEXT) and synthesises ctrl+V. Side effect: clipboard content overwritten — agent restores prior content after the paste."
+    }
+  ],
+  "x-families": {
+    "windows-modern": {
+      "description": "SendInput with KEYEVENTF_UNICODE per codepoint. Reaches user32 message-queue listeners (most apps, including modern frameworks like WPF / WinUI / Electron). Does NOT reach RawInput / DirectInput — same limitation as input.key (PROTOCOL.md §4.4 / issue #64). UIPI applies.",
+      "implementations_in_order": ["send_input_unicode"]
+    },
+    "windows-classic": {
+      "description": "SendInput KEYEVENTF_UNICODE on NT 5+. NT 4 / 9x agents fall back to clipboard-paste — set clipboard, ctrl+V, restore prior clipboard. The fallback is observable: brief clipboard contention is possible if another app reads the clipboard during the verb. Pre-NT-5 also lacks proper Unicode IME bridging in some apps; MBCS-converted ANSI fallback when KEYEVENTF_UNICODE produces no effect.",
+      "implementations_in_order": ["send_input_unicode", "set_clipboard_paste"]
+    }
+  }
+}

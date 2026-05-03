@@ -1,0 +1,48 @@
+{
+  "name": "process.kill",
+  "strict": true,
+  "description": "Terminate a process by pid via TerminateProcess. Hard kill — no graceful shutdown signal; the process gets no chance to save state.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "pid": {
+        "type": "integer",
+        "minimum": 1,
+        "description": "Process id to terminate. Must refer to a running process owned by the agent's account (or any account if the agent has SeDebugPrivilege)."
+      },
+      "exit_code": {
+        "type": "integer",
+        "default": 1,
+        "description": "Exit code reported to TerminateProcess. The terminated process's wait return value will reflect this."
+      }
+    },
+    "required": ["pid"],
+    "additionalProperties": false
+  },
+  "x-crudx": "D",
+  "x-since": "2.0",
+  "x-namespace": "process",
+  "x-output-schema": {
+    "type": "null",
+    "description": "Empty body — wire response is the literal `OK 0`."
+  },
+  "x-errors": ["not_found", "permission_denied", "invalid_args"],
+  "x-implementations": [
+    {
+      "name": "open_process_terminate",
+      "detect": { "type": "always" },
+      "available_on": ["windows-modern", "windows-classic"],
+      "description": "Win32 `OpenProcess(PROCESS_TERMINATE, ...)` + `TerminateProcess(hProcess, exit_code)`. ERR not_found when OpenProcess fails (process exited, or pid was reused for an inaccessible process); ERR permission_denied when TerminateProcess is denied (protected process, cross-account without SeDebugPrivilege)."
+    }
+  ],
+  "x-families": {
+    "windows-modern": {
+      "description": "OpenProcess + TerminateProcess. Protected processes (anti-cheat, antivirus, system services) reject TerminateProcess even with SeDebugPrivilege; ERR permission_denied. Children of the killed process are NOT cascaded — use a job object pattern (out of scope for this verb) or kill children individually first.",
+      "implementations_in_order": ["open_process_terminate"]
+    },
+    "windows-classic": {
+      "description": "Same APIs across NT 4 / 9x onwards. NT 4 / 9x lack SeDebugPrivilege — cross-account kills fail unless the agent runs as SYSTEM.",
+      "implementations_in_order": ["open_process_terminate"]
+    }
+  }
+}

@@ -1,54 +1,52 @@
 {
   "name": "screen.capture",
   "strict": true,
-  "description": "Pixel capture of region, window, monitor, or virtual screen. If neither region nor window nor monitor is supplied, the entire virtual screen is captured. Returned bytes are base64-encoded image data in the requested format.",
+  "description": "Pixel capture of region, window, monitor, or virtual screen. If neither region nor window nor monitor is supplied, the entire virtual screen is captured. Returned bytes are base64-encoded image data by default; pass `encoding: binary` for raw bytes.",
   "input_schema": {
     "type": "object",
     "properties": {
       "region": {
         "type": "object",
         "properties": {
-          "x": {
-            "type": "integer"
-          },
-          "y": {
-            "type": "integer"
-          },
-          "w": {
-            "type": "integer"
-          },
-          "h": {
-            "type": "integer"
-          }
+          "x": { "type": "integer", "description": "Top-left X in virtual-screen coordinates." },
+          "y": { "type": "integer", "description": "Top-left Y in virtual-screen coordinates." },
+          "w": { "type": "integer", "minimum": 1, "description": "Width in physical pixels." },
+          "h": { "type": "integer", "minimum": 1, "description": "Height in physical pixels." }
         },
-        "required": [
-          "x",
-          "y",
-          "w",
-          "h"
-        ],
+        "required": ["x", "y", "w", "h"],
         "additionalProperties": false,
-        "description": "Rectangle in virtual-screen coordinates."
+        "description": "Rectangle in virtual-screen coordinates. Mutually exclusive with `window` and `monitor`."
       },
       "window": {
         "type": "string",
-        "description": "Window handle, e.g. 'win:0x1A2B' on Windows or 'mac:42' on macOS."
+        "description": "Window handle, e.g. 'win:0x1A2B'. Mutually exclusive with `region` and `monitor`."
       },
       "monitor": {
         "type": "integer",
-        "description": "Zero-based monitor index as reported by system.info.screens."
+        "minimum": 0,
+        "description": "Zero-based monitor index as reported by `system.info.screens`. Mutually exclusive with `region` and `window`."
       },
       "format": {
         "type": "string",
-        "enum": [
-          "png",
-          "webp",
-          "bmp",
-          "jpeg",
-          "heic"
-        ],
+        "enum": ["png", "webp", "bmp", "jpeg", "heic"],
         "default": "png",
-        "description": "Output image format. Family-dependent \u2014 see x-families. Requesting an unsupported format returns ERR unsupported_format."
+        "description": "Output image format. Family-dependent — see `system.info.capabilities.image_formats` for what the connected agent actually supports. Requesting an unsupported format returns ERR unsupported_format. `jpeg`/`heic` are reserved for future macOS family support; current Windows agents return ERR unsupported_format."
+      },
+      "quality": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 100,
+        "description": "Encoder quality, 1-100. Only meaningful for lossy formats (webp, jpeg, heic); silently ignored for png/bmp. Default 80 when format is lossy. See issue #83."
+      },
+      "cursor": {
+        "type": "boolean",
+        "description": "Composite the OS cursor into the captured image at its current position. Default false (preserves pixel-exact captures). Hidden / off-region cursors no-op gracefully. See issue #66."
+      },
+      "encoding": {
+        "type": "string",
+        "enum": ["base64", "binary"],
+        "default": "base64",
+        "description": "Response payload encoding. `base64` (default) is JSON-safe / transport-friendly. `binary` is raw image bytes — 33% smaller, requires binary-aware client framing. See issue #91."
       }
     },
     "additionalProperties": false
@@ -56,45 +54,46 @@
   "x-crudx": "R",
   "x-since": "2.0",
   "x-namespace": "screen",
-  "x-mutually-exclusive": [
-    "region",
-    "window",
-    "monitor"
-  ],
+  "x-mutually-exclusive": ["region", "window", "monitor"],
   "x-output-schema": {
     "type": "string",
     "format": "byte",
-    "description": "base64-encoded image bytes"
+    "description": "Image bytes. Base64-encoded by default (matches `format: byte`); raw binary when `encoding: binary` is supplied."
   },
-  "x-errors": [
-    "not_found",
-    "unsupported_format",
-    "permission_denied"
+  "x-errors": ["not_found", "unsupported_format", "permission_denied"],
+  "x-implementations": [
+    {
+      "name": "wgc",
+      "detect": { "type": "always" },
+      "available_on": ["windows-modern"],
+      "description": "Windows.Graphics.Capture (WGC) fast path. Win 10 1803+. Composes via DWM — captures DirectComposition / hardware-accelerated content correctly."
+    },
+    {
+      "name": "gdi_bitblt",
+      "detect": { "type": "always" },
+      "available_on": ["windows-modern", "windows-classic"],
+      "description": "Win32 `BitBlt` from the desktop DC. Universal fallback. Misses hardware cursor unless `cursor: true` (which composites separately via DrawIcon)."
+    },
+    {
+      "name": "print_window",
+      "detect": { "type": "always" },
+      "available_on": ["windows-modern", "windows-classic"],
+      "description": "Win32 `PrintWindow` for window-specific captures. Used when `window` is supplied; reaches some occluded/minimized windows BitBlt cannot."
+    }
   ],
   "x-families": {
     "windows-modern": {
-      "description": "WGC fast path on Win 10 1803+; GDI BitBlt fallback for Vista-8.1 if WGC is unavailable. PNG/WebP/BMP via WIC. Multi-monitor full.",
-      "capture_path": [
-        "wgc",
-        "gdi"
-      ],
-      "formats": [
-        "png",
-        "webp",
-        "bmp"
-      ]
+      "description": "WGC fast path on Win 10 1803+; GDI BitBlt fallback for Vista-8.1 if WGC is unavailable. PNG/WebP/BMP via WIC. Multi-monitor full. Cursor overlay via GetCursorInfo + DrawIcon when `cursor: true`.",
+      "implementations_in_order": ["wgc", "print_window", "gdi_bitblt"],
+      "capture_path": ["wgc", "gdi"],
+      "formats": ["png", "webp", "bmp"]
     },
     "windows-classic": {
-      "description": "GDI BitBlt only. PNG only if GDI+ runtime present (NT 4 SP6+ with redist; XP+ ships GDI+). Multi-monitor: NT 4 single-display, 2000+ multi.",
-      "capture_path": [
-        "gdi"
-      ],
-      "formats": [
-        "bmp"
-      ],
-      "formats_runtime_extra": [
-        "png"
-      ]
+      "description": "GDI BitBlt only for the desktop / region path; PrintWindow when `window` is supplied. PNG only if GDI+ runtime present (NT 4 SP6+ with redist; XP+ ships GDI+). Multi-monitor: NT 4 single-display, 2000+ multi. Cursor overlay via GetCursorInfo + DrawIcon when `cursor: true`.",
+      "implementations_in_order": ["print_window", "gdi_bitblt"],
+      "capture_path": ["gdi"],
+      "formats": ["bmp"],
+      "formats_runtime_extra": ["png"]
     }
   }
 }

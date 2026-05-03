@@ -1,7 +1,20 @@
 {
   "name": "system.info",
-  "strict": true,
-  "description": "Returns OS family identifier, version, hostname, screen geometry, and a capability map. Read-only, no side effects. Used by clients to gate verb availability before sending family-specific calls.",
+  "strict": false,
+  "description": "Returns OS family identifier, version, hostname, screen geometry, and a capability map. Used by clients to gate verb availability before sending family-specific calls.",
+  "$defs": {
+    "Bounds": {
+      "type": "object",
+      "properties": {
+        "x": { "type": "integer", "description": "Top-left X in virtual-screen coordinates." },
+        "y": { "type": "integer", "description": "Top-left Y in virtual-screen coordinates." },
+        "w": { "type": "integer", "description": "Width in physical pixels." },
+        "h": { "type": "integer", "description": "Height in physical pixels." }
+      },
+      "required": ["x", "y", "w", "h"],
+      "additionalProperties": false
+    }
+  },
   "input_schema": {
     "type": "object",
     "properties": {},
@@ -10,69 +23,96 @@
   "x-crudx": "R",
   "x-since": "2.0",
   "x-namespace": "system",
+  "x-strict-false-reason": "The `capabilities` field is an open-ended per-family sub-capability map; its keys evolve per family and per agent build. A closed schema would defeat the discovery role of this verb. Per Option 13 design subsection C, strict mode is per-tool — system.info opts out while every other verb stays strict.",
   "x-output-schema": {
     "type": "object",
     "properties": {
       "family": {
         "type": "string",
-        "enum": [
-          "windows-modern",
-          "windows-classic"
-        ]
+        "enum": ["windows-modern", "windows-classic"],
+        "description": "Agent product family. Strict enum sourced from spec/families.json keys."
+      },
+      "os_name": {
+        "type": "string",
+        "description": "Human-readable OS product name, e.g. `\"Windows 11 Pro\"`, `\"Windows NT 4.0 SP6a\"`. Added per issue #80."
       },
       "os_version": {
-        "type": "string"
+        "type": "string",
+        "description": "OS version designation, e.g. `\"22H2\"`, `\"10.0.22621\"`. Free-form per agent emitter; chosen for operator-visibility."
       },
       "hostname": {
-        "type": "string"
+        "type": "string",
+        "description": "Target machine hostname."
       },
       "screens": {
         "type": "array",
         "items": {
-          "type": "object"
-        }
+          "type": "object",
+          "properties": {
+            "index":   { "type": "integer", "description": "0-based monitor index. Matches `window.list.monitor_index` and `screen.capture --monitor`." },
+            "bounds":  { "$ref": "#/$defs/Bounds", "description": "Monitor's screen position and size in virtual-screen coordinates." },
+            "primary": { "type": "boolean", "description": "True for the monitor `EnumDisplayMonitors` reports first." },
+            "scale":   { "type": "number",  "description": "DPI scaling factor (1.0=96 DPI, 1.5=144, 2.0=192). Optional; omit if the agent is DPI-unaware." }
+          },
+          "required": ["index", "bounds", "primary"],
+          "additionalProperties": false
+        },
+        "description": "Per-monitor geometry. Strict-authored per issue #74 under the mock-up's `screens` field name. Always at least one entry on a system with a display."
       },
       "capabilities": {
-        "type": "object"
+        "type": "object",
+        "description": "Open-ended per-family sub-capability map. Common keys (per the windows-modern / windows-classic families): `ui_automation`, `wgc`, `gdi`, `uipi`, `integrity_levels`, `image_formats`, `wake_timer_supported` (issue #82), `input_settings` (issue #86)."
       }
     },
-    "required": [
-      "family",
-      "os_version",
-      "hostname",
-      "capabilities"
-    ],
+    "required": ["family", "os_name", "os_version", "hostname", "screens", "capabilities"],
     "additionalProperties": false
   },
   "x-errors": [],
+  "x-implementations": [
+    {
+      "name": "agent_native",
+      "detect": { "type": "always" },
+      "available_on": ["windows-modern", "windows-classic"],
+      "description": "Composed from RtlGetVersion / GetVersionEx, GetSystemMetrics, EnumDisplayMonitors + GetMonitorInfo, GetDpiForMonitor (modern only), GetDoubleClickTime + SystemParametersInfo (for capabilities.input_settings), and the agent's runtime configuration."
+    }
+  ],
   "x-families": {
     "windows-modern": {
-      "description": "Reports ui_automation:yes, wgc:yes, integrity_levels:full, image_formats:[png,webp,bmp]. Sourced from RtlGetVersion, GetSystemMetrics, EnumDisplayMonitors.",
-      "capabilities": {
+      "description": "Composed from RtlGetVersion (os_name + os_version), GetSystemMetrics, EnumDisplayMonitors + GetMonitorInfo + GetDpiForMonitor (screens), and GetDoubleClickTime + SystemParametersInfo (capabilities.input_settings). `capabilities` typically reports `ui_automation: yes`, `wgc: yes`, `integrity_levels: full`, `uipi: yes`, `image_formats: [png, webp, bmp]`, `wake_timer_supported` (true on bare-metal and modern Hyper-V on Win 11 hosts), and `input_settings` (OS double-click / keyboard repeat / wheel-scroll values).",
+      "implementations_in_order": ["agent_native"],
+      "typical_capabilities": {
         "ui_automation": "yes",
         "wgc": "yes",
         "integrity_levels": "full",
         "uipi": "yes",
-        "image_formats": [
-          "png",
-          "webp",
-          "bmp"
-        ]
+        "image_formats": ["png", "webp", "bmp"],
+        "wake_timer_supported": true,
+        "input_settings": {
+          "double_click_time_ms": 500,
+          "double_click_rect": { "w": 4, "h": 4 },
+          "keyboard_repeat_delay_ms": 500,
+          "keyboard_repeat_rate_cps": 31,
+          "wheel_scroll_lines": 3
+        }
       }
     },
     "windows-classic": {
-      "description": "Reports ui_automation:no, wgc:no, integrity_levels:limited, image_formats:[bmp] plus png if a GDI+ runtime is present (runtime-probed at startup). NT 4 reports integrity_levels:none.",
-      "capabilities": {
+      "description": "Composed from GetVersionEx, GetSystemMetrics, EnumDisplayMonitors + GetMonitorInfo (screens, no DPI scaling), and GetDoubleClickTime + SystemParametersInfo (input_settings; NT 4 / 9x agents may omit `wheel_scroll_lines`). `capabilities` typically reports `ui_automation: no`, `wgc: no`, `integrity_levels: limited` (or `none` on NT 4 / 2000), `uipi: no`, `image_formats: [bmp]` plus `png` if a GDI+ runtime is detected at startup, and `wake_timer_supported` (true on XP+ bare-metal; false on NT 4 / 2000 / VM guests).",
+      "implementations_in_order": ["agent_native"],
+      "typical_capabilities": {
         "ui_automation": "no",
         "wgc": "no",
         "integrity_levels": "limited",
         "uipi": "no",
-        "image_formats": [
-          "bmp"
-        ],
-        "image_formats_runtime_extra": [
-          "png"
-        ]
+        "image_formats": ["bmp"],
+        "image_formats_runtime_extra": ["png"],
+        "wake_timer_supported": true,
+        "input_settings": {
+          "double_click_time_ms": 500,
+          "double_click_rect": { "w": 4, "h": 4 },
+          "keyboard_repeat_delay_ms": 500,
+          "keyboard_repeat_rate_cps": 31
+        }
       }
     }
   }

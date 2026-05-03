@@ -1,7 +1,20 @@
 {
   "name": "window.move",
   "strict": true,
-  "description": "Move and/or resize a window by handle. Affects existing window state \u2014 classified U.",
+  "description": "Move and/or resize a window by handle. Optionally bring it to the foreground in the same atomic call (avoids the focus-race window between move + window.focus).",
+  "$defs": {
+    "Bounds": {
+      "type": "object",
+      "properties": {
+        "x": { "type": "integer", "description": "Top-left X in virtual-screen coordinates." },
+        "y": { "type": "integer", "description": "Top-left Y in virtual-screen coordinates." },
+        "w": { "type": "integer", "description": "Width in physical pixels." },
+        "h": { "type": "integer", "description": "Height in physical pixels." }
+      },
+      "required": ["x", "y", "w", "h"],
+      "additionalProperties": false
+    }
+  },
   "input_schema": {
     "type": "object",
     "properties": {
@@ -24,13 +37,13 @@
       "h": {
         "type": "integer",
         "description": "New height in pixels. If omitted, height is preserved."
+      },
+      "foreground": {
+        "type": "boolean",
+        "description": "Also bring the window to the foreground after the move. Foreground attempt is reported separately in `foreground_status` (it may fail with `lock_held` while the move succeeds). See issue #73."
       }
     },
-    "required": [
-      "handle",
-      "x",
-      "y"
-    ],
+    "required": ["handle", "x", "y"],
     "additionalProperties": false
   },
   "x-crudx": "U",
@@ -40,54 +53,45 @@
     "type": "object",
     "properties": {
       "bounds": {
-        "type": "object",
-        "properties": {
-          "x": {
-            "type": "integer"
-          },
-          "y": {
-            "type": "integer"
-          },
-          "w": {
-            "type": "integer"
-          },
-          "h": {
-            "type": "integer"
-          }
-        },
-        "required": [
-          "x",
-          "y",
-          "w",
-          "h"
-        ],
-        "additionalProperties": false
+        "$ref": "#/$defs/Bounds",
+        "description": "Final window bounds after the move (post-clamping by the OS / monitor edges)."
+      },
+      "prior_bounds": {
+        "$ref": "#/$defs/Bounds",
+        "description": "Window bounds before the move. Symmetric with `window.focus.prior_handle` — caller can use this to restore later."
+      },
+      "foreground_status": {
+        "type": "string",
+        "enum": ["ok", "lock_held", "not_requested"],
+        "description": "Outcome of the foreground attempt. `not_requested` when `foreground` was false; `ok` on success; `lock_held` when foreground-lock denied the focus change (move still succeeded). See issue #73."
       }
     },
-    "required": [
-      "bounds"
-    ],
+    "required": ["bounds", "prior_bounds", "foreground_status"],
     "additionalProperties": false
   },
-  "x-errors": [
-    "not_found",
-    "uipi_blocked",
-    "permission_denied"
+  "x-errors": ["not_found", "uipi_blocked", "permission_denied"],
+  "x-implementations": [
+    {
+      "name": "set_window_pos",
+      "detect": { "type": "always" },
+      "available_on": ["windows-modern", "windows-classic"],
+      "description": "Win32 `GetWindowRect` (capture prior_bounds) + `SetWindowPos(hwnd, HWND_TOP, x, y, w, h, flags)`. When `w`/`h` are omitted, SWP_NOSIZE is set. When `foreground: true`, follow with `SetForegroundWindow` and capture its return value as `foreground_status`."
+    },
+    {
+      "name": "move_window",
+      "detect": { "type": "always" },
+      "available_on": ["windows-modern", "windows-classic"],
+      "description": "Win32 `MoveWindow` legacy alternative — same effect; less flag granularity."
+    }
   ],
   "x-families": {
     "windows-modern": {
-      "description": "SetWindowPos / MoveWindow against the supplied HWND. UIPI may reject moves against higher-IL windows \u2014 returns ERR uipi_blocked.",
-      "api": [
-        "SetWindowPos",
-        "MoveWindow"
-      ]
+      "description": "SetWindowPos / MoveWindow against the supplied handle. UIPI may reject moves against higher-IL windows — returns ERR uipi_blocked. Foreground attempt subject to foreground-lock; failure returns foreground_status: lock_held with the move's effects intact.",
+      "implementations_in_order": ["set_window_pos", "move_window"]
     },
     "windows-classic": {
-      "description": "Same Win32 APIs (available since NT 3.1). No UIPI, so cross-process moves are not blocked at the kernel boundary.",
-      "api": [
-        "SetWindowPos",
-        "MoveWindow"
-      ]
+      "description": "Same Win32 APIs (available since NT 3.1). No UIPI, so cross-process moves are not blocked at the kernel boundary. NT 4 has no foreground-lock; foreground_status is always `ok` or `not_requested` on NT 4. NT 5+ may return `lock_held`.",
+      "implementations_in_order": ["set_window_pos", "move_window"]
     }
   }
 }

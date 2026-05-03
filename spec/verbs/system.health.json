@@ -1,0 +1,36 @@
+{
+  "name": "system.health",
+  "strict": true,
+  "description": "Liveness check. Returns immediately if the agent is responsive.",
+  "input_schema": {
+    "type": "object",
+    "properties": {},
+    "additionalProperties": false
+  },
+  "x-crudx": "R",
+  "x-since": "2.0",
+  "x-namespace": "system",
+  "x-output-schema": {
+    "type": "null",
+    "description": "Empty body — wire response is the literal `OK 0`."
+  },
+  "x-errors": [],
+  "x-implementations": [
+    {
+      "name": "agent_native",
+      "detect": { "type": "always" },
+      "available_on": ["windows-modern", "windows-classic"],
+      "description": "Handled inline by the agent's dispatch loop. Returns without consulting any OS API."
+    }
+  ],
+  "x-families": {
+    "windows-modern": {
+      "description": "Agent-internal verb; no Windows-specific behaviour. Latency is dominated by the wire round-trip, not any agent-side work.",
+      "implementations_in_order": ["agent_native"]
+    },
+    "windows-classic": {
+      "description": "Agent-internal verb; no Windows-specific behaviour. Latency is dominated by the wire round-trip, not any agent-side work.",
+      "implementations_in_order": ["agent_native"]
+    }
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "name": "system.lock",
+  "strict": true,
+  "description": "Lock the workstation. Equivalent to Win+L — the user must re-authenticate to resume.",
+  "input_schema": {
+    "type": "object",
+    "properties": {},
+    "additionalProperties": false
+  },
+  "x-crudx": "R",
+  "x-since": "2.0",
+  "x-namespace": "system",
+  "x-output-schema": {
+    "type": "null",
+    "description": "Empty body — wire response is the literal `OK 0`."
+  },
+  "x-errors": ["not_supported"],
+  "x-implementations": [
+    {
+      "name": "lockworkstation",
+      "detect": { "type": "always" },
+      "available_on": ["windows-modern", "windows-classic"],
+      "description": "Win32 `LockWorkStation`. Always present on NT 5+, on NT 4 SP4 and later via the workstation lock dialog."
+    }
+  ],
+  "x-families": {
+    "windows-modern": {
+      "description": "Single `LockWorkStation` call. Returns immediately; the actual lock happens asynchronously on the desktop switching thread.",
+      "implementations_in_order": ["lockworkstation"]
+    },
+    "windows-classic": {
+      "description": "Single `LockWorkStation` call. Available on NT 4 SP4+, 2000, XP, Vista, 7, 8, 8.1. Pre-SP4 NT 4 returns `ERR not_supported`.",
+      "implementations_in_order": ["lockworkstation"]
+    }
+  }
+}

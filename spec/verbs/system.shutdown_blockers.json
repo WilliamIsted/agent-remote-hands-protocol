@@ -1,0 +1,52 @@
+{
+  "name": "system.shutdown_blockers",
+  "strict": true,
+  "description": "List windows that have registered a shutdown block reason via `ShutdownBlockReasonCreate`. Useful before issuing system.shutdown / system.reboot.",
+  "input_schema": {
+    "type": "object",
+    "properties": {},
+    "additionalProperties": false
+  },
+  "x-crudx": "R",
+  "x-since": "2.0",
+  "x-namespace": "system",
+  "x-output-schema": {
+    "type": "object",
+    "properties": {
+      "blockers": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "hwnd":   { "type": "string", "description": "Window handle in `win:0x<hex>` form. Matches the convention used by window.list, window.focus, etc." },
+            "reason": { "type": "string", "description": "Free-text reason supplied by the calling app to ShutdownBlockReasonCreate (capped at 100 chars by Win32)." }
+          },
+          "required": ["hwnd", "reason"],
+          "additionalProperties": false
+        },
+        "description": "Empty array if no windows have registered a block."
+      }
+    },
+    "required": ["blockers"],
+    "additionalProperties": false
+  },
+  "x-errors": [],
+  "x-implementations": [
+    {
+      "name": "shutdown_block_reason_query",
+      "detect": { "type": "always" },
+      "available_on": ["windows-modern"],
+      "description": "Enumerates top-level windows via EnumWindows + ShutdownBlockReasonQuery. Vista+ only."
+    }
+  ],
+  "x-families": {
+    "windows-modern": {
+      "description": "Walks top-level windows with EnumWindows; for each, calls ShutdownBlockReasonQuery and includes the entry only if a reason is registered. Read-only; no side effects.",
+      "implementations_in_order": ["shutdown_block_reason_query"]
+    },
+    "windows-classic": {
+      "implemented": false,
+      "reason": "Requires ShutdownBlockReasonCreate / ShutdownBlockReasonQuery (Vista+). NT 4 / 2000 / XP have no equivalent API for app-level shutdown blocks."
+    }
+  }
+}

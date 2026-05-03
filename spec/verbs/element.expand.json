@@ -1,0 +1,70 @@
+{
+  "name": "element.expand",
+  "strict": true,
+  "description": "Expand an ExpandCollapsePattern element (tree node, combobox, expander). Returns the new state.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "handle": {
+        "type": "string",
+        "description": "Element handle in `elt:N` form."
+      }
+    },
+    "required": [
+      "handle"
+    ],
+    "additionalProperties": false
+  },
+  "x-crudx": "U",
+  "x-since": "2.0",
+  "x-namespace": "element",
+  "x-output-schema": {
+    "type": "object",
+    "properties": {
+      "new_state": {
+        "type": "string",
+        "enum": [
+          "expanded",
+          "collapsed",
+          "partially_expanded",
+          "leaf"
+        ],
+        "description": "State after the expand. `leaf` means the element has no children to expand (idempotent on already-leaf elements)."
+      }
+    },
+    "required": [
+      "new_state"
+    ],
+    "additionalProperties": false
+  },
+  "x-errors": [
+    "not_supported_by_target",
+    "target_gone",
+    "permission_denied",
+    "invalid_args"
+  ],
+  "x-implementations": [
+    {
+      "name": "uia_expand",
+      "detect": {
+        "type": "always"
+      },
+      "available_on": [
+        "windows-modern"
+      ],
+      "description": "UIA `IUIAutomationExpandCollapsePattern::Expand` followed by reading `CurrentExpandCollapseState`."
+    }
+  ],
+  "x-families": {
+    "windows-modern": {
+      "description": "ExpandCollapsePattern.Expand. Idempotent on already-expanded elements (returns expanded). Returns leaf for elements that have no children.",
+      "implementations_in_order": [
+        "uia_expand"
+      ]
+    },
+    "windows-classic": {
+      "implemented": false,
+      "reason": "Requires UI Automation (Vista+)."
+    }
+  }
+}

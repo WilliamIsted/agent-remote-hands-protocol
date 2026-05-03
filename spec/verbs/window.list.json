@@ -2,16 +2,29 @@
   "name": "window.list",
   "strict": true,
   "description": "Enumerates top-level windows. Returns an array of {handle, title, pid, bounds} entries. Read-only.",
+  "$defs": {
+    "Bounds": {
+      "type": "object",
+      "properties": {
+        "x": { "type": "integer", "description": "Top-left X in virtual-screen coordinates." },
+        "y": { "type": "integer", "description": "Top-left Y in virtual-screen coordinates." },
+        "w": { "type": "integer", "description": "Width in physical pixels." },
+        "h": { "type": "integer", "description": "Height in physical pixels." }
+      },
+      "required": ["x", "y", "w", "h"],
+      "additionalProperties": false
+    }
+  },
   "input_schema": {
     "type": "object",
     "properties": {
       "visible_only": {
         "type": "boolean",
-        "default": true,
-        "description": "Filter to windows that are currently visible. When false, includes hidden and minimised windows."
+        "description": "Filter to windows that are currently visible. Default true. When false, includes hidden and minimised windows."
       },
       "pid": {
         "type": "integer",
+        "minimum": 1,
         "description": "If supplied, restricts the listing to windows owned by this process id."
       }
     },
@@ -25,70 +38,32 @@
     "items": {
       "type": "object",
       "properties": {
-        "handle": {
-          "type": "string"
-        },
-        "title": {
-          "type": "string"
-        },
-        "pid": {
-          "type": "integer"
-        },
-        "bounds": {
-          "type": "object",
-          "properties": {
-            "x": {
-              "type": "integer"
-            },
-            "y": {
-              "type": "integer"
-            },
-            "w": {
-              "type": "integer"
-            },
-            "h": {
-              "type": "integer"
-            }
-          },
-          "required": [
-            "x",
-            "y",
-            "w",
-            "h"
-          ],
-          "additionalProperties": false
-        }
+        "handle": { "type": "string", "description": "Window handle, e.g. 'win:0x1A2B' on Windows or 'mac:42' on macOS." },
+        "title":  { "type": "string", "description": "Window title text." },
+        "pid":    { "type": "integer", "description": "Owning process id." },
+        "bounds": { "$ref": "#/$defs/Bounds", "description": "Window's screen position and size." }
       },
-      "required": [
-        "handle",
-        "title",
-        "pid",
-        "bounds"
-      ],
+      "required": ["handle", "title", "pid", "bounds"],
       "additionalProperties": false
     }
   },
-  "x-errors": [
-    "permission_denied"
+  "x-errors": ["permission_denied"],
+  "x-implementations": [
+    {
+      "name": "enum_windows",
+      "detect": { "type": "always" },
+      "available_on": ["windows-modern", "windows-classic"],
+      "description": "Win32 `EnumWindows` callback to walk top-level windows. Per-window: `IsWindowVisible` (filter), `GetWindowTextW` (title), `GetWindowThreadProcessId` (pid), `GetWindowRect` (bounds)."
+    }
   ],
   "x-families": {
     "windows-modern": {
       "description": "EnumWindows + IsWindowVisible filter; GetWindowTextW for Unicode titles. Bounds via GetWindowRect with DPI virtualisation honoured.",
-      "api": [
-        "EnumWindows",
-        "IsWindowVisible",
-        "GetWindowTextW",
-        "GetWindowRect"
-      ]
+      "implementations_in_order": ["enum_windows"]
     },
     "windows-classic": {
       "description": "EnumWindows; GetWindowTextA on NT 4 / 9x, GetWindowTextW on NT 5+. No DPI virtualisation. Pre-NT-5 returns ANSI titles transcoded to UTF-8 by the agent.",
-      "api": [
-        "EnumWindows",
-        "GetWindowTextA",
-        "GetWindowTextW",
-        "GetWindowRect"
-      ]
+      "implementations_in_order": ["enum_windows"]
     }
   }
 }

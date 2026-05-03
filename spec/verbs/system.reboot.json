@@ -1,0 +1,64 @@
+{
+  "name": "system.reboot",
+  "strict": true,
+  "description": "Initiates an OS-level reboot. Connection drops once the OS issues the reboot signal — clients should treat absence of an OK as expected. Extra-risky (X) verb; agents may require an elevated tier or explicit policy grant before honouring it.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "delay_seconds": {
+        "type": "integer",
+        "minimum": 0,
+        "description": "Seconds to wait before initiating reboot. Zero means immediate."
+      },
+      "force": {
+        "type": "boolean",
+        "description": "Force-close applications without prompting. Maps to EWX_FORCE on Windows."
+      },
+      "reason": {
+        "type": "string",
+        "description": "Free-form reason logged with the reboot event. Surfaced in Windows Event Log."
+      }
+    },
+    "additionalProperties": false
+  },
+  "x-crudx": "X",
+  "x-since": "2.0",
+  "x-namespace": "system",
+  "x-output-schema": {
+    "type": "object",
+    "properties": {
+      "scheduled_at": {
+        "type": "string",
+        "format": "date-time",
+        "description": "ISO 8601 timestamp of when the OS-level reboot will fire. Equals now+delay_seconds."
+      }
+    },
+    "required": ["scheduled_at"],
+    "additionalProperties": false
+  },
+  "x-errors": ["insufficient_privilege", "policy_blocked"],
+  "x-implementations": [
+    {
+      "name": "initiate_system_shutdown_ex",
+      "detect": { "type": "always" },
+      "available_on": ["windows-modern"],
+      "description": "Win32 `InitiateSystemShutdownExW` with `bRebootAfterShutdown=TRUE`."
+    },
+    {
+      "name": "exit_windows_ex",
+      "detect": { "type": "always" },
+      "available_on": ["windows-classic"],
+      "description": "Win32 `ExitWindowsEx(EWX_REBOOT [| EWX_FORCE])`. Available NT 4 / 9x onwards."
+    }
+  ],
+  "x-families": {
+    "windows-modern": {
+      "description": "InitiateSystemShutdownExW with bRebootAfterShutdown=TRUE. Requires SeShutdownPrivilege (auto-enabled if held). Connection drops once the OS issues the reboot.",
+      "implementations_in_order": ["initiate_system_shutdown_ex"]
+    },
+    "windows-classic": {
+      "description": "ExitWindowsEx(EWX_REBOOT [| EWX_FORCE]) on NT 4 / 2000 / XP / Vista / 7 / 8.x.",
+      "implementations_in_order": ["exit_windows_ex"]
+    }
+  }
+}

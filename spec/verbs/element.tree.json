@@ -1,0 +1,142 @@
+{
+  "name": "element.tree",
+  "strict": true,
+  "description": "Recursive UIA TreeWalker descent from the given element. Returns a flat list with depth markers (Option 13 §D form — strict-mode-friendly).",
+  "$defs": {
+    "Bounds": {
+      "type": "object",
+      "properties": {
+        "x": {
+          "type": "integer",
+          "description": "Top-left X in virtual-screen coordinates."
+        },
+        "y": {
+          "type": "integer",
+          "description": "Top-left Y in virtual-screen coordinates."
+        },
+        "w": {
+          "type": "integer",
+          "description": "Width in physical pixels."
+        },
+        "h": {
+          "type": "integer",
+          "description": "Height in physical pixels."
+        }
+      },
+      "required": [
+        "x",
+        "y",
+        "w",
+        "h"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "handle": {
+        "type": "string",
+        "description": "Root element handle (`elt:N` form). Use a window-root id from element.list, or descend from a previously-found element."
+      },
+      "max_depth": {
+        "type": "integer",
+        "minimum": 0,
+        "description": "Stop descending past this depth (0 = root only). Omit for unbounded descent. Useful for shallow traversal of large windows."
+      }
+    },
+    "required": [
+      "handle"
+    ],
+    "additionalProperties": false
+  },
+  "x-crudx": "R",
+  "x-since": "2.0",
+  "x-namespace": "element",
+  "x-output-schema": {
+    "type": "object",
+    "properties": {
+      "elements": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "depth": {
+              "type": "integer",
+              "description": "Distance from the root (0 = root itself, 1 = direct child, etc.)."
+            },
+            "handle": {
+              "type": "string",
+              "description": "Element handle, e.g. 'elt:7'."
+            },
+            "role": {
+              "type": "string",
+              "description": "UIA control-type name."
+            },
+            "name": {
+              "type": "string",
+              "description": "UIA Name property."
+            },
+            "automation_id": {
+              "type": "string",
+              "description": "UIA AutomationId. Empty string when the element doesn't expose one."
+            },
+            "bounds": {
+              "$ref": "#/$defs/Bounds",
+              "description": "Element's screen position and size."
+            },
+            "flags": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": ["enabled", "focused", "offscreen", "password", "required"]
+              },
+              "description": "Universally-determinable UIA boolean states currently true on the element. Per issue #92."
+            }
+          },
+          "required": [
+            "depth",
+            "handle",
+            "bounds"
+          ],
+          "additionalProperties": false
+        },
+        "description": "Pre-order traversal: root first, then each subtree in turn. Reconstruct the tree client-side via `depth` (entries with depth d+1 immediately following depth d are the children of the most-recent depth-d entry)."
+      }
+    },
+    "required": [
+      "elements"
+    ],
+    "additionalProperties": false
+  },
+  "x-errors": [
+    "target_gone",
+    "uia_blind",
+    "permission_denied",
+    "invalid_args"
+  ],
+  "x-implementations": [
+    {
+      "name": "uia_tree_walker",
+      "detect": {
+        "type": "always"
+      },
+      "available_on": [
+        "windows-modern"
+      ],
+      "description": "UIA `IUIAutomation::CreateTreeWalker` (raw-view condition). Recursive descent emitting depth-tagged entries; `max_depth` short-circuits the walk."
+    }
+  ],
+  "x-families": {
+    "windows-modern": {
+      "description": "UIA TreeWalker with raw-view condition (visits all elements, not just content-filtered). Allocates fresh elt:N ids for each element returned. UIPI applies — descent through an IL barrier returns ERR uia_blind on the first inaccessible element.",
+      "implementations_in_order": [
+        "uia_tree_walker"
+      ]
+    },
+    "windows-classic": {
+      "implemented": false,
+      "reason": "Requires UI Automation (Vista+)."
+    }
+  }
+}

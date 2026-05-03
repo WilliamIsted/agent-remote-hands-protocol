@@ -1,0 +1,55 @@
+{
+  "name": "element.focus",
+  "strict": true,
+  "description": "Set keyboard focus on the given element. Subsequent input.key / input.type calls land in this element.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "handle": {
+        "type": "string",
+        "description": "Element handle in `elt:N` form."
+      }
+    },
+    "required": [
+      "handle"
+    ],
+    "additionalProperties": false
+  },
+  "x-crudx": "U",
+  "x-since": "2.0",
+  "x-namespace": "element",
+  "x-output-schema": {
+    "type": "null",
+    "description": "Empty body — wire response is the literal `OK 0`."
+  },
+  "x-errors": [
+    "target_gone",
+    "permission_denied",
+    "invalid_args",
+    "not_supported_by_target"
+  ],
+  "x-implementations": [
+    {
+      "name": "uia_set_focus",
+      "detect": {
+        "type": "always"
+      },
+      "available_on": [
+        "windows-modern"
+      ],
+      "description": "UIA `IUIAutomationElement::SetFocus`. Returns ERR not_supported_by_target if the element doesn't accept keyboard focus (e.g. plain Text controls without a TextPattern)."
+    }
+  ],
+  "x-families": {
+    "windows-modern": {
+      "description": "SetFocus. Brings the owning window to the foreground if necessary; subject to foreground-lock (returns success regardless — the focus eventually lands when the lock releases). For deterministic foreground placement, call window.focus first.",
+      "implementations_in_order": [
+        "uia_set_focus"
+      ]
+    },
+    "windows-classic": {
+      "implemented": false,
+      "reason": "Requires UI Automation (Vista+)."
+    }
+  }
+}

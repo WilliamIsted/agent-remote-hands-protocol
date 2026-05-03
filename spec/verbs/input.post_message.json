@@ -1,0 +1,54 @@
+{
+  "name": "input.post_message",
+  "strict": true,
+  "description": "Non-blocking Win32 `PostMessage` peer of input.send_message. Use when the target's message pump is unresponsive to a synchronous send (PostMessage queues the message and returns immediately).",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "hwnd": {
+        "type": "string",
+        "description": "Target window handle in `win:0x<hex>` form."
+      },
+      "msg": {
+        "type": "integer",
+        "description": "Win32 message identifier. The bridge accepts hex strings (`\"0x0010\"`) and decimal."
+      },
+      "wparam": {
+        "type": "integer",
+        "description": "Message-specific WPARAM. Signed 64-bit."
+      },
+      "lparam": {
+        "type": "integer",
+        "description": "Message-specific LPARAM. Signed 64-bit."
+      }
+    },
+    "required": ["hwnd", "msg", "wparam", "lparam"],
+    "additionalProperties": false
+  },
+  "x-crudx": "U",
+  "x-since": "2.0",
+  "x-namespace": "input",
+  "x-output-schema": {
+    "type": "null",
+    "description": "Empty body — wire response is the literal `OK 0`. PostMessage's BOOL return only indicates whether the post succeeded (failures surface as ERR), not any meaningful response from the target."
+  },
+  "x-errors": ["not_found", "uipi_blocked", "permission_denied", "invalid_args"],
+  "x-implementations": [
+    {
+      "name": "post_message",
+      "detect": { "type": "always" },
+      "available_on": ["windows-modern", "windows-classic"],
+      "description": "Win32 `PostMessageW`. Returns immediately after queuing the message; no wait for wndproc. Failures (target window destroyed, etc.) surface as ERR not_found / ERR invalid_args."
+    }
+  ],
+  "x-families": {
+    "windows-modern": {
+      "description": "PostMessageW. UIPI: cross-IL posts are silently dropped (PostMessage returns success — the message simply never delivers). Same post-check + ERR uipi_blocked path as input.send_message and input.click.",
+      "implementations_in_order": ["post_message"]
+    },
+    "windows-classic": {
+      "description": "PostMessageW (NT 5+) or PostMessageA (NT 4 / 9x, with input transcoding). No UIPI on classic.",
+      "implementations_in_order": ["post_message"]
+    }
+  }
+}

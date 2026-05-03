@@ -1,0 +1,72 @@
+{
+  "name": "input.scroll",
+  "strict": true,
+  "description": "Send mouse-wheel notches at virtual-screen coordinates. Each notch translates to `system.info.capabilities.input_settings.wheel_scroll_lines` lines per OS convention.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "x": {
+        "type": "integer",
+        "description": "X in virtual-screen coordinates. Off-screen requests are clamped."
+      },
+      "y": {
+        "type": "integer",
+        "description": "Y in virtual-screen coordinates."
+      },
+      "delta": {
+        "type": "integer",
+        "description": "Wheel notches. Positive = scroll up (away from user); negative = scroll down. Each notch is `WHEEL_DELTA` (120) Win32 units."
+      },
+      "horizontal": {
+        "type": "boolean",
+        "description": "Horizontal wheel (tilt or shift+wheel) instead of vertical. Default false. Agents that lack horizontal-wheel support fall back to ignoring the flag."
+      }
+    },
+    "required": ["x", "y", "delta"],
+    "additionalProperties": false
+  },
+  "x-crudx": "U",
+  "x-since": "2.0",
+  "x-namespace": "input",
+  "x-output-schema": {
+    "type": "object",
+    "properties": {
+      "actual_position": {
+        "type": "object",
+        "properties": {
+          "x": { "type": "integer", "description": "Clamped X the wheel event was synthesised at." },
+          "y": { "type": "integer", "description": "Clamped Y." }
+        },
+        "required": ["x", "y"],
+        "additionalProperties": false
+      }
+    },
+    "required": ["actual_position"],
+    "additionalProperties": false
+  },
+  "x-errors": ["uipi_blocked", "permission_denied", "invalid_args"],
+  "x-implementations": [
+    {
+      "name": "send_input",
+      "detect": { "type": "always" },
+      "available_on": ["windows-modern", "windows-classic"],
+      "description": "Win32 `SendInput` with INPUT_MOUSE + `MOUSEEVENTF_WHEEL` (vertical) or `MOUSEEVENTF_HWHEEL` (horizontal). Delta is multiplied by `WHEEL_DELTA` (120) to produce the dwData value."
+    },
+    {
+      "name": "mouse_event",
+      "detect": { "type": "always" },
+      "available_on": ["windows-classic"],
+      "description": "Win32 `mouse_event` with `MOUSEEVENTF_WHEEL` legacy fallback for NT 4 / 9x. No horizontal wheel support pre-NT-6 (Vista)."
+    }
+  ],
+  "x-families": {
+    "windows-modern": {
+      "description": "SendInput with MOUSEEVENTF_WHEEL / MOUSEEVENTF_HWHEEL. The OS lines-per-notch setting is exposed via `system.info.capabilities.input_settings.wheel_scroll_lines` (typically 3, but user-configurable via Mouse Properties). UIPI applies same as input.click.",
+      "implementations_in_order": ["send_input"]
+    },
+    "windows-classic": {
+      "description": "SendInput on NT 5+; mouse_event on NT 4 / 9x. Vertical wheel via MOUSEEVENTF_WHEEL is widely supported. Horizontal wheel (MOUSEEVENTF_HWHEEL) is Vista+ — pre-Vista classic agents silently ignore `horizontal: true`.",
+      "implementations_in_order": ["send_input", "mouse_event"]
+    }
+  }
+}

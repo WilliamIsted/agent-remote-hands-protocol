@@ -1,0 +1,66 @@
+{
+  "name": "registry.read",
+  "strict": true,
+  "description": "Read a registry key or single value. With `value` set, returns just that value's type and data; without, returns the whole key (values + subkeys). Read-only.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "path": {
+        "type": "string",
+        "description": "Registry path in `HKLM\\Software\\...` form (or `HKCU`, `HKCR`, `HKU`, `HKCC` roots). Hive abbreviations expanded server-side."
+      },
+      "value": {
+        "type": "string",
+        "description": "Optional value name. When supplied, returns just `{type, data}` for that single value. When omitted, returns the whole key — `{values: {...}, subkeys: [...]}`."
+      }
+    },
+    "required": ["path"],
+    "additionalProperties": false
+  },
+  "x-crudx": "R",
+  "x-since": "2.0",
+  "x-namespace": "registry",
+  "x-output-schema": {
+    "type": "object",
+    "properties": {
+      "type": {
+        "type": "string",
+        "enum": ["REG_SZ", "REG_EXPAND_SZ", "REG_BINARY", "REG_DWORD", "REG_DWORD_BIG_ENDIAN", "REG_LINK", "REG_MULTI_SZ", "REG_QWORD", "REG_NONE"],
+        "description": "Win32 registry value type. Present only when `value` was supplied."
+      },
+      "data": {
+        "type": "string",
+        "description": "Value data as a string. REG_SZ/REG_EXPAND_SZ/REG_LINK: the literal string. REG_DWORD/REG_QWORD: decimal-stringified integer. REG_BINARY: base64. REG_MULTI_SZ: null-byte-separated, with a trailing null. Present only when `value` was supplied."
+      },
+      "values": {
+        "type": "object",
+        "description": "Map of value-name → {type, data} for all values under `path`. Present only when `value` was omitted (whole-key read)."
+      },
+      "subkeys": {
+        "type": "array",
+        "items": { "type": "string" },
+        "description": "Names of subkeys under `path`. Present only when `value` was omitted (whole-key read)."
+      }
+    },
+    "additionalProperties": false
+  },
+  "x-errors": ["not_found", "permission_denied", "invalid_args"],
+  "x-implementations": [
+    {
+      "name": "reg_open_query",
+      "detect": { "type": "always" },
+      "available_on": ["windows-modern", "windows-classic"],
+      "description": "Win32 `RegOpenKeyExW` + `RegQueryValueExW` (for single-value mode) or `RegEnumValueW` + `RegEnumKeyExW` (for whole-key mode)."
+    }
+  ],
+  "x-families": {
+    "windows-modern": {
+      "description": "RegOpenKeyExW + RegQueryValueExW / RegEnumValueW. KEY_READ access. 64-bit views: HKLM\\Software paths transparently redirect through WoW64 on 32-bit agent → 64-bit OS; agents that need explicit view selection can pass paths with `\\Wow6432Node\\` or rely on the agent's bitness matching the host.",
+      "implementations_in_order": ["reg_open_query"]
+    },
+    "windows-classic": {
+      "description": "Same Win32 APIs since NT 3.1. RegEnumValueW is NT 5+; classic NT 4 / 9x agents use RegEnumValueA with ANSI transcoding. Win 9x has a different (file-backed) registry implementation but the API surface matches.",
+      "implementations_in_order": ["reg_open_query"]
+    }
+  }
+}

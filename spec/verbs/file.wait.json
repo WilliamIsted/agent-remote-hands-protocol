@@ -1,0 +1,60 @@
+{
+  "name": "file.wait",
+  "strict": true,
+  "description": "Block until at least one path matching `glob` appears on the filesystem, or `timeout_ms` expires. Returns the first matched path. Tolerates files and directories.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "glob": {
+        "type": "string",
+        "description": "File-system glob pattern (e.g. `C:\\Users\\Admin\\Downloads\\*.pdf`). Wildcards: `*` (any chars in a single path component), `?` (single char). No recursive `**` glob — use a fixed-depth pattern or watch.file for recursive scenarios."
+      },
+      "timeout_ms": {
+        "type": "integer",
+        "minimum": 0,
+        "default": 30000,
+        "description": "Maximum wait in milliseconds. Returns ERR timeout if no match appears within this window. Default 30 seconds."
+      }
+    },
+    "required": ["glob"],
+    "additionalProperties": false
+  },
+  "x-crudx": "R",
+  "x-since": "2.0",
+  "x-namespace": "file",
+  "x-output-schema": {
+    "type": "object",
+    "properties": {
+      "path": {
+        "type": "string",
+        "description": "First path that matched the glob. When multiple match simultaneously, the agent picks one (typically lexicographically first); callers needing all matches should follow up with directory.list."
+      },
+      "type": {
+        "type": "string",
+        "enum": ["file", "directory", "link", "other"],
+        "description": "Type of the matched path."
+      }
+    },
+    "required": ["path", "type"],
+    "additionalProperties": false
+  },
+  "x-errors": ["timeout", "permission_denied", "invalid_args"],
+  "x-implementations": [
+    {
+      "name": "read_directory_changes_w",
+      "detect": { "type": "always" },
+      "available_on": ["windows-modern", "windows-classic"],
+      "description": "Win32 `ReadDirectoryChangesW` on the parent directory of the glob's literal prefix; agent filters incoming notifications against the glob pattern. Available NT 5+. Falls back to FindFirstChangeNotification on NT 4 / 9x (less precise — returns directory-changed event without per-file detail; agent must re-scan the directory)."
+    }
+  ],
+  "x-families": {
+    "windows-modern": {
+      "description": "ReadDirectoryChangesW on the glob's parent directory. Initial scan covers the case where a matching path already exists at call time. ERR not_found if the parent directory doesn't exist (the wait can't begin).",
+      "implementations_in_order": ["read_directory_changes_w"]
+    },
+    "windows-classic": {
+      "description": "ReadDirectoryChangesW on NT 5+ (XP onwards); FindFirstChangeNotification + re-scan loop on NT 4 / 9x. The fallback path is less efficient (it polls the directory after each change notification) but functionally equivalent.",
+      "implementations_in_order": ["read_directory_changes_w"]
+    }
+  }
+}

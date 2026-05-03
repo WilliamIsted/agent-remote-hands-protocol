@@ -1,0 +1,66 @@
+{
+  "name": "process.start",
+  "strict": true,
+  "description": "Spawn a process via CreateProcess. Returns the pid of the new process. For path-with-spaces / unicode filename / shell-verb (runas) cases, prefer process.shell.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "argv": {
+        "type": "array",
+        "items": { "type": "string" },
+        "minItems": 1,
+        "description": "Command line as an argv array: argv[0] is the executable path or name (resolved via PATH); argv[1..] are arguments. The agent quotes each element correctly when assembling the Win32 lpCommandLine, avoiding shell-escape hazards."
+      },
+      "stdin": {
+        "type": "string",
+        "description": "Optional UTF-8 text piped to the child's stdin. Closed after writing. Use base64 for binary input via `binary` encoding (see future stdin-encoding extension)."
+      },
+      "cwd": {
+        "type": "string",
+        "description": "Working directory for the new process. Defaults to the agent's cwd."
+      }
+    },
+    "required": ["argv"],
+    "additionalProperties": false
+  },
+  "x-crudx": "C",
+  "x-since": "2.0",
+  "x-namespace": "process",
+  "x-output-schema": {
+    "type": "object",
+    "properties": {
+      "pid": {
+        "type": "integer",
+        "minimum": 1,
+        "description": "Process id of the spawned process. Note: subject to PID reuse if the process exits immediately and the OS recycles the id."
+      }
+    },
+    "required": ["pid"],
+    "additionalProperties": false
+  },
+  "x-errors": ["not_found", "permission_denied", "invalid_args"],
+  "x-implementations": [
+    {
+      "name": "create_process_w",
+      "detect": { "type": "always" },
+      "available_on": ["windows-modern", "windows-classic"],
+      "description": "Win32 `CreateProcessW` with the agent assembling lpCommandLine from argv[]. CREATE_NEW_PROCESS_GROUP for clean kill semantics; CREATE_NO_WINDOW unless the child is a console app inheriting the agent's console. stdin pipe via CreatePipe + handle inheritance."
+    },
+    {
+      "name": "create_process_a",
+      "detect": { "type": "always" },
+      "available_on": ["windows-classic"],
+      "description": "Win32 `CreateProcessA` legacy fallback for NT 4 / 9x. argv[] elements transcoded UTF-8 → ANSI by the agent."
+    }
+  ],
+  "x-families": {
+    "windows-modern": {
+      "description": "CreateProcessW. argv[0] resolution: absolute paths are used directly; bare names search PATH (per the agent's environment, NOT the calling client's). Inherits the agent's environment block by default. The new process runs at the agent's integrity level — UAC elevation requires process.shell with `verb: runas` instead.",
+      "implementations_in_order": ["create_process_w"]
+    },
+    "windows-classic": {
+      "description": "CreateProcessW on NT 5+; CreateProcessA on NT 4 / 9x. PATH-search behaviour is the same. NT 4 / 9x lack integrity levels — process inherits the agent's account/permissions wholesale.",
+      "implementations_in_order": ["create_process_w", "create_process_a"]
+    }
+  }
+}
