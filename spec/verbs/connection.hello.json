@@ -19,7 +19,7 @@
   "x-output-schema": {
     "type": "object",
     "properties": {
-      "protocol":       { "const": "armh", "description": "Protocol identifier — always the literal \"armh\" (Agent Remote Hands). Lets clients verify the wire protocol upfront." },
+      "protocol":       { "const": "arh", "description": "Protocol identifier — always the literal \"arh\" (Agent Remote Hands). Lets clients verify the wire protocol upfront." },
       "version":        { "type": "string", "description": "Protocol version the agent negotiated for this connection, e.g. \"2.2\". Echoes the highest mutually-supported version." },
       "server":         { "type": "string", "description": "Agent product family, e.g. \"windows-modern\" or \"windows-classic\". Mirrors `system.info.server`." },
       "server_version": { "type": "string", "description": "Agent build version, e.g. \"0.3.1\". Mirrors `system.info.server_version`." },
