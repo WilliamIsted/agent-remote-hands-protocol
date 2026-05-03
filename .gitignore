@@ -5,3 +5,6 @@
 __pycache__/
 *.pyc
 .pytest_cache/
+
+# Generated spec artefacts (rendered from spec/verbs/ + spec/framing/ by Tools/gen.py)
+dist/

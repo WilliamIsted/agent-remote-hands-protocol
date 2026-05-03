@@ -17,7 +17,7 @@
 # Runs on Linux (cheapest). Nothing in the spec tree is Windows-specific at
 # the file-system level, so ubuntu-latest is fine.
 
-name: spec-checks
+name: Specification
 
 on:
   push:
@@ -38,7 +38,6 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-          cache: 'pip'
 
       - name: Install dependencies
         run: pip install pytest

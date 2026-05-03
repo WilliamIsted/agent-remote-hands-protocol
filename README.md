@@ -1,11 +1,10 @@
 # Agent Remote Hands — Protocol
 
-[![spec-checks](https://github.com/WilliamIsted/agent-remote-hands-protocol/actions/workflows/spec-checks.yml/badge.svg?branch=main)](https://github.com/WilliamIsted/agent-remote-hands-protocol/actions/workflows/spec-checks.yml)
-[![License](https://img.shields.io/github/license/WilliamIsted/agent-remote-hands-protocol)](LICENSE)
-[![Spec status](https://img.shields.io/badge/spec-2.1%20stable-brightgreen)](PROTOCOL.md)
+[![Specification](https://github.com/WilliamIsted/agent-remote-hands-protocol/actions/workflows/specification.yml/badge.svg?branch=main)](https://github.com/WilliamIsted/agent-remote-hands-protocol/actions/workflows/specification.yml)
+[![License](https://img.shields.io/github/license/WilliamIsted/agent-remote-hands-protocol?label=License&color=blue)](LICENSE)
+[![Version](https://img.shields.io/badge/version-2.1%20stable-blue)](PROTOCOL.md)
 [![Conformance: pytest](https://img.shields.io/badge/conformance-pytest-0A9EDC)](tests/conformance/)
-[![Last commit](https://img.shields.io/github/last-commit/WilliamIsted/agent-remote-hands-protocol)](https://github.com/WilliamIsted/agent-remote-hands-protocol/commits/main)
-[![Open issues](https://img.shields.io/github/issues/WilliamIsted/agent-remote-hands-protocol)](https://github.com/WilliamIsted/agent-remote-hands-protocol/issues)
+[![Last commit](https://img.shields.io/github/last-commit/WilliamIsted/agent-remote-hands-protocol?logo=github)](https://github.com/WilliamIsted/agent-remote-hands-protocol/commits/main)
 
 The wire-protocol spec, conformance suite, and reference Python client for [Agent Remote Hands](https://github.com/WilliamIsted/agent-remote-hands) — a Windows control surface for AI agents.
 
