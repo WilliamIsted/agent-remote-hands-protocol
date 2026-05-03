@@ -1,0 +1,96 @@
+{
+  "name": "element.find",
+  "strict": true,
+  "description": "Locate a UI element by accessibility role / name / automation id, optionally rooted at a window. Returns the matched element's accessible properties and bounds. Read-only.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "root": {
+        "type": "string",
+        "description": "Optional window handle to scope the search. If omitted, searches the desktop root."
+      },
+      "name": {
+        "type": "string",
+        "description": "Accessible name to match (UIA Name / AX kAXTitle)."
+      },
+      "role": {
+        "type": "string",
+        "description": "Control-type / role, e.g. 'Button', 'Edit', 'AXButton'."
+      },
+      "automation_id": {
+        "type": "string",
+        "description": "Stable automation identifier (UIA AutomationId, AX kAXIdentifier)."
+      },
+      "timeout_ms": {
+        "type": "integer",
+        "default": 2000,
+        "description": "Time to keep retrying before returning ERR not_found."
+      }
+    },
+    "additionalProperties": false
+  },
+  "x-crudx": "R",
+  "x-since": "2.0",
+  "x-namespace": "element",
+  "x-output-schema": {
+    "type": "object",
+    "properties": {
+      "handle": {
+        "type": "string"
+      },
+      "name": {
+        "type": "string"
+      },
+      "role": {
+        "type": "string"
+      },
+      "automation_id": {
+        "type": "string"
+      },
+      "bounds": {
+        "type": "object",
+        "properties": {
+          "x": {
+            "type": "integer"
+          },
+          "y": {
+            "type": "integer"
+          },
+          "w": {
+            "type": "integer"
+          },
+          "h": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "x",
+          "y",
+          "w",
+          "h"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "required": [
+      "handle",
+      "bounds"
+    ],
+    "additionalProperties": false
+  },
+  "x-errors": [
+    "not_found",
+    "uia_blind",
+    "permission_denied"
+  ],
+  "x-families": {
+    "windows-modern": {
+      "description": "IUIAutomation::FindFirst with TreeScope_Subtree from the supplied root or RootElement. ERR uia_blind when the target lives across an integrity-level boundary the agent cannot cross.",
+      "api": "IUIAutomation::FindFirst"
+    },
+    "windows-classic": {
+      "implemented": false,
+      "reason": "UIA does not exist pre-Vista. system.info.capabilities.ui_automation: no. The compiler/generator excludes this verb from windows-classic VERBS.md output."
+    }
+  }
+}

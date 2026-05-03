@@ -1,0 +1,60 @@
+{
+  "name": "file.delete",
+  "strict": true,
+  "description": "Delete a file or empty directory. Hard delete \u2014 bypasses Recycle Bin / Trash. Makes something cease to be \u2014 classified D.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "path": {
+        "type": "string",
+        "description": "Absolute path."
+      },
+      "recursive": {
+        "type": "boolean",
+        "default": false,
+        "description": "If path is a directory, delete its contents recursively. Without this flag, deleting a non-empty directory returns ERR not_empty."
+      }
+    },
+    "required": [
+      "path"
+    ],
+    "additionalProperties": false
+  },
+  "x-crudx": "D",
+  "x-since": "2.0",
+  "x-namespace": "file",
+  "x-output-schema": {
+    "type": "object",
+    "properties": {
+      "deleted": {
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "deleted"
+    ],
+    "additionalProperties": false
+  },
+  "x-errors": [
+    "not_found",
+    "not_empty",
+    "permission_denied"
+  ],
+  "x-families": {
+    "windows-modern": {
+      "description": "DeleteFileW for files, RemoveDirectoryW for directories. Hard delete \u2014 does not route through the Recycle Bin.",
+      "api": [
+        "DeleteFileW",
+        "RemoveDirectoryW"
+      ]
+    },
+    "windows-classic": {
+      "description": "DeleteFileA / DeleteFileW depending on NT version, plus RemoveDirectory. Same hard-delete behaviour \u2014 Recycle Bin requires SHFileOperation, which the agent intentionally does not use.",
+      "api": [
+        "DeleteFileA",
+        "DeleteFileW",
+        "RemoveDirectory"
+      ]
+    }
+  }
+}

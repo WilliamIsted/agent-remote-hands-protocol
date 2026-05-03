@@ -1,0 +1,67 @@
+{
+  "name": "directory.remove",
+  "strict": true,
+  "description": "Remove a directory. Empty directories require no flags. Pass `recursive=true` to remove a directory and all its contents (analogous to `rm -rf`). Hard delete \u2014 bypasses Recycle Bin / Trash. Makes something cease to be \u2014 classified D.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "path": {
+        "type": "string",
+        "description": "Absolute directory path."
+      },
+      "recursive": {
+        "type": "boolean",
+        "default": false,
+        "description": "If true, recursively delete the directory's contents before removing the directory itself. Without this flag, removing a non-empty directory returns ERR not_empty."
+      }
+    },
+    "required": [
+      "path"
+    ],
+    "additionalProperties": false
+  },
+  "x-crudx": "D",
+  "x-since": "2.1",
+  "x-namespace": "directory",
+  "x-output-schema": {
+    "type": "object",
+    "properties": {
+      "removed": {
+        "type": "boolean"
+      },
+      "entries_removed": {
+        "type": "integer",
+        "description": "Count of files + directories removed inside the target when recursive=true. 0 for a non-recursive empty-directory removal."
+      }
+    },
+    "required": [
+      "removed"
+    ],
+    "additionalProperties": false
+  },
+  "x-errors": [
+    "not_found",
+    "not_empty",
+    "permission_denied",
+    "not_a_directory"
+  ],
+  "x-families": {
+    "windows-modern": {
+      "description": "RemoveDirectoryW for the empty case. Recursive walk uses FindFirstFileW / FindNextFileW + DeleteFileW for files, RemoveDirectoryW for subdirectories. Reparse points are not traversed.",
+      "api": [
+        "RemoveDirectoryW",
+        "FindFirstFileW",
+        "DeleteFileW"
+      ]
+    },
+    "windows-classic": {
+      "description": "RemoveDirectory / RemoveDirectoryW per NT version. Same recursive walk pattern; reparse points not traversed.",
+      "api": [
+        "RemoveDirectory",
+        "RemoveDirectoryW",
+        "FindFirstFile",
+        "DeleteFile"
+      ]
+    }
+  }
+}

@@ -1,0 +1,79 @@
+{
+  "name": "system.info",
+  "strict": true,
+  "description": "Returns OS family identifier, version, hostname, screen geometry, and a capability map. Read-only, no side effects. Used by clients to gate verb availability before sending family-specific calls.",
+  "input_schema": {
+    "type": "object",
+    "properties": {},
+    "additionalProperties": false
+  },
+  "x-crudx": "R",
+  "x-since": "2.0",
+  "x-namespace": "system",
+  "x-output-schema": {
+    "type": "object",
+    "properties": {
+      "family": {
+        "type": "string",
+        "enum": [
+          "windows-modern",
+          "windows-classic"
+        ]
+      },
+      "os_version": {
+        "type": "string"
+      },
+      "hostname": {
+        "type": "string"
+      },
+      "screens": {
+        "type": "array",
+        "items": {
+          "type": "object"
+        }
+      },
+      "capabilities": {
+        "type": "object"
+      }
+    },
+    "required": [
+      "family",
+      "os_version",
+      "hostname",
+      "capabilities"
+    ],
+    "additionalProperties": false
+  },
+  "x-errors": [],
+  "x-families": {
+    "windows-modern": {
+      "description": "Reports ui_automation:yes, wgc:yes, integrity_levels:full, image_formats:[png,webp,bmp]. Sourced from RtlGetVersion, GetSystemMetrics, EnumDisplayMonitors.",
+      "capabilities": {
+        "ui_automation": "yes",
+        "wgc": "yes",
+        "integrity_levels": "full",
+        "uipi": "yes",
+        "image_formats": [
+          "png",
+          "webp",
+          "bmp"
+        ]
+      }
+    },
+    "windows-classic": {
+      "description": "Reports ui_automation:no, wgc:no, integrity_levels:limited, image_formats:[bmp] plus png if a GDI+ runtime is present (runtime-probed at startup). NT 4 reports integrity_levels:none.",
+      "capabilities": {
+        "ui_automation": "no",
+        "wgc": "no",
+        "integrity_levels": "limited",
+        "uipi": "no",
+        "image_formats": [
+          "bmp"
+        ],
+        "image_formats_runtime_extra": [
+          "png"
+        ]
+      }
+    }
+  }
+}

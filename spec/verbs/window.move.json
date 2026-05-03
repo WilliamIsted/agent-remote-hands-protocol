@@ -1,0 +1,93 @@
+{
+  "name": "window.move",
+  "strict": true,
+  "description": "Move and/or resize a window by handle. Affects existing window state \u2014 classified U.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "handle": {
+        "type": "string",
+        "description": "Window handle from window.list, e.g. 'win:0x1A2B' or 'mac:42'."
+      },
+      "x": {
+        "type": "integer",
+        "description": "New x position in virtual-screen coordinates."
+      },
+      "y": {
+        "type": "integer",
+        "description": "New y position in virtual-screen coordinates."
+      },
+      "w": {
+        "type": "integer",
+        "description": "New width in pixels. If omitted, width is preserved."
+      },
+      "h": {
+        "type": "integer",
+        "description": "New height in pixels. If omitted, height is preserved."
+      }
+    },
+    "required": [
+      "handle",
+      "x",
+      "y"
+    ],
+    "additionalProperties": false
+  },
+  "x-crudx": "U",
+  "x-since": "2.0",
+  "x-namespace": "window",
+  "x-output-schema": {
+    "type": "object",
+    "properties": {
+      "bounds": {
+        "type": "object",
+        "properties": {
+          "x": {
+            "type": "integer"
+          },
+          "y": {
+            "type": "integer"
+          },
+          "w": {
+            "type": "integer"
+          },
+          "h": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "x",
+          "y",
+          "w",
+          "h"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "required": [
+      "bounds"
+    ],
+    "additionalProperties": false
+  },
+  "x-errors": [
+    "not_found",
+    "uipi_blocked",
+    "permission_denied"
+  ],
+  "x-families": {
+    "windows-modern": {
+      "description": "SetWindowPos / MoveWindow against the supplied HWND. UIPI may reject moves against higher-IL windows \u2014 returns ERR uipi_blocked.",
+      "api": [
+        "SetWindowPos",
+        "MoveWindow"
+      ]
+    },
+    "windows-classic": {
+      "description": "Same Win32 APIs (available since NT 3.1). No UIPI, so cross-process moves are not blocked at the kernel boundary.",
+      "api": [
+        "SetWindowPos",
+        "MoveWindow"
+      ]
+    }
+  }
+}

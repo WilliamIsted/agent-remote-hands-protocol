@@ -1,0 +1,63 @@
+{
+  "name": "directory.stat",
+  "strict": true,
+  "description": "Stat a directory: returns entry count, total size of immediate entries, and mtime. For files, use file.stat. Read-only.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "path": {
+        "type": "string",
+        "description": "Absolute directory path."
+      }
+    },
+    "required": [
+      "path"
+    ],
+    "additionalProperties": false
+  },
+  "x-crudx": "R",
+  "x-since": "2.1",
+  "x-namespace": "directory",
+  "x-output-schema": {
+    "type": "object",
+    "properties": {
+      "type": {
+        "type": "string",
+        "const": "dir"
+      },
+      "entry_count": {
+        "type": "integer"
+      },
+      "mtime_unix": {
+        "type": "integer"
+      }
+    },
+    "required": [
+      "type",
+      "entry_count"
+    ],
+    "additionalProperties": false
+  },
+  "x-errors": [
+    "not_found",
+    "permission_denied",
+    "not_a_directory"
+  ],
+  "x-families": {
+    "windows-modern": {
+      "description": "GetFileAttributesExW + FindFirstFileW iteration for entry count.",
+      "api": [
+        "GetFileAttributesExW",
+        "FindFirstFileW"
+      ]
+    },
+    "windows-classic": {
+      "description": "GetFileAttributesA / GetFileAttributesW + FindFirst* per NT version.",
+      "api": [
+        "GetFileAttributesA",
+        "GetFileAttributesW",
+        "FindFirstFile"
+      ]
+    }
+  }
+}

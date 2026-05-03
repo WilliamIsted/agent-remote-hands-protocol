@@ -1,0 +1,66 @@
+{
+  "name": "clipboard.set",
+  "strict": true,
+  "description": "Replace the current text contents of the system clipboard. Overwrites whatever is there \u2014 classified U.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "content": {
+        "type": "string",
+        "description": "Text to place on the clipboard."
+      },
+      "format": {
+        "type": "string",
+        "enum": [
+          "text"
+        ],
+        "default": "text"
+      }
+    },
+    "required": [
+      "content"
+    ],
+    "additionalProperties": false
+  },
+  "x-crudx": "U",
+  "x-since": "2.0",
+  "x-namespace": "clipboard",
+  "x-output-schema": {
+    "type": "object",
+    "properties": {
+      "set": {
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "set"
+    ],
+    "additionalProperties": false
+  },
+  "x-errors": [
+    "permission_denied"
+  ],
+  "x-families": {
+    "windows-modern": {
+      "description": "OpenClipboard + EmptyClipboard + SetClipboardData(CF_UNICODETEXT, hMem). Memory handed to the OS; agent does not free.",
+      "api": [
+        "OpenClipboard",
+        "EmptyClipboard",
+        "SetClipboardData"
+      ],
+      "format": "CF_UNICODETEXT"
+    },
+    "windows-classic": {
+      "description": "Same Win32 sequence. Emits both CF_UNICODETEXT and CF_TEXT (active code page) so pre-NT-5 readers can consume the value.",
+      "api": [
+        "OpenClipboard",
+        "EmptyClipboard",
+        "SetClipboardData"
+      ],
+      "format": [
+        "CF_UNICODETEXT",
+        "CF_TEXT"
+      ]
+    }
+  }
+}

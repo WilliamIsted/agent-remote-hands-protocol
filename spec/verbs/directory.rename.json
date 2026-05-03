@@ -1,0 +1,73 @@
+{
+  "name": "directory.rename",
+  "strict": true,
+  "description": "Rename or move a directory. The same primitive handles both (POSIX rename(2) / Win32 MoveFileEx) \u2014 supplying a different parent path moves the directory. Atomic on the same filesystem; falls back to copy+delete across filesystems if `cross_fs` is true.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "src": {
+        "type": "string",
+        "description": "Absolute source directory path."
+      },
+      "dst": {
+        "type": "string",
+        "description": "Absolute destination directory path. May share the parent of `src` (pure rename) or differ (move)."
+      },
+      "overwrite": {
+        "type": "boolean",
+        "default": false,
+        "description": "If true, replace an existing directory at `dst`. Without this, returns ERR already_exists when `dst` is occupied."
+      },
+      "cross_fs": {
+        "type": "boolean",
+        "default": false,
+        "description": "If true, allow a copy+delete fallback when `src` and `dst` are on different filesystems. Default refuses cross-filesystem renames with ERR cross_device."
+      }
+    },
+    "required": [
+      "src",
+      "dst"
+    ],
+    "additionalProperties": false
+  },
+  "x-crudx": "U",
+  "x-since": "2.1",
+  "x-namespace": "directory",
+  "x-output-schema": {
+    "type": "object",
+    "properties": {
+      "renamed": {
+        "type": "boolean"
+      },
+      "fallback_used": {
+        "type": "string",
+        "description": "Set to 'copy_delete' if cross_fs fallback ran; absent otherwise."
+      }
+    },
+    "required": [
+      "renamed"
+    ],
+    "additionalProperties": false
+  },
+  "x-errors": [
+    "not_found",
+    "already_exists",
+    "permission_denied",
+    "cross_device",
+    "not_a_directory"
+  ],
+  "x-families": {
+    "windows-modern": {
+      "description": "MoveFileExW with MOVEFILE_REPLACE_EXISTING when overwrite=true. Cross-volume moves use MOVEFILE_COPY_ALLOWED when cross_fs=true; rejected otherwise.",
+      "api": "MoveFileExW"
+    },
+    "windows-classic": {
+      "description": "MoveFile / MoveFileEx depending on NT version. NT 4 lacks MoveFileEx; the agent emulates overwrite via DeleteFile+MoveFile (non-atomic).",
+      "api": [
+        "MoveFile",
+        "MoveFileEx",
+        "DeleteFile"
+      ]
+    }
+  }
+}

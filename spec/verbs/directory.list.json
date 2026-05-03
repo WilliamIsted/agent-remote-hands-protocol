@@ -1,0 +1,82 @@
+{
+  "name": "directory.list",
+  "strict": true,
+  "description": "List the entries in a directory. Returns name / type / size / mtime per entry. Read-only. Renamed from file.list in v2.1.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "path": {
+        "type": "string",
+        "description": "Absolute directory path."
+      }
+    },
+    "required": [
+      "path"
+    ],
+    "additionalProperties": false
+  },
+  "x-crudx": "R",
+  "x-since": "2.1",
+  "x-namespace": "directory",
+  "x-output-schema": {
+    "type": "object",
+    "properties": {
+      "entries": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "enum": [
+                "file",
+                "dir",
+                "link"
+              ]
+            },
+            "size": {
+              "type": "integer"
+            },
+            "mtime_unix": {
+              "type": "integer"
+            }
+          },
+          "required": [
+            "name",
+            "type"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    "required": [
+      "entries"
+    ],
+    "additionalProperties": false
+  },
+  "x-errors": [
+    "not_found",
+    "permission_denied"
+  ],
+  "x-families": {
+    "windows-modern": {
+      "description": "FindFirstFileW / FindNextFileW. Long-path \\\\?\\ prefix supported. UTF-16 native, transcoded to UTF-8 for the wire.",
+      "api": [
+        "FindFirstFileW",
+        "FindNextFileW"
+      ]
+    },
+    "windows-classic": {
+      "description": "FindFirstFileA / FindNextFileA on NT 4 / 9x; wide variants on NT 5+. No long-path support pre-NT-5.1.",
+      "api": [
+        "FindFirstFileA",
+        "FindNextFileA",
+        "FindFirstFileW",
+        "FindNextFileW"
+      ]
+    }
+  }
+}

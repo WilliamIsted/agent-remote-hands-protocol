@@ -1,0 +1,83 @@
+{
+  "name": "file.write",
+  "strict": true,
+  "description": "Write content to a file. Atomic by default \u2014 content lands in a temp file then renames into place. Overwrites existing files; classified U.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "path": {
+        "type": "string",
+        "description": "Absolute path. Parent directory must exist (use file.mkdir first)."
+      },
+      "content": {
+        "type": "string",
+        "description": "Content to write. base64-encoded if encoding=binary."
+      },
+      "encoding": {
+        "type": "string",
+        "enum": [
+          "utf-8",
+          "utf-16le",
+          "binary"
+        ],
+        "default": "utf-8"
+      },
+      "atomic": {
+        "type": "boolean",
+        "default": true,
+        "description": "When true, write to a temp file and rename into place. When false, writes directly to path."
+      },
+      "create_only": {
+        "type": "boolean",
+        "default": false,
+        "description": "If true, fails with ERR already_exists rather than overwriting."
+      }
+    },
+    "required": [
+      "path",
+      "content"
+    ],
+    "additionalProperties": false
+  },
+  "x-crudx": "U",
+  "x-since": "2.0",
+  "x-namespace": "file",
+  "x-output-schema": {
+    "type": "object",
+    "properties": {
+      "bytes_written": {
+        "type": "integer"
+      }
+    },
+    "required": [
+      "bytes_written"
+    ],
+    "additionalProperties": false
+  },
+  "x-errors": [
+    "not_found",
+    "already_exists",
+    "permission_denied"
+  ],
+  "x-families": {
+    "windows-modern": {
+      "description": "CreateFileW + WriteFile to a sibling temp file, then atomic MoveFileExW with MOVEFILE_REPLACE_EXISTING.",
+      "api": [
+        "CreateFileW",
+        "WriteFile",
+        "MoveFileExW"
+      ]
+    },
+    "windows-classic": {
+      "description": "CreateFileA on NT 4 / 9x; CreateFileW on NT 5+. Atomic rename via MoveFileEx (NT 4+). 9x falls back to CopyFile + DeleteFile (non-atomic).",
+      "api": [
+        "CreateFileA",
+        "CreateFileW",
+        "WriteFile",
+        "MoveFileEx",
+        "CopyFile",
+        "DeleteFile"
+      ]
+    }
+  }
+}

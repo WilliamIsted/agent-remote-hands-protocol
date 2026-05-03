@@ -1,0 +1,143 @@
+{
+  "name": "file.download",
+  "strict": true,
+  "description": "Download a URL to a local file path. Uses an installed transfer tool (curl preferred, wget if present, falling back through platform-specific options). Atomic by default \u2014 content lands in a temp file then renames into place.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "url": {
+        "type": "string",
+        "format": "uri",
+        "description": "Absolute http/https URL. ftp/file schemes accepted only when the chosen implementation supports them."
+      },
+      "dest_path": {
+        "type": "string",
+        "description": "Absolute destination path. Parent directory must exist (use file.mkdir first)."
+      },
+      "method": {
+        "type": "string",
+        "enum": [
+          "GET",
+          "HEAD"
+        ],
+        "default": "GET",
+        "description": "HTTP method. HEAD writes an empty file; useful for probe-only flows. Other methods (POST/PUT) are out of scope \u2014 use a dedicated http.request verb when added."
+      },
+      "headers": {
+        "type": "array",
+        "description": "Optional request headers, one per array entry. Format: \"Header-Name: value\".",
+        "items": {
+          "type": "string"
+        }
+      },
+      "max_bytes": {
+        "type": "integer",
+        "description": "Optional cap on response size. If exceeded, the partial file is removed and ERR size_limit_exceeded is returned. Implementations that don't support a hard cap (nc, perl) enforce it post-hoc by checking dest_path size after completion."
+      },
+      "atomic": {
+        "type": "boolean",
+        "default": true,
+        "description": "When true, write to a temp file and rename into place. When false, writes directly to dest_path."
+      },
+      "create_only": {
+        "type": "boolean",
+        "default": false,
+        "description": "If true, fails with ERR already_exists rather than overwriting an existing file at dest_path."
+      },
+      "follow_redirects": {
+        "type": "boolean",
+        "default": true,
+        "description": "Follow HTTP 3xx redirects. nc/perl fallbacks may not honour this; the agent surfaces a warning if the chosen implementation can't honour the requested behaviour."
+      }
+    },
+    "required": [
+      "url",
+      "dest_path"
+    ],
+    "additionalProperties": false
+  },
+  "x-crudx": "C",
+  "x-since": "2.0",
+  "x-namespace": "file",
+  "x-output-schema": {
+    "type": "object",
+    "properties": {
+      "bytes_written": {
+        "type": "integer"
+      },
+      "status_code": {
+        "type": "integer",
+        "description": "HTTP status code from the final response (after redirects)."
+      },
+      "implementation_used": {
+        "type": "string",
+        "description": "Name of the implementation that handled the download (e.g. \"curl\", \"wget\", \"powershell-bits\")."
+      }
+    },
+    "required": [
+      "bytes_written",
+      "implementation_used"
+    ],
+    "additionalProperties": false
+  },
+  "x-errors": [
+    "not_found",
+    "already_exists",
+    "permission_denied",
+    "size_limit_exceeded",
+    "no_implementation_available",
+    "transfer_failed"
+  ],
+  "x-implementations": [
+    {
+      "name": "curl",
+      "detect": {
+        "type": "command",
+        "value": "curl"
+      },
+      "available_on": [
+        "windows-modern",
+        "windows-classic"
+      ],
+      "description": "User-installed curl. Modern shell-script convention; the recommended install target. Available via Scoop/winget on Windows, Brew on macOS, apt/dnf on Linux. Built into Win 10 1803+ and modern macOS."
+    },
+    {
+      "name": "wget",
+      "detect": {
+        "type": "command",
+        "value": "wget"
+      },
+      "available_on": [
+        "windows-modern",
+        "windows-classic"
+      ],
+      "description": "User-installed wget. Excellent for large downloads (resumption, retry, recursive). Used if already installed; we don't recommend installing it on top of curl."
+    },
+    {
+      "name": "powershell-bits",
+      "detect": {
+        "type": "always"
+      },
+      "available_on": [
+        "windows-modern"
+      ],
+      "description": "Built-in Background Intelligent Transfer Service via PowerShell (Start-BitsTransfer). Slow but always present on Win 10+. Last-resort fallback when no user-installed transfer tool is available."
+    }
+  ],
+  "x-families": {
+    "windows-modern": {
+      "description": "Three-tier chain: curl (preferred) \u2192 wget (if user has it) \u2192 powershell-bits (always-present last resort). Curl is built into Win 10 1803+; older Win 10 / Server may need explicit install via Scoop or winget.",
+      "install_hint": "Recommended: `scoop install curl` (or `winget install cURL.cURL`). Alternative: `scoop install wget`. Curl ships with Win 10 1803+ and Server 2019+ \u2014 no install needed there.",
+      "implementations_in_order": [
+        "curl",
+        "wget",
+        "powershell-bits"
+      ]
+    },
+    "windows-classic": {
+      "description": "No reliable chain on pre-Vista NT/9x. curl and wget both have Windows ports compatible back to NT 4 (the GnuWin32 / eternallybored builds), but neither is shipped with the OS. If neither is installed, the verb returns ERR no_implementation_available with a manual-install hint. PowerShell-BITS is unavailable (PowerShell post-dates this family).",
+      "install_hint": "Manual install required \u2014 no package manager on pre-Vista Windows. curl: https://curl.se/download.html (Windows section). wget: https://eternallybored.org/misc/wget/. Drop the .exe into a directory on PATH.",
+      "fallback_behavior": "error_unsupported"
+    }
+  }
+}

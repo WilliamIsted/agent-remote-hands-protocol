@@ -1,0 +1,61 @@
+{
+  "name": "directory.create",
+  "strict": true,
+  "description": "Create a directory. Brings something new into existence \u2014 classified C. Renamed from file.mkdir in v2.1.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "path": {
+        "type": "string",
+        "description": "Absolute directory path."
+      },
+      "parents": {
+        "type": "boolean",
+        "default": false,
+        "description": "When true, creates intermediate directories as needed (mkdir -p semantics)."
+      },
+      "mode": {
+        "type": "integer",
+        "default": 493,
+        "description": "POSIX mode bits as a decimal integer; default 493 = 0755. Ignored on Windows."
+      }
+    },
+    "required": [
+      "path"
+    ],
+    "additionalProperties": false
+  },
+  "x-crudx": "C",
+  "x-since": "2.0",
+  "x-namespace": "directory",
+  "x-output-schema": {
+    "type": "object",
+    "properties": {
+      "created": {
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "created"
+    ],
+    "additionalProperties": false
+  },
+  "x-errors": [
+    "already_exists",
+    "permission_denied",
+    "not_found"
+  ],
+  "x-families": {
+    "windows-modern": {
+      "description": "CreateDirectoryW. Long-path \\\\?\\ prefix supported. parents:true walks the path components, creating each missing one.",
+      "api": "CreateDirectoryW"
+    },
+    "windows-classic": {
+      "description": "CreateDirectoryA on NT 4 / 9x; CreateDirectoryW on NT 5+. parents:true walks components in either case.",
+      "api": [
+        "CreateDirectoryA",
+        "CreateDirectoryW"
+      ]
+    }
+  }
+}

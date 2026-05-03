@@ -1,0 +1,82 @@
+{
+  "name": "input.click",
+  "strict": true,
+  "description": "Synthesise a mouse click at a virtual-screen coordinate. Affects desktop input state \u2014 classified U.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "x": {
+        "type": "integer",
+        "description": "x in virtual-screen coordinates."
+      },
+      "y": {
+        "type": "integer",
+        "description": "y in virtual-screen coordinates."
+      },
+      "button": {
+        "type": "string",
+        "enum": [
+          "left",
+          "right",
+          "middle"
+        ],
+        "default": "left"
+      },
+      "double": {
+        "type": "boolean",
+        "default": false,
+        "description": "If true, synthesises a double-click (two press/release pairs within the OS double-click time)."
+      },
+      "modifiers": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "enum": [
+            "ctrl",
+            "shift",
+            "alt",
+            "meta"
+          ]
+        },
+        "description": "Modifier keys held while clicking."
+      }
+    },
+    "required": [
+      "x",
+      "y"
+    ],
+    "additionalProperties": false
+  },
+  "x-crudx": "U",
+  "x-since": "2.0",
+  "x-namespace": "input",
+  "x-output-schema": {
+    "type": "object",
+    "properties": {
+      "synthesised": {
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "synthesised"
+    ],
+    "additionalProperties": false
+  },
+  "x-errors": [
+    "uipi_blocked",
+    "permission_denied"
+  ],
+  "x-families": {
+    "windows-modern": {
+      "description": "SendInput with INPUT_MOUSE structures. UIPI may silently drop synthesised input directed at higher-IL windows \u2014 agents detect this and return ERR uipi_blocked.",
+      "api": "SendInput"
+    },
+    "windows-classic": {
+      "description": "SendInput on NT 5+; mouse_event on NT 4 and 9x where SendInput is unavailable. No UIPI, so synthesised input crosses process boundaries freely.",
+      "api": [
+        "SendInput",
+        "mouse_event"
+      ]
+    }
+  }
+}

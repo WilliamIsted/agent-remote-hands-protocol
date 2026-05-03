@@ -1,0 +1,48 @@
+{
+  "name": "connection.hello",
+  "strict": true,
+  "description": "Handshake. Returns the protocol identifier, negotiated version, server name, server version, and a fresh session_id. No side effects; identical on every family.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "client_version": {
+        "type": "string",
+        "description": "Protocol version the client wishes to speak, e.g. '2.0'. Server picks the highest mutually-supported version and echoes it in the response."
+      }
+    },
+    "additionalProperties": false
+  },
+  "x-crudx": "R",
+  "x-since": "2.0",
+  "x-namespace": "connection",
+  "x-output-schema": {
+    "type": "object",
+    "properties": {
+      "protocol": {
+        "const": "armh"
+      },
+      "version": {
+        "type": "string"
+      },
+      "server": {
+        "type": "string"
+      },
+      "server_version": {
+        "type": "string"
+      },
+      "session_id": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "protocol",
+      "version",
+      "server",
+      "server_version",
+      "session_id"
+    ],
+    "additionalProperties": false
+  },
+  "x-errors": [],
+  "x-families": {}
+}

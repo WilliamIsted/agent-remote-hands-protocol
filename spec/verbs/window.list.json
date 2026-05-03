@@ -1,0 +1,94 @@
+{
+  "name": "window.list",
+  "strict": true,
+  "description": "Enumerates top-level windows. Returns an array of {handle, title, pid, bounds} entries. Read-only.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "visible_only": {
+        "type": "boolean",
+        "default": true,
+        "description": "Filter to windows that are currently visible. When false, includes hidden and minimised windows."
+      },
+      "pid": {
+        "type": "integer",
+        "description": "If supplied, restricts the listing to windows owned by this process id."
+      }
+    },
+    "additionalProperties": false
+  },
+  "x-crudx": "R",
+  "x-since": "2.0",
+  "x-namespace": "window",
+  "x-output-schema": {
+    "type": "array",
+    "items": {
+      "type": "object",
+      "properties": {
+        "handle": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "pid": {
+          "type": "integer"
+        },
+        "bounds": {
+          "type": "object",
+          "properties": {
+            "x": {
+              "type": "integer"
+            },
+            "y": {
+              "type": "integer"
+            },
+            "w": {
+              "type": "integer"
+            },
+            "h": {
+              "type": "integer"
+            }
+          },
+          "required": [
+            "x",
+            "y",
+            "w",
+            "h"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "handle",
+        "title",
+        "pid",
+        "bounds"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "x-errors": [
+    "permission_denied"
+  ],
+  "x-families": {
+    "windows-modern": {
+      "description": "EnumWindows + IsWindowVisible filter; GetWindowTextW for Unicode titles. Bounds via GetWindowRect with DPI virtualisation honoured.",
+      "api": [
+        "EnumWindows",
+        "IsWindowVisible",
+        "GetWindowTextW",
+        "GetWindowRect"
+      ]
+    },
+    "windows-classic": {
+      "description": "EnumWindows; GetWindowTextA on NT 4 / 9x, GetWindowTextW on NT 5+. No DPI virtualisation. Pre-NT-5 returns ANSI titles transcoded to UTF-8 by the agent.",
+      "api": [
+        "EnumWindows",
+        "GetWindowTextA",
+        "GetWindowTextW",
+        "GetWindowRect"
+      ]
+    }
+  }
+}

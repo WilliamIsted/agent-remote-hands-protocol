@@ -1,0 +1,63 @@
+{
+  "name": "clipboard.get",
+  "strict": true,
+  "description": "Read the current text contents of the system clipboard. Read-only.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "format": {
+        "type": "string",
+        "enum": [
+          "text"
+        ],
+        "default": "text",
+        "description": "Only 'text' is defined in 2.0. Future minors may add 'image' / 'files'."
+      }
+    },
+    "additionalProperties": false
+  },
+  "x-crudx": "R",
+  "x-since": "2.0",
+  "x-namespace": "clipboard",
+  "x-output-schema": {
+    "type": "object",
+    "properties": {
+      "content": {
+        "type": "string"
+      },
+      "format": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "content",
+      "format"
+    ],
+    "additionalProperties": false
+  },
+  "x-errors": [
+    "empty",
+    "permission_denied"
+  ],
+  "x-families": {
+    "windows-modern": {
+      "description": "OpenClipboard + GetClipboardData(CF_UNICODETEXT). UTF-16 native, transcoded to UTF-8 for the wire response.",
+      "api": [
+        "OpenClipboard",
+        "GetClipboardData"
+      ],
+      "format": "CF_UNICODETEXT"
+    },
+    "windows-classic": {
+      "description": "Same OpenClipboard / GetClipboardData. CF_UNICODETEXT has been available since NT 3.1, but pre-NT-5 apps may only publish CF_TEXT \u2014 agent falls back to CF_TEXT and transcodes from the active code page.",
+      "api": [
+        "OpenClipboard",
+        "GetClipboardData"
+      ],
+      "format": [
+        "CF_UNICODETEXT",
+        "CF_TEXT"
+      ]
+    }
+  }
+}

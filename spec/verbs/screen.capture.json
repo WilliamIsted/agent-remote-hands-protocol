@@ -1,0 +1,100 @@
+{
+  "name": "screen.capture",
+  "strict": true,
+  "description": "Pixel capture of region, window, monitor, or virtual screen. If neither region nor window nor monitor is supplied, the entire virtual screen is captured. Returned bytes are base64-encoded image data in the requested format.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "region": {
+        "type": "object",
+        "properties": {
+          "x": {
+            "type": "integer"
+          },
+          "y": {
+            "type": "integer"
+          },
+          "w": {
+            "type": "integer"
+          },
+          "h": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "x",
+          "y",
+          "w",
+          "h"
+        ],
+        "additionalProperties": false,
+        "description": "Rectangle in virtual-screen coordinates."
+      },
+      "window": {
+        "type": "string",
+        "description": "Window handle, e.g. 'win:0x1A2B' on Windows or 'mac:42' on macOS."
+      },
+      "monitor": {
+        "type": "integer",
+        "description": "Zero-based monitor index as reported by system.info.screens."
+      },
+      "format": {
+        "type": "string",
+        "enum": [
+          "png",
+          "webp",
+          "bmp",
+          "jpeg",
+          "heic"
+        ],
+        "default": "png",
+        "description": "Output image format. Family-dependent \u2014 see x-families. Requesting an unsupported format returns ERR unsupported_format."
+      }
+    },
+    "additionalProperties": false
+  },
+  "x-crudx": "R",
+  "x-since": "2.0",
+  "x-namespace": "screen",
+  "x-mutually-exclusive": [
+    "region",
+    "window",
+    "monitor"
+  ],
+  "x-output-schema": {
+    "type": "string",
+    "format": "byte",
+    "description": "base64-encoded image bytes"
+  },
+  "x-errors": [
+    "not_found",
+    "unsupported_format",
+    "permission_denied"
+  ],
+  "x-families": {
+    "windows-modern": {
+      "description": "WGC fast path on Win 10 1803+; GDI BitBlt fallback for Vista-8.1 if WGC is unavailable. PNG/WebP/BMP via WIC. Multi-monitor full.",
+      "capture_path": [
+        "wgc",
+        "gdi"
+      ],
+      "formats": [
+        "png",
+        "webp",
+        "bmp"
+      ]
+    },
+    "windows-classic": {
+      "description": "GDI BitBlt only. PNG only if GDI+ runtime present (NT 4 SP6+ with redist; XP+ ships GDI+). Multi-monitor: NT 4 single-display, 2000+ multi.",
+      "capture_path": [
+        "gdi"
+      ],
+      "formats": [
+        "bmp"
+      ],
+      "formats_runtime_extra": [
+        "png"
+      ]
+    }
+  }
+}
