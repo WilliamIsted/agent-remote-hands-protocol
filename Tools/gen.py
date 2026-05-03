@@ -86,27 +86,33 @@ def load_framing():
 # ---------------------------------------------------------------------------
 
 def format_type(prop_schema):
-    """Render a property's type as a short markdown-safe string."""
+    """Render a property's type as a short bare-text string. Callers add
+    backticks where appropriate — keeps composition (object inner, array
+    items) free of nested-or-missing-backtick artefacts."""
     if "$ref" in prop_schema:
-        return f"`{prop_schema['$ref'].rsplit('/', 1)[-1]}`"
+        return prop_schema["$ref"].rsplit("/", 1)[-1]
     if "const" in prop_schema:
-        return f"`{prop_schema['const']!r}`" if not isinstance(prop_schema["const"], str) else f'`"{prop_schema["const"]}"`'
+        c = prop_schema["const"]
+        return f'"{c}"' if isinstance(c, str) else repr(c)
     t = prop_schema.get("type")
     if t == "object":
         sub = prop_schema.get("properties", {})
         if sub:
-            inner = ", ".join(f"{k}:{format_type(v)}" for k, v in sub.items())
+            inner = ", ".join(f"{k}: {format_type(v)}" for k, v in sub.items())
             return "{" + inner + "}"
         return "object"
     if t == "array":
         items = prop_schema.get("items", {})
         return f"array of {format_type(items)}"
-    if isinstance(t, list):  # union types
+    if isinstance(t, list):  # union types (e.g. ["string", "null"])
         return " \\| ".join(t)
     if t is None:
         return "any"
     if "enum" in prop_schema:
-        return f"`{t}` enum"
+        values = prop_schema.get("enum", [])
+        if values and len(values) <= 5 and all(isinstance(v, str) for v in values):
+            return " \\| ".join(f'"{v}"' for v in values)
+        return f"{t} enum"
     return t
 
 
@@ -133,7 +139,7 @@ def render_input_table(input_schema):
         if desc:
             notes_parts.append(desc.replace("\n", " ").strip())
         notes = " ".join(notes_parts).strip() or "—"
-        rows.append(f"| `{name}` | {type_str} | {req} | {notes} |")
+        rows.append(f"| `{name}` | `{type_str}` | {req} | {notes} |")
     return "\n".join(rows)
 
 
@@ -155,10 +161,10 @@ def render_output_section(verb):
             type_str = format_type(spec)
             req_marker = " (required)" if name in required else ""
             field_desc = spec.get("description", "")
-            if "enum" in spec and not field_desc.startswith("`"):
+            if "enum" in spec and not field_desc.startswith("One of"):
                 enum_str = ", ".join(f"`{v}`" for v in spec["enum"])
                 field_desc = f"One of {enum_str}. {field_desc}".strip()
-            rows.append(f"| `{name}`{req_marker} | {type_str} | {field_desc.replace(chr(10), ' ').strip()} |")
+            rows.append(f"| `{name}`{req_marker} | `{type_str}` | {field_desc.replace(chr(10), ' ').strip()} |")
         line += "\n" + "\n".join(rows)
     return line
 
@@ -185,7 +191,7 @@ def render_event_section(verb):
             if "enum" in spec and not field_desc.startswith("One of"):
                 enum_str = ", ".join(f"`{v}`" for v in spec["enum"])
                 field_desc = f"One of {enum_str}. {field_desc}".strip()
-            lines.append(f"| `{name}`{req_marker} | {type_str} | {field_desc.replace(chr(10), ' ').strip()} |")
+            lines.append(f"| `{name}`{req_marker} | `{type_str}` | {field_desc.replace(chr(10), ' ').strip()} |")
     return "\n".join(lines)
 
 
