@@ -1,8 +1,10 @@
 # Agent Remote Hands — Protocol
 
-[![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
-[![Spec status: stable](https://img.shields.io/badge/spec-2.0%20stable-brightgreen)](PROTOCOL.md)
+[![License](https://img.shields.io/github/license/WilliamIsted/agent-remote-hands-protocol)](LICENSE)
+[![Spec status](https://img.shields.io/badge/spec-2.1%20stable-brightgreen)](PROTOCOL.md)
 [![Conformance: pytest](https://img.shields.io/badge/conformance-pytest-0A9EDC)](tests/conformance/)
+[![Last commit](https://img.shields.io/github/last-commit/WilliamIsted/agent-remote-hands-protocol)](https://github.com/WilliamIsted/agent-remote-hands-protocol/commits/main)
+[![Open issues](https://img.shields.io/github/issues/WilliamIsted/agent-remote-hands-protocol)](https://github.com/WilliamIsted/agent-remote-hands-protocol/issues)
 
 The wire-protocol spec, conformance suite, and reference Python client for [Agent Remote Hands](https://github.com/WilliamIsted/agent-remote-hands) — a Windows control surface for AI agents.
 
@@ -30,8 +32,8 @@ Different reading tasks, different docs:
 
 | Version | Status | Notes |
 |---|---|---|
-| 2.0 | Stable (this repo's `main`) | Tagged `v2.0.0`. Implemented by `windows-modern@v0.2.x`. |
-| 2.1 | Planned | NT-family minor — adds NT-specific verbs (classic input APIs, NT registry semantics) on top of 2.0. Wire-compatible with 2.0 for clients that don't use the new verbs. |
+| 2.1 | Stable (this repo's `main`) | CRUDX tier ladder (`read` < `create` < `update` < `delete` < `extra_risky`); `clipboard.read`/`write` renamed to `clipboard.get`/`set`; new `directory.*` namespace split out of `file.*` with full CRUDX-complete primitives; header-line argument quoting (`"path with spaces"`). Wire-breaking change vs 2.0 — clean cut, no aliases. Implemented by `windows-modern@v0.3.x`. See [`PROTOCOL.md` §12.5](PROTOCOL.md) for the full release notes and migration ladder. |
+| 2.0 | Released | Pin clients here for the old `observe`/`drive`/`power` tier vocabulary and the `clipboard.read`/`write`/`file.list`/`file.mkdir` verb names. Implemented by `windows-modern@v0.2.x`. |
 | 3.0 | In design | Modern-family major — privsep dispatcher + tier-restricted workers; JSON-RPC 2.0 wire format with binary side-channel. See the agent repo's `Documents/Overview/Planning/v3-structural-review.md` for the cross-repo design context. |
 
 Protocol versioning is **per-family-branched**, not linear: `windows-classic` (NT, 2000, XP, 2003) plateaus at the 2.x line; `windows-modern` (10, 11, Server 2016+) moves to 3.x. Both are alive at the same time. See [`PROTOCOL.md` §12](PROTOCOL.md) for the full versioning policy.
