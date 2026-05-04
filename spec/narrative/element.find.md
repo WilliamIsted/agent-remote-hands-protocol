@@ -8,4 +8,4 @@ A future MSAA-backed verb under a different name (e.g. `element.find_msaa`) is t
 
 ## Renderer note
 
-The generator (`Tools/gen.py`) excludes `implemented: false` verbs from the relevant family's `dist/<family>/VERBS.md` catalogue, so a windows-classic agent's tools/list does not include element.find. `system.info.capabilities.ui_automation: no` on a classic agent gives callers the gate.
+The generator (`Tools/gen.py`) excludes `implemented: false` verbs from the relevant family's `dist/verbs-<family>.md` catalogue, so a windows-classic agent's tools/list does not include element.find. `system.info.capabilities.ui_automation: no` on a classic agent gives callers the gate.

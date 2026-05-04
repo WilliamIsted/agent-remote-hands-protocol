@@ -55,6 +55,7 @@ tests/conformance/
 ├── test_input_mouse.py   (input.mouse.*  — split out v2.1.0-rc.3)
 ├── test_input_keyboard.py (input.keyboard.* — split out v2.1.0-rc.3)
 ├── test_element.py
+├── test_vision.py        (vision.ocr — added during the v2.1.0 rc cycle)
 ├── test_clipboard.py
 ├── test_directory.py
 ├── test_file.py

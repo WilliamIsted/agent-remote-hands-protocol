@@ -10,4 +10,4 @@ If classic-stack element enumeration is needed, the cleanest path is a separate 
 
 ## Renderer note
 
-The generator (`Tools/gen.py`) excludes `implemented: false` verbs from the relevant family's `dist/<family>/VERBS.md` catalogue.
+The generator (`Tools/gen.py`) excludes `implemented: false` verbs from the relevant family's `dist/verbs-<family>.md` catalogue.

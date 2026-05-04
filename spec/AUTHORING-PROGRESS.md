@@ -113,6 +113,12 @@ The per-row **Conformance** columns below name the test file that exercises each
 | 43 | `element.text` | ✅ | §4.5:374 | :80 | ❌ | `ELEMENT_TEXT` | ❌ |
 | 44 | `element.set_text` | ✅ | §4.5:375 | :81 | ❌ | `ELEMENT_SET_TEXT` | ❌ |
 
+## `vision.*` (1 verb — namespace introduced during the v2.1.0 rc cycle)
+
+| # | Verb | Status | spec/verbs | v1 archive | Conformance |
+|---|---|---|---|---|---|
+| 87 | `vision.ocr` | ✅ | ✅ (NEW; native OCR via Windows.Media.Ocr.OcrEngine on windows-modern; implemented:false on windows-classic) | ❌ | `test_vision.py` |
+
 ## `file.*` (10 verbs — narrowed to files-only in v2.1.0-rc.2; `file.write` split)
 
 | # | Verb | Status | spec/verbs | v1 archive | Conformance |
@@ -187,10 +193,10 @@ The PROTOCOL.md columns are dropped post-audit (PROTOCOL.md being deleted; mock-
 
 | Status | Count |
 |---|---|
-| Total v2.1 verbs (post-rc.3) | 86 |
-| Currently exercised by conformance suite | 86 (every verb has a `needs_verb(capabilities, "<verb>")` gate; enforced by `tests/check_spec.py`) |
+| Total v2.1 verbs | 87 |
+| Currently exercised by conformance suite | 87 (every verb has a `needs_verb(capabilities, "<verb>")` gate; enforced by `tests/check_spec.py`) |
 | With v1 ancestor verb(s) | 47 |
-| v2-only (no v1 ancestor) | 39 |
+| v2-only (no v1 ancestor) | 40 |
 
 Verb-count history: rc.1 had 77; rc.2 took it to 80 (file.write split, registry restructure); rc.3 takes it to 86 (input.* split into input.mouse.* + input.keyboard.* sub-namespaces, plus 6 new verbs to close v1.0.0 milestone parity issues).
 
@@ -317,6 +323,20 @@ Captures the load-bearing preferences confirmed for each namespace so the same q
 - **Two-implementation chain pattern**: `send_input` (modern + classic NT 5+) preferred; `mouse_event` / `keybd_event` (classic NT 4 / 9x) fallback.
 - **UIPI `post-check` mismatch detection** documented in windows-modern descriptions: agent verifies post-synth state (e.g. WindowFromPoint, GetForegroundWindow) and returns `ERR uipi_blocked` when the IL barrier silently dropped the event.
 - **wparam / lparam encoding** (input.send_message, input.post_message): `integer` (signed 64-bit), description notes bridge accepts hex strings (`"0x..."`) for readability.
+
+### `vision.*` (1/1 done)
+
+- **Native-vs-plugin split locked.** OCR ships native because the operation is stable and `Windows.Media.Ocr.OcrEngine` is OS-built-in on Windows 10 1803+. The rest of `vision.*` (`describe`, `find`) ships as the first caller-side plugin once the runtime lands; plugins cannot shadow native verb names, so `vision.ocr` stays native-only. See issue [#94](https://github.com/WilliamIsted/agent-remote-hands-protocol/issues/94) for the design summary.
+- **Five-way mutually-exclusive input model:** `region` / `window` / `monitor` / `path` / `bytes`. Live sources (region/window/monitor) capture pixels via the same WGC → BitBlt path as `screen.capture`; static sources (path/bytes) decode via `BitmapDecoder.CreateAsync`. All optional — absent set captures the full virtual screen. The five-way selector is the largest mutually-exclusive set in the spec, but each source is independently optional.
+- **`bytes` input mirrors `file.write.content` pattern.** Logical schema: a base64 string field with `contentEncoding: "base64"`. Wire transport: bridge translates to length-prefixed payload (same convention as `file.write` / `clipboard.set` / `file.create`). `bytes_format` is `x-conditional`-required when `bytes` is present (no other way to identify the codec; magic-byte sniffing is path-input only).
+- **`coordinate_space` enum on every response.** `screen` for live sources (virtual-screen coordinates); `image` for path/bytes sources (the source image's pixel grid). Removes the bbox-coordinate-system ambiguity that would otherwise surface when the same content is OCR'd via a live capture vs. a saved file.
+- **`image_size: {x,y,w,h}` echo on every response.** Live sources: post-clamp captured rectangle (`x`/`y` are the top-left). Static sources: source image dimensions (`x`/`y` are 0). Lets path/bytes callers interpret bboxes without pre-knowing the image size.
+- **`text_angle` always present** (defaults to 0.0 for upright). Degrees from horizontal per `OcrResult.TextAngle`. Free metadata for rotated-content / vertical-script flows.
+- **`include_word_bboxes: bool` opt-in for word granularity.** Default false keeps the typical-case payload tight; bridges that need word-level click-targeting (e.g. "click the word 'Save' inside this paragraph") opt in. Adds nested `words: [{text, bbox, confidence}]` per line.
+- **`min_confidence` filters both `lines` AND `text`.** Single source of truth for what the caller "sees"; engines without per-line confidence treat every line as 1.0.
+- **Capability advertisement.** Three open-map sub-keys on `system.info.capabilities`: `ocr_languages` (BCP-47 array, populated from `OcrEngine.AvailableRecognizerLanguages`), `ocr_max_dimension` (engine's `MaxImageDimension`), `ocr_input_formats` (decoder codecs intersected with the spec's `bytes_format` enum). Empty `ocr_languages` means the verb is advertised but every call returns `ERR not_supported` until a language pack is installed.
+- **`windows-classic` is `implemented: false`.** No built-in OCR API on classic-stack Windows; tesseract bundling is a future agent-repo decision, not a v2.1 spec change. Plugin-supplied OCR on classic would expose a different verb (`vision.ocr_tesseract`) since plugins can't shadow native names.
+- **New error code:** `image_too_large` for OCR sources exceeding the engine's `MaxImageDimension`. Detail `{max_dimension, observed: {w, h}}`. Distinct from `unsupported_format` (which is reused for codec-mismatch on path/bytes inputs).
 
 ### `element.*` (14/14 done)
 

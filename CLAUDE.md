@@ -22,7 +22,7 @@ The spec is **source-authored as JSON + markdown** under `spec/` and **rendered 
 | Generated (run `python Tools/gen.py`) | What it carries |
 |---|---|
 | `dist/PROTOCOL.md` | Canonical rendered spec. Concatenated `spec/framing/*.md` + generated §4 from `spec/verbs/*.json`. |
-| `dist/<family>/VERBS.md` | One-line per-verb catalogue, filtered to verbs that family implements. |
+| `dist/verbs-<family>.md` | One-line per-verb catalogue, filtered to verbs that family implements. |
 | `dist/verbs.json` | Concatenated strict-tool defs with `x-*` stripped, ready for `client.messages.create(tools=...)`. |
 | `dist/LLM-OPERATORS.md` | Operator's-eye view for LLMs driving an agent. Concatenated `spec/operators/*.md`. |
 
@@ -87,7 +87,7 @@ See [`tests/conformance/README.md`](tests/conformance/README.md) for tier-elevat
 python Tools/gen.py
 ```
 
-Produces `dist/PROTOCOL.md`, `dist/<family>/VERBS.md` per family, and `dist/verbs.json`. `dist/` is gitignored.
+Produces `dist/PROTOCOL.md`, `dist/verbs-<family>.md` per family, and `dist/verbs.json`. `dist/` is gitignored.
 
 ### Adding a new verb to the spec
 
@@ -95,7 +95,7 @@ Produces `dist/PROTOCOL.md`, `dist/<family>/VERBS.md` per family, and `dist/verb
 2. Create `spec/verbs/<verb>.json` per [`spec/AUTHORING-CHECKLIST.md`](spec/AUTHORING-CHECKLIST.md). Three stages: skeleton, `windows-modern` family fill, `windows-classic` family fill (or `implemented: false` if unsupported).
 3. Add a conformance test in `tests/conformance/test_<namespace>.py`. Gate it with `needs_verb(capabilities, "<verb>")` so older agents skip rather than fail.
 4. Run `python tests/check_spec.py` to validate the new file.
-5. Run `python Tools/gen.py` and eyeball the `dist/PROTOCOL.md` and `dist/<family>/VERBS.md` output.
+5. Run `python Tools/gen.py` and eyeball the `dist/PROTOCOL.md` and `dist/verbs-<family>.md` output.
 6. Run the conformance suite locally against the agent that implements it.
 
 PRs missing any of (1)–(4) are incomplete.

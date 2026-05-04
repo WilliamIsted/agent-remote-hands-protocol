@@ -46,7 +46,7 @@ jobs:
         run: python tests/check_spec.py
 
       - name: Generate dist/ artefacts
-        # Renders dist/PROTOCOL.md, dist/<family>/VERBS.md, dist/verbs.json
+        # Renders dist/PROTOCOL.md, dist/verbs-<family>.md, dist/verbs.json
         # from spec/verbs/*.json + spec/framing/*.md + spec/families.json.
         # dist/ is gitignored; this step verifies the generator runs cleanly
         # against the current spec tree.

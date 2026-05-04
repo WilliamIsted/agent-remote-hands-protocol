@@ -86,7 +86,7 @@ Mechanical, no design decisions:
 1. Write `spec/verbs/<verb>.json` to disk in one shot.
 2. (If Stage A flagged narrative needed) Write `spec/narrative/<verb>.md`.
 3. Run `python tests/check_spec.py` — verify the new file passes the existing CI validator.
-4. Run `python Tools/gen.py` — regenerates `dist/PROTOCOL.md`, `dist/<family>/VERBS.md` per family, and `dist/verbs.json`. Eyeball the rendered §4 section for the verb in `dist/PROTOCOL.md`.
+4. Run `python Tools/gen.py` — regenerates `dist/PROTOCOL.md`, `dist/verbs-<family>.md` per family, and `dist/verbs.json`. Eyeball the rendered §4 section for the verb in `dist/PROTOCOL.md`.
 5. If a conformance test exists for this verb, run `python -m pytest tests/conformance/test_<namespace>.py -k <verb>` against a running agent. Skipped tests are fine; failures are not.
 6. Flip the verb's row in [`AUTHORING-PROGRESS.md`](AUTHORING-PROGRESS.md) from 🟨 to ✅.
 

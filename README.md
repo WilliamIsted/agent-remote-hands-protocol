@@ -27,8 +27,8 @@ The spec is split into **source** (humans edit) and **generated** (machines + hu
 | Generated (under `dist/`, gitignored — run `python Tools/gen.py` to produce) | Purpose |
 |---|---|
 | `dist/PROTOCOL.md` | The canonical rendered spec — wire format, framing, lifecycle, tier model, error model, every verb's signature. Concatenated from `spec/framing/` + generated §4. |
-| `dist/windows-modern/VERBS.md` | One-line conceptual catalogue of every verb the `windows-modern` agent implements. |
-| `dist/windows-classic/VERBS.md` | Same for the `windows-classic` agent (UIA-only verbs filtered out). |
+| `dist/verbs-windows-modern.md` | One-line conceptual catalogue of every verb the `windows-modern` agent implements. |
+| `dist/verbs-windows-classic.md` | Same for the `windows-classic` agent (UIA-only verbs filtered out). |
 | `dist/verbs.json` | Concatenated strict-tool definitions with `x-*` stripped, ready for `client.messages.create(tools=...)`. |
 | `dist/LLM-OPERATORS.md` | Operator's-eye view for LLMs driving an agent. Concatenated from `spec/operators/`. |
 | [`tests/conformance/`](tests/conformance/) | Executable contract — pytest suite that any agent claiming to speak the protocol must pass. Includes [`wire.py`](tests/conformance/wire.py), the canonical Python reference client (~220 lines, stdlib-only). |
@@ -38,7 +38,7 @@ The spec is split into **source** (humans edit) and **generated** (machines + hu
 Different reading tasks, different docs:
 
 - **"I want to understand the wire"** → `dist/PROTOCOL.md` (run `python Tools/gen.py` first).
-- **"What verbs exist and what do they do"** → `dist/<family>/VERBS.md` for the family you target. One-line per verb; scan in 30 seconds.
+- **"What verbs exist and what do they do"** → `dist/verbs-<family>.md` for the family you target. One-line per verb; scan in 30 seconds.
 - **"I want to register the verbs as Anthropic strict-tool definitions"** → `dist/verbs.json`.
 - **"I'm an LLM about to drive an agent"** → `dist/LLM-OPERATORS.md` (run `python Tools/gen.py` first; source under [`spec/operators/`](spec/operators/)). What to read, what to assume, footguns to know about, a worked example.
 - **"I need to verify my implementation conforms"** → [`tests/conformance/`](tests/conformance/) + [`wire.py`](tests/conformance/wire.py).
@@ -48,7 +48,7 @@ Different reading tasks, different docs:
 
 | Version | Status | Notes |
 |---|---|---|
-| 2.1 | Stable (this repo's `main`) | CRUDX tier ladder (`read` < `create` < `update` < `delete` < `extra_risky`); `clipboard.read`/`write` → `clipboard.get`/`set`; `directory.*` namespace split out of `file.*` with full CRUDX-complete primitives; `file.*` create/update split (new `file.create` C-tier verb); `system.*` power verbs re-namespaced to `system.power.*`; `registry.*` restructured into resource-first `registry.value.{read,create,update,delete}` + `registry.key.{read,delete}`; `input.*` split into `input.mouse.*` + `input.keyboard.*` sub-namespaces (rc.3) plus 6 new verbs closing v1.0.0-milestone parity (`input.position`, `input.mouse.press`/`release`/`drag`, `input.keyboard.key_down`/`key_up`); header-line argument quoting (`"path with spaces"`). Wire-breaking change vs 2.0 — clean cut, no aliases. Implemented by `windows-modern@v0.3.x`. See `dist/PROTOCOL.md` §12.5 for the full release notes and migration ladder. |
+| 2.1 | Stable (this repo's `main`) | CRUDX tier ladder (`read` < `create` < `update` < `delete` < `extra_risky`); `clipboard.read`/`write` → `clipboard.get`/`set`; `directory.*` namespace split out of `file.*` with full CRUDX-complete primitives; `file.*` create/update split (new `file.create` C-tier verb); `system.*` power verbs re-namespaced to `system.power.*`; `registry.*` restructured into resource-first `registry.value.{read,create,update,delete}` + `registry.key.{read,delete}`; `input.*` split into `input.mouse.*` + `input.keyboard.*` sub-namespaces (rc.3) plus 6 new verbs closing v1.0.0-milestone parity (`input.position`, `input.mouse.press`/`release`/`drag`, `input.keyboard.key_down`/`key_up`); header-line argument quoting (`"path with spaces"`); native OCR via `vision.ocr` (Windows.Media.Ocr.OcrEngine on windows-modern; five-way input selector covering live capture and image files); `system.info.capabilities` gains `ocr_languages` / `ocr_max_dimension` / `ocr_input_formats`; new `image_too_large` error code. Wire-breaking change vs 2.0 — clean cut, no aliases. Implemented by `windows-modern@v0.3.x`. See `dist/PROTOCOL.md` §12.5 for the full release notes and migration ladder. |
 | 2.0 | Released | Pin clients here for the old `observe`/`drive`/`power` tier vocabulary and the `clipboard.read`/`write`/`file.list`/`file.mkdir` verb names. Implemented by `windows-modern@v0.2.x`. |
 | 3.0 | In design | Modern-family major — privsep dispatcher + tier-restricted workers; JSON-RPC 2.0 wire format with binary side-channel. See the agent repo's `Documents/Overview/Planning/v3-structural-review.md` for the cross-repo design context. |
 
@@ -58,7 +58,7 @@ Protocol versioning is **per-family-branched**, not linear: `windows-classic` (N
 
 Today's spec is **Windows-flavoured**. Roughly 70% of verbs are Win32-specific in shape (`window.*`, `element.*`, `registry.*`, parts of `system.*`); the framing layer (length-prefixed wire, tier model, capability advertisement, watch subscriptions) is platform-agnostic.
 
-The verb namespace admits new families via `spec/families.json` + per-family `x-families.<family>` slots on each verb file. `dist/<family>/VERBS.md` filters per family — verbs marked `implemented: false` for a family are omitted from that family's catalogue.
+The verb namespace admits new families via `spec/families.json` + per-family `x-families.<family>` slots on each verb file. `dist/verbs-<family>.md` filters per family — verbs marked `implemented: false` for a family are omitted from that family's catalogue.
 
 **External implementers are welcome.** Apache 2.0 covers it. If you're building a macOS, Linux, or BSD agent against this protocol, please open an issue — the framing is generalisable, and we'd prefer to extend the namespace deliberately rather than have parallel forks.
 
@@ -93,7 +93,7 @@ See [`tests/conformance/README.md`](tests/conformance/README.md) for the full in
 python Tools/gen.py
 ```
 
-Produces `dist/PROTOCOL.md`, `dist/windows-modern/VERBS.md`, `dist/windows-classic/VERBS.md`, and `dist/verbs.json`. `dist/` is gitignored — consumers regenerate as needed. CI verifies the generator runs cleanly against the current spec tree.
+Produces `dist/PROTOCOL.md`, `dist/verbs-windows-modern.md`, `dist/verbs-windows-classic.md`, and `dist/verbs.json`. `dist/` is gitignored — consumers regenerate as needed. CI verifies the generator runs cleanly against the current spec tree.
 
 ## Relationship to the agent repo
 

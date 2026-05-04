@@ -9,7 +9,7 @@ Reads:
 
 Writes:
   - dist/PROTOCOL.md           framing sections + generated §4 (verbs by namespace)
-  - dist/<family>/VERBS.md     per-family one-liner catalogue, filtered to verbs that
+  - dist/verbs-<family>.md     per-family one-liner catalogue, filtered to verbs that
                                family actually implements
   - dist/verbs.json            concatenated strict-tool definitions with x-* stripped,
                                ready for `client.messages.create(tools=...)`
@@ -32,7 +32,7 @@ DIST_DIR = REPO_ROOT / "dist"
 # Order in which verb namespaces appear under §4. Mirrors the order PROTOCOL.md
 # carried (system → screen → window → … → connection).
 NAMESPACE_ORDER = [
-    "system", "screen", "window", "input", "element",
+    "system", "screen", "window", "input", "element", "vision",
     "file", "directory", "process", "registry", "clipboard",
     "watch", "connection",
 ]
@@ -417,7 +417,7 @@ def render_protocol_md(verbs, families, framing):
 
 
 # ---------------------------------------------------------------------------
-# dist/<family>/VERBS.md: per-family one-liner catalogue
+# dist/verbs-<family>.md: per-family one-liner catalogue
 # ---------------------------------------------------------------------------
 
 def verb_implemented_for(verb, family_name):
@@ -524,14 +524,12 @@ def main():
     protocol_md = render_protocol_md(verbs, families, framing)
     (DIST_DIR / "PROTOCOL.md").write_text(protocol_md, encoding="utf-8")
 
-    # 2. dist/<family>/VERBS.md per family
+    # 2. dist/verbs-<family>.md per family
     for family_name in families:
         if families[family_name].get("_placeholder"):
             continue
-        family_dir = DIST_DIR / family_name
-        family_dir.mkdir(exist_ok=True)
         verbs_md = render_verbs_md(verbs, family_name, families)
-        (family_dir / "VERBS.md").write_text(verbs_md, encoding="utf-8")
+        (DIST_DIR / f"verbs-{family_name}.md").write_text(verbs_md, encoding="utf-8")
 
     # 3. dist/verbs.json
     api_tools = render_verbs_json(verbs)
@@ -550,9 +548,9 @@ def main():
     for family_name in families:
         if families[family_name].get("_placeholder"):
             continue
-        path = DIST_DIR / family_name / "VERBS.md"
+        path = DIST_DIR / f"verbs-{family_name}.md"
         if path.exists():
-            print(f"Wrote dist/{family_name}/VERBS.md")
+            print(f"Wrote dist/verbs-{family_name}.md")
     print(f"Wrote dist/verbs.json        ({len(api_tools)} verbs)")
     if operators:
         print(f"Wrote dist/LLM-OPERATORS.md  ({len(llm_operators_md)} chars)")

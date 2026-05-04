@@ -47,6 +47,14 @@ Wire-breaking. No alias period. Cumulative summary across rc.1 → rc.2 → rc.3
 - **No compatibility shim.** Agents on v2.1 reject the v2.0 tier names and verb names with `ERR invalid_args` (tier names) or `ERR not_supported` (verb names). Clients still on the v2.0 vocabulary should pin to a `v2.0.x` release of the spec/agent. The full list of superseded names is enumerated in [`spec/reserved-names.json`](../reserved-names.json) and enforced by `tests/check_spec.py`.
 - **Migration.** Tier raises: `drive` → `update`, `power` → `extra_risky`. Verb migrations: `clipboard.read`/`write` → `clipboard.get`/`set`; `file.list` → `directory.list`; `file.mkdir` → `directory.create`; `directory.remove` → `directory.delete`; `system.shutdown` etc. → `system.power.shutdown` etc.; `registry.read` (whole-key) → `registry.key.read`; `registry.read --value` → `registry.value.read`; `registry.write` → `registry.value.create` or `registry.value.update`; `registry.delete --value` → `registry.value.delete`; `registry.delete` (whole-key) → `registry.key.delete`; `registry.wait` → `watch.registry --until-change`; `input.click` → `input.mouse.click`; `input.move` → `input.mouse.move`; `input.scroll` → `input.mouse.scroll`; `input.key` → `input.keyboard.key`; `input.type` → `input.keyboard.type`. Existing `file.write` callers that were creating new files move to `file.create`.
 
+**Native OCR (added during the v2.1.0 rc cycle):**
+
+- **New verb:** `vision.ocr` extracts text and per-line bounding boxes from a region / window / monitor / image file / supplied buffer. Five-way mutually-exclusive input model (`region` / `window` / `monitor` / `path` / `bytes`). Native on `windows-modern` via `Windows.Media.Ocr.OcrEngine`; `implemented: false` on `windows-classic` until a tesseract integration lands. Token-cheap alternative to `screen.capture` for text-heavy UIs (60-250x context reduction).
+- **New `vision.*` namespace.** Future caller-side-plugin verbs (`vision.describe`, `vision.find`) will live in the same namespace once the plugin runtime ships; plugins cannot shadow native verb names so `vision.ocr` itself stays native-only.
+- **`system.info.capabilities` gains three OCR-related sub-keys** on `windows-modern`: `ocr_languages` (installed BCP-47 tags from `OcrEngine.AvailableRecognizerLanguages`), `ocr_max_dimension` (engine's `MaxImageDimension`), `ocr_input_formats` (supported decoder codecs for `path` / `bytes` inputs). All absent on `windows-classic`.
+- **New error code:** `image_too_large` for OCR sources exceeding the engine's `MaxImageDimension`. Detail: `{max_dimension, observed: {w, h}}`. Caller downscales and retries. `unsupported_format` is also reused by `vision.ocr` for unrecognised path-codec sniffs and unsupported `bytes_format` values.
+- **Additive only.** Clients that don't know about `vision.ocr` are unaffected; no breaking change vs the rest of v2.1.
+
 #### 2.0.0
 
 First ratified release of the 2.0 spec.
@@ -55,4 +63,4 @@ First ratified release of the 2.0 spec.
 
 ## Appendix A: Verb summary
 
-For a scannable per-family verb catalogue, see [`dist/windows-modern/VERBS.md`](../windows-modern/VERBS.md) and [`dist/windows-classic/VERBS.md`](../windows-classic/VERBS.md). Both files are generated from `spec/verbs/*.json` and filtered to the verbs each family actually implements.
+For a scannable per-family verb catalogue, see [`dist/verbs-windows-modern.md`](../verbs-windows-modern.md) and [`dist/verbs-windows-classic.md`](../verbs-windows-classic.md). Both files are generated from `spec/verbs/*.json` and filtered to the verbs each family actually implements.

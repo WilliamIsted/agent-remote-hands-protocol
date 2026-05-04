@@ -42,7 +42,8 @@ Errors take the form:
 | `not_a_directory` | `{message?}` | Path exists but refers to a file when the verb requires a directory (or vice versa). All `directory.*` verbs that resolve an existing path. |
 | `cross_device` | `{message?}` | Operation crosses a filesystem boundary and the verb refuses without explicit opt-in. `directory.rename` without `--cross-fs`. |
 | `empty` | — | Source has no content to read. `clipboard.get` when the clipboard has no text. |
-| `unsupported_format` | `{requested, supported?}` | Verb received a format value the connected agent cannot produce. `screen.capture` when `format` is outside the family's supported list. |
+| `unsupported_format` | `{requested, supported?}` | Verb received a format value the connected agent cannot produce or consume. `screen.capture` when output `format` is outside the family's supported list; `vision.ocr` when an unrecognised codec is sniffed from a `path` input or supplied via `bytes_format`. |
+| `image_too_large` | `{max_dimension, observed}` | Image's largest dimension exceeds the OCR engine's `MaxImageDimension`. `vision.ocr` when source pixels would overflow the engine's hard cap. Caller should downscale and retry. |
 | `no_handler` | `{message?}` | Shell-execute could not find a registered handler for the requested verb / file association. `process.shell`. |
 | `no_implementation_available` | `{tried?}` | The verb's `x-implementations` chain was exhausted on the connected agent (no detect-positive backend). `file.download` when neither curl nor wget nor any platform fallback is present. |
 | `policy_blocked` | `{policy?}` | OS / domain group policy refuses the operation. `system.power.shutdown / .reboot / .logoff` when `SeShutdownPrivilege` exists but policy denies. |

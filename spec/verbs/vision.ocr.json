@@ -1,0 +1,162 @@
+{
+  "name": "vision.ocr",
+  "strict": true,
+  "description": "Extract text and per-line bounding boxes from a region, window, monitor, image file, or supplied byte buffer. Token-cheap alternative to screen.capture for text-heavy UIs (60-250x context reduction). If no source selector is supplied, OCRs the entire virtual screen.",
+  "$defs": {
+    "Bounds": {
+      "type": "object",
+      "properties": {
+        "x": { "type": "integer", "description": "Top-left X in virtual-screen coordinates." },
+        "y": { "type": "integer", "description": "Top-left Y in virtual-screen coordinates." },
+        "w": { "type": "integer", "description": "Width in physical pixels." },
+        "h": { "type": "integer", "description": "Height in physical pixels." }
+      },
+      "required": ["x", "y", "w", "h"],
+      "additionalProperties": false
+    }
+  },
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "region": {
+        "type": "object",
+        "properties": {
+          "x": { "type": "integer", "description": "Top-left X in virtual-screen coordinates." },
+          "y": { "type": "integer", "description": "Top-left Y in virtual-screen coordinates." },
+          "w": { "type": "integer", "minimum": 1, "description": "Width in physical pixels." },
+          "h": { "type": "integer", "minimum": 1, "description": "Height in physical pixels." }
+        },
+        "required": ["x", "y", "w", "h"],
+        "additionalProperties": false,
+        "description": "Rectangle in virtual-screen coordinates. Mutually exclusive with the other selectors."
+      },
+      "window": {
+        "type": "string",
+        "description": "Window handle, e.g. 'win:0x1A2B'. Mutually exclusive with the other selectors."
+      },
+      "monitor": {
+        "type": "integer",
+        "minimum": 0,
+        "description": "Zero-based monitor index per `system.info.screens`. Mutually exclusive with the other selectors."
+      },
+      "path": {
+        "type": "string",
+        "description": "Absolute path to an image file. Codec sniffed from magic bytes; supported set is `system.info.capabilities.ocr_input_formats`. Mutually exclusive with the other selectors."
+      },
+      "bytes": {
+        "type": "string",
+        "contentEncoding": "base64",
+        "description": "Raw image bytes. Base64-encoded in tool-call form; bridges may transport as a length-prefixed wire payload (same convention as `file.write` / `clipboard.set`). Mutually exclusive with the other selectors."
+      },
+      "bytes_format": {
+        "type": "string",
+        "enum": ["png", "jpeg", "bmp", "webp", "heic", "tiff"],
+        "description": "Codec of the supplied `bytes`. Required when `bytes` is present; ignored otherwise."
+      },
+      "language": {
+        "type": "string",
+        "description": "BCP-47 language tag (e.g. \"en-US\", \"ja\"). Defaults to the OS user's preferred OCR language. Returns `not_supported` with `available_languages` detail if the requested pack isn't installed."
+      },
+      "min_confidence": {
+        "type": "number",
+        "minimum": 0.0,
+        "maximum": 1.0,
+        "default": 0.0,
+        "description": "Drop lines whose engine-reported confidence is below this threshold from both `lines` and the joined `text`. Engines that don't report per-line confidence treat every line as 1.0 (always retained)."
+      },
+      "include_word_bboxes": {
+        "type": "boolean",
+        "default": false,
+        "description": "If true, each line in the response gains a `words` array with per-word `text`, `bbox`, and `confidence`. Default false keeps the typical-case payload tight; opt in when word-level click-targeting is needed."
+      }
+    },
+    "additionalProperties": false
+  },
+  "x-crudx": "R",
+  "x-since": "2.1",
+  "x-namespace": "vision",
+  "x-mutually-exclusive": ["region", "window", "monitor", "path", "bytes"],
+  "x-conditional": [
+    {
+      "when": { "bytes": "<present>" },
+      "requires": { "bytes_format": "<present>" },
+      "error": "invalid_args",
+      "description": "bytes_format is required when bytes is supplied — the agent has no other way to identify the codec."
+    }
+  ],
+  "x-output-schema": {
+    "type": "object",
+    "properties": {
+      "text": {
+        "type": "string",
+        "description": "Full extracted text, lines joined by `\\n`. Reflects `min_confidence` filtering — lines below the threshold are absent here AND from `lines`."
+      },
+      "lines": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "text":       { "type": "string", "description": "Text content of this line." },
+            "bbox":       { "$ref": "#/$defs/Bounds", "description": "Line's position and size, in `coordinate_space` units." },
+            "confidence": { "type": "number", "minimum": 0.0, "maximum": 1.0, "description": "Engine-reported confidence, 0.0–1.0. Per-word values from `Windows.Media.Ocr` are averaged into per-line. Absent on engines that don't report it; treat absence as 1.0 for filtering purposes." },
+            "words": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "text":       { "type": "string", "description": "Text content of this word." },
+                  "bbox":       { "$ref": "#/$defs/Bounds", "description": "Word's position and size, in `coordinate_space` units." },
+                  "confidence": { "type": "number", "minimum": 0.0, "maximum": 1.0, "description": "Engine-reported per-word confidence." }
+                },
+                "required": ["text", "bbox"],
+                "additionalProperties": false
+              },
+              "description": "Per-word entries. Present iff `include_word_bboxes: true` was supplied."
+            }
+          },
+          "required": ["text", "bbox"],
+          "additionalProperties": false
+        },
+        "description": "Per-line entries in the engine's reading order (top-to-bottom for Latin scripts; engine-dependent for vertical / RTL)."
+      },
+      "language_used": {
+        "type": "string",
+        "description": "BCP-47 tag the engine actually used. Equals `language` when supplied; otherwise the OS user-profile default the engine selected."
+      },
+      "coordinate_space": {
+        "type": "string",
+        "enum": ["screen", "image"],
+        "description": "Coordinate system for every `bbox` in the response. `screen` for region/window/monitor sources (virtual-screen coordinates). `image` for path/bytes sources (the source image's pixel grid). Always set; lets callers interpret bboxes unambiguously regardless of source."
+      },
+      "image_size": {
+        "$ref": "#/$defs/Bounds",
+        "description": "Dimensions of the buffer OCR ran on. For region/window/monitor sources: the post-clamp captured rectangle (in virtual-screen coords; `x`/`y` are the top-left). For path/bytes sources: the source image's full extent (in image coords; `x`/`y` are 0)."
+      },
+      "text_angle": {
+        "type": "number",
+        "description": "Degrees clockwise from horizontal that the engine detected the text rotated by, from `OcrResult.TextAngle`. 0.0 for upright content. Useful for rotated scans / vertical-script content."
+      }
+    },
+    "required": ["text", "lines", "language_used", "coordinate_space", "image_size", "text_angle"],
+    "additionalProperties": false
+  },
+  "x-errors": ["not_supported", "not_found", "permission_denied", "unsupported_format", "image_too_large", "invalid_args"],
+  "x-implementations": [
+    {
+      "name": "windows_media_ocr",
+      "detect": { "type": "always" },
+      "available_on": ["windows-modern"],
+      "description": "For live sources (region/window/monitor): captures pixels via the same path as `screen.capture` (WGC → BitBlt fallback) into a SoftwareBitmap. For static sources (path/bytes): decodes via `BitmapDecoder.CreateAsync` from a file stream or in-memory buffer; codec sniffed from magic bytes (path) or supplied via `bytes_format` (bytes). The SoftwareBitmap is then passed to `OcrEngine.RecognizeAsync`. Per-line `BoundingRect` from `OcrLine` populates `bbox`; per-word `Confidence` averaged into per-line `confidence`."
+    }
+  ],
+  "x-families": {
+    "windows-modern": {
+      "description": "`Windows.Media.Ocr.OcrEngine` on Win 10 1803+ — the same OS-version cliff as WGC capture, so any agent that supports `screen.capture`'s fast path also supports OCR. Language packs are user-installed (Settings → Time & Language → Language → [language] → Options → OCR); the agent advertises installed packs via `system.info.capabilities.ocr_languages` (BCP-47 array, populated from `OcrEngine.AvailableRecognizerLanguages` at startup). Empty array means the verb is advertised but every call returns `ERR not_supported` until a pack is installed (or `OcrEngine.TryCreateFromUserProfileLanguages()` returned null because no language profile is configured). The engine's `MaxImageDimension` is advertised via `system.info.capabilities.ocr_max_dimension`; oversize sources return `ERR image_too_large` with `{max_dimension, observed: {w, h}}` detail. Supported decoder formats are advertised via `system.info.capabilities.ocr_input_formats`; unrecognised codecs (sniffed for `path`, declared for `bytes`) return `ERR unsupported_format` with `{format, supported_formats}` detail. Future tesseract integration on this family would graduate to a multi-implementation chain; the wire surface stays unchanged.",
+      "implementations_in_order": ["windows_media_ocr"]
+    },
+    "windows-classic": {
+      "implemented": false,
+      "reason": "No built-in OCR API on classic-stack Windows. Future agent builds may bundle tesseract; until then `vision.ocr` is omitted from this family's `system.capabilities` and from `dist/verbs-windows-classic.md`. Plugin-supplied OCR could fill this gap once the caller-side plugin runtime ships, but plugins can't shadow native verb names — a plugin-supplied vision engine on classic would expose a different verb (e.g. `vision.ocr_tesseract`)."
+    }
+  }
+}

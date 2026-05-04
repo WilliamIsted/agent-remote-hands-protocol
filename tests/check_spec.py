@@ -498,7 +498,7 @@ def check_doc_verb_references(verb_files: list[pathlib.Path],
         "test_connection.py", "test_system.py", "test_window.py",
         "test_screen.py", "test_element.py", "test_clipboard.py",
         "test_directory.py", "test_file.py", "test_process.py",
-        "test_registry.py", "test_watch.py",
+        "test_registry.py", "test_watch.py", "test_vision.py",
         # Tooling references
         "agent_client.py", "wire.py", "gen.py", "check_spec.py",
         # File-name references in prose
@@ -507,6 +507,7 @@ def check_doc_verb_references(verb_files: list[pathlib.Path],
         "explorer.exe", "remote-hands.exe", "msiexec.exe",
         # Hypothetical future verbs mentioned in narrative (not yet authored)
         "element.find_msaa", "element.list_msaa",
+        "vision.describe", "vision.find", "vision.ocr_tesseract",
         # Placeholder examples in AUTHORING-CHECKLIST naming-convention prose
         "foo.bar.baz", "foo.bar_baz",
         # Pre-rc.3 verb names appearing in v1→v2 migration narratives. The
