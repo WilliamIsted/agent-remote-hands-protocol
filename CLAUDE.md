@@ -23,7 +23,8 @@ The spec is **source-authored as JSON + markdown** under `spec/` and **rendered 
 |---|---|
 | `dist/PROTOCOL.md` | Canonical rendered spec. Concatenated `spec/framing/*.md` + generated §4 from `spec/verbs/*.json`. |
 | `dist/verbs-<family>.md` | One-line per-verb catalogue, filtered to verbs that family implements. |
-| `dist/verbs.json` | Concatenated strict-tool defs with `x-*` stripped, ready for `client.messages.create(tools=...)`. |
+| `dist/verbs.json` | Concatenated strict-tool defs with `x-*` stripped, all-families superset. |
+| `dist/verbs-<family>.json` | Same shape, filtered to verbs that family implements. Drop-in for `client.messages.create(tools=...)` against a known-family agent. |
 | `dist/LLM-OPERATORS.md` | Operator's-eye view for LLMs driving an agent. Concatenated `spec/operators/*.md`. |
 
 `dist/` is gitignored — consumers regenerate as needed. CI verifies the generator runs cleanly.
@@ -87,7 +88,7 @@ See [`tests/conformance/README.md`](tests/conformance/README.md) for tier-elevat
 python Tools/gen.py
 ```
 
-Produces `dist/PROTOCOL.md`, `dist/verbs-<family>.md` per family, and `dist/verbs.json`. `dist/` is gitignored.
+Produces `dist/PROTOCOL.md`, `dist/verbs-<family>.md` per family, `dist/verbs.json`, and `dist/verbs-<family>.json` per family. `dist/` is gitignored.
 
 ### Adding a new verb to the spec
 

@@ -46,7 +46,7 @@ jobs:
         run: python tests/check_spec.py
 
       - name: Generate dist/ artefacts
-        # Renders dist/PROTOCOL.md, dist/verbs-<family>.md, dist/verbs.json
+        # Renders dist/PROTOCOL.md, dist/verbs-<family>.md, dist/verbs.json, dist/verbs-<family>.json
         # from spec/verbs/*.json + spec/framing/*.md + spec/families.json.
         # dist/ is gitignored; this step verifies the generator runs cleanly
         # against the current spec tree.
@@ -57,6 +57,10 @@ jobs:
           test -s dist/PROTOCOL.md || (echo "dist/PROTOCOL.md missing or empty" && exit 1)
           test -s dist/verbs.json || (echo "dist/verbs.json missing or empty" && exit 1)
           python -c "import json; json.load(open('dist/verbs.json'))"
+          for f in dist/verbs-*.json; do
+            test -s "$f" || (echo "$f missing or empty" && exit 1)
+            python -c "import json; json.load(open('$f'))"
+          done
 
       - name: Wire-quoting round-trip tests
         run: python -m pytest tests/test_wire_quoting.py -v

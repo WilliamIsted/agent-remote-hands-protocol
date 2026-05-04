@@ -29,7 +29,9 @@ The spec is split into **source** (humans edit) and **generated** (machines + hu
 | `dist/PROTOCOL.md` | The canonical rendered spec — wire format, framing, lifecycle, tier model, error model, every verb's signature. Concatenated from `spec/framing/` + generated §4. |
 | `dist/verbs-windows-modern.md` | One-line conceptual catalogue of every verb the `windows-modern` agent implements. |
 | `dist/verbs-windows-classic.md` | Same for the `windows-classic` agent (UIA-only verbs filtered out). |
-| `dist/verbs.json` | Concatenated strict-tool definitions with `x-*` stripped, ready for `client.messages.create(tools=...)`. |
+| `dist/verbs.json` | Concatenated strict-tool definitions with `x-*` stripped, all-families superset. Use when the target family isn't known at registration time and you'll capability-gate at runtime. |
+| `dist/verbs-windows-modern.json` | Same shape as `dist/verbs.json`, filtered to verbs the `windows-modern` family implements. Drop-in for `client.messages.create(tools=...)` against a known-family agent. |
+| `dist/verbs-windows-classic.json` | Same for `windows-classic`. |
 | `dist/LLM-OPERATORS.md` | Operator's-eye view for LLMs driving an agent. Concatenated from `spec/operators/`. |
 | [`tests/conformance/`](tests/conformance/) | Executable contract — pytest suite that any agent claiming to speak the protocol must pass. Includes [`wire.py`](tests/conformance/wire.py), the canonical Python reference client (~220 lines, stdlib-only). |
 
@@ -39,7 +41,7 @@ Different reading tasks, different docs:
 
 - **"I want to understand the wire"** → `dist/PROTOCOL.md` (run `python Tools/gen.py` first).
 - **"What verbs exist and what do they do"** → `dist/verbs-<family>.md` for the family you target. One-line per verb; scan in 30 seconds.
-- **"I want to register the verbs as Anthropic strict-tool definitions"** → `dist/verbs.json`.
+- **"I want to register the verbs as Anthropic strict-tool definitions"** → `dist/verbs-<family>.json` if you know the target family at build time; `dist/verbs.json` (the all-families superset) if you'll capability-gate at runtime.
 - **"I'm an LLM about to drive an agent"** → `dist/LLM-OPERATORS.md` (run `python Tools/gen.py` first; source under [`spec/operators/`](spec/operators/)). What to read, what to assume, footguns to know about, a worked example.
 - **"I need to verify my implementation conforms"** → [`tests/conformance/`](tests/conformance/) + [`wire.py`](tests/conformance/wire.py).
 - **"I want to author / amend the spec itself"** → [`spec/`](spec/). Edit `spec/verbs/<verb>.json` for verb changes; `spec/framing/*.md` for framing-section changes; regenerate with `python Tools/gen.py`.
@@ -93,7 +95,7 @@ See [`tests/conformance/README.md`](tests/conformance/README.md) for the full in
 python Tools/gen.py
 ```
 
-Produces `dist/PROTOCOL.md`, `dist/verbs-windows-modern.md`, `dist/verbs-windows-classic.md`, and `dist/verbs.json`. `dist/` is gitignored — consumers regenerate as needed. CI verifies the generator runs cleanly against the current spec tree.
+Produces `dist/PROTOCOL.md`, `dist/verbs-windows-modern.md`, `dist/verbs-windows-classic.md`, `dist/verbs.json`, `dist/verbs-windows-modern.json`, and `dist/verbs-windows-classic.json`. `dist/` is gitignored — consumers regenerate as needed. CI verifies the generator runs cleanly against the current spec tree.
 
 ## Relationship to the agent repo
 

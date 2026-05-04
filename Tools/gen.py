@@ -12,6 +12,8 @@ Writes:
   - dist/verbs-<family>.md     per-family one-liner catalogue, filtered to verbs that
                                family actually implements
   - dist/verbs.json            concatenated strict-tool definitions with x-* stripped,
+                               all families (superset). Per-family filtered variants
+                               also written: dist/verbs-<family>.json
                                ready for `client.messages.create(tools=...)`
   - dist/LLM-OPERATORS.md      operators markdown concatenated in filename-ordinal order
 
@@ -484,11 +486,17 @@ def render_verbs_md(verbs, family_name, families_meta):
 
 
 # ---------------------------------------------------------------------------
-# dist/verbs.json: concatenated strict-tool defs with x-* stripped
+# dist/verbs.json + dist/verbs-<family>.json: concatenated strict-tool defs
+# with x-* stripped. Unified file is the all-families superset; per-family
+# files are filtered to verbs that family actually implements (drop-in for
+# client.messages.create(tools=...) against a known-family agent).
 # ---------------------------------------------------------------------------
 
-def render_verbs_json(verbs):
-    return [strip_x_extensions(v) for v in verbs]
+def render_verbs_json(verbs, family_name=None):
+    if family_name is None:
+        return [strip_x_extensions(v) for v in verbs]
+    return [strip_x_extensions(v) for v in verbs
+            if verb_implemented_for(v, family_name)]
 
 
 # ---------------------------------------------------------------------------
@@ -531,14 +539,26 @@ def main():
         verbs_md = render_verbs_md(verbs, family_name, families)
         (DIST_DIR / f"verbs-{family_name}.md").write_text(verbs_md, encoding="utf-8")
 
-    # 3. dist/verbs.json
+    # 3. dist/verbs.json (all-families superset)
     api_tools = render_verbs_json(verbs)
     (DIST_DIR / "verbs.json").write_text(
         json.dumps(api_tools, indent=2, ensure_ascii=False) + "\n",
         encoding="utf-8",
     )
 
-    # 4. dist/LLM-OPERATORS.md
+    # 4. dist/verbs-<family>.json per family (filtered to verbs that family implements)
+    per_family_tools = {}
+    for family_name in families:
+        if families[family_name].get("_placeholder"):
+            continue
+        tools = render_verbs_json(verbs, family_name)
+        per_family_tools[family_name] = tools
+        (DIST_DIR / f"verbs-{family_name}.json").write_text(
+            json.dumps(tools, indent=2, ensure_ascii=False) + "\n",
+            encoding="utf-8",
+        )
+
+    # 5. dist/LLM-OPERATORS.md
     if operators:
         llm_operators_md = render_llm_operators_md(operators)
         (DIST_DIR / "LLM-OPERATORS.md").write_text(llm_operators_md, encoding="utf-8")
@@ -552,6 +572,8 @@ def main():
         if path.exists():
             print(f"Wrote dist/verbs-{family_name}.md")
     print(f"Wrote dist/verbs.json        ({len(api_tools)} verbs)")
+    for family_name, tools in per_family_tools.items():
+        print(f"Wrote dist/verbs-{family_name}.json ({len(tools)} verbs)")
     if operators:
         print(f"Wrote dist/LLM-OPERATORS.md  ({len(llm_operators_md)} chars)")
     return 0
