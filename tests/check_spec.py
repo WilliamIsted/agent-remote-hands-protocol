@@ -38,6 +38,13 @@ to catch the structural mistakes that are hard to spot on visual review:
     "<verb>")` reference somewhere in tests/conformance/test_*.py — the
     conformance suite is the wire-protocol contract; new verbs must land
     with a test gating call.
+  - Hand-written spec markdown (spec/framing/, spec/operators/,
+    spec/narrative/, spec/AUTHORING-*.md, root README/CHANGELOG/CLAUDE,
+    docs/) doesn't contain backticked dotted tokens (`<a>.<b>` or
+    `<a>.<b>.<c>`) that look like verb-name references but don't resolve
+    to a live verb in spec/verbs/ — and aren't explicitly listed in
+    spec/reserved-names.json as historical / superseded names. Catches
+    stale verb-name mentions in prose after renames.
 
 Exit code: 0 on success, 1 on the first failure batch (all failures printed).
 """
@@ -46,6 +53,7 @@ from __future__ import annotations
 
 import json
 import pathlib
+import re
 import sys
 from typing import Iterable
 
@@ -455,6 +463,110 @@ def check_conformance_coverage(verb_files: list[pathlib.Path],
     return covered
 
 
+def check_doc_verb_references(verb_files: list[pathlib.Path],
+                              reserved: dict[str, dict],
+                              root: pathlib.Path,
+                              failures: list[str]) -> None:
+    """Scan hand-written spec markdown for backticked dotted tokens that
+    look like verb-name references but don't resolve to a live verb in
+    spec/verbs/ (and aren't explicitly listed in spec/reserved-names.json
+    as historical / superseded names).
+
+    Catches: stale verb-name mentions in prose after renames or removals
+    (e.g. `registry.read` after the rc.2 split into registry.value.read /
+    registry.key.read).
+
+    Misses: stale field-path mentions (e.g. system.info.protocol vs
+    system.info.agent_protocol). Distinguishing field paths from verb
+    names without an authoritative field-set is unreliable, so the rule
+    accepts any 3-segment token whose first two segments form a live
+    verb name (treating it as a field path under that verb).
+
+    Allowlist: the rule's `KNOWN_NON_VERB_TOKENS` set carries dotted
+    identifiers that match the regex but are deliberately not verbs
+    (e.g. `agents/windows-modern/src/verbs/input.cpp` mentioned in prose,
+    or shorthand like `pip.install` in setup steps).
+    """
+    valid_verbs = {p.stem for p in verb_files}
+
+    # Tokens that match the verb-name shape but are deliberately not verbs.
+    # Add to this set when prose legitimately needs a dotted identifier the
+    # rule would otherwise flag.
+    KNOWN_NON_VERB_TOKENS = {
+        # Conformance-suite test-file names appearing in prose
+        "test_input.py", "test_input_mouse.py", "test_input_keyboard.py",
+        "test_connection.py", "test_system.py", "test_window.py",
+        "test_screen.py", "test_element.py", "test_clipboard.py",
+        "test_directory.py", "test_file.py", "test_process.py",
+        "test_registry.py", "test_watch.py",
+        # Tooling references
+        "agent_client.py", "wire.py", "gen.py", "check_spec.py",
+        # File-name references in prose
+        "input.cpp", "PROTOCOL.md", "VERBS.md",
+        # Process / executable names in operational prose
+        "explorer.exe", "remote-hands.exe", "msiexec.exe",
+        # Hypothetical future verbs mentioned in narrative (not yet authored)
+        "element.find_msaa", "element.list_msaa",
+        # Placeholder examples in AUTHORING-CHECKLIST naming-convention prose
+        "foo.bar.baz", "foo.bar_baz",
+        # Pre-rc.3 verb names appearing in v1→v2 migration narratives. The
+        # 2-segment forms are caught by reserved-names.json; these 3-segment
+        # forms are intermediate names captured in the rc.2/rc.3 audit prose.
+        "input.click.double",
+    }
+
+    # Markdown files to scan.
+    targets: list[pathlib.Path] = []
+    for sub in ("framing", "operators", "narrative"):
+        d = root / "spec" / sub
+        if d.is_dir():
+            targets.extend(p for p in sorted(d.glob("*.md")) if p.name != "README.md")
+    for filename in ("spec/AUTHORING-CHECKLIST.md",
+                     "spec/AUTHORING-PROGRESS.md",
+                     "README.md", "CHANGELOG.md", "CLAUDE.md",
+                     "LLM-OPERATORS.md"):
+        p = root / filename
+        if p.is_file():
+            targets.append(p)
+    docs_dir = root / "docs"
+    if docs_dir.is_dir():
+        targets.extend(sorted(docs_dir.glob("*.md")))
+
+    # Backticked-token regex: capture `foo.bar` or `foo.bar.baz` where each
+    # segment is alphanumeric+underscore. Limit to 2-3 segments.
+    token_pat = re.compile(
+        r"`([a-z][a-z0-9_]*\.[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)?)`"
+    )
+
+    for path in targets:
+        try:
+            content = path.read_text(encoding="utf-8")
+        except OSError:
+            continue
+        for match in token_pat.finditer(content):
+            tok = match.group(1)
+            if tok in valid_verbs:
+                continue
+            if tok in reserved:
+                continue
+            if tok in KNOWN_NON_VERB_TOKENS:
+                continue
+            # Three-segment token whose `<a>.<b>` head is a live verb is
+            # treated as a field path under that verb (e.g.
+            # `system.info.capabilities`).
+            head = tok.split(".")
+            if len(head) == 3 and ".".join(head[:2]) in valid_verbs:
+                continue
+            line_no = content[: match.start()].count("\n") + 1
+            _err(failures, path,
+                 f"line {line_no}: backticked token `{tok}` doesn't resolve "
+                 f"to a verb in spec/verbs/ or a reserved name in "
+                 f"spec/reserved-names.json. If this is meant as a verb "
+                 f"reference, fix the name. If it's a non-verb identifier "
+                 f"(test file, library, etc.), add it to "
+                 f"check_doc_verb_references.KNOWN_NON_VERB_TOKENS.")
+
+
 def main() -> int:
     root = _repo_root()
     spec_dir = root / "spec"
@@ -480,6 +592,7 @@ def main() -> int:
     check_shared_types(verb_files, shared_types, failures)
     check_error_codes(verb_files, error_dict, failures)
     covered = check_conformance_coverage(verb_files, root, failures)
+    check_doc_verb_references(verb_files, reserved, root, failures)
 
     print(f"check_spec: {len(verb_files)} verb files "
           f"({covered} with conformance coverage), "

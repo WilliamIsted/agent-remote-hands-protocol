@@ -14,16 +14,17 @@ The spec is **source-authored as JSON + markdown** under `spec/` and **rendered 
 |---|---|
 | `spec/verbs/<verb>.json` | Per-verb strict-tool definition with `x-*` extensions (CRUDX, families, errors, output schema, implementations chain). |
 | `spec/families.json` | OS-family declarations with per-family metadata (token paths, capability hints). |
-| `spec/framing/*.md` | Hand-written markdown for `PROTOCOL.md` non-verb sections (wire format, lifecycle, errors, tier model, etc.). |
+| `spec/framing/*.md` | Hand-written markdown for `dist/PROTOCOL.md` non-verb sections (wire format, lifecycle, errors, tier model, etc.). |
+| `spec/operators/*.md` | Hand-written markdown for `dist/LLM-OPERATORS.md` (the operator's-eye view for LLMs driving an agent). |
 | `spec/AUTHORING-CHECKLIST.md` | Per-verb completion definition. Read before authoring or amending a verb. |
-| `spec/reserved-names.json` | v1 verb names + superseded v2.0 names that MUST NOT be reintroduced. Enforced by `tests/check_spec.py`. |
-| `LLM-OPERATORS.md` (root) | Operator's-eye view for LLMs driving an agent. Hand-written; not generated. |
+| `spec/reserved-names.json` | v1 verb names + superseded v2.0 / v2.1.0-rc names that MUST NOT be reintroduced. Enforced by `tests/check_spec.py`. |
 
 | Generated (run `python Tools/gen.py`) | What it carries |
 |---|---|
 | `dist/PROTOCOL.md` | Canonical rendered spec. Concatenated `spec/framing/*.md` + generated §4 from `spec/verbs/*.json`. |
 | `dist/<family>/VERBS.md` | One-line per-verb catalogue, filtered to verbs that family implements. |
 | `dist/verbs.json` | Concatenated strict-tool defs with `x-*` stripped, ready for `client.messages.create(tools=...)`. |
+| `dist/LLM-OPERATORS.md` | Operator's-eye view for LLMs driving an agent. Concatenated `spec/operators/*.md`. |
 
 `dist/` is gitignored — consumers regenerate as needed. CI verifies the generator runs cleanly.
 
@@ -33,7 +34,7 @@ The spec is **source-authored as JSON + markdown** under `spec/` and **rendered 
 |---|---|
 | Wire-protocol spec | this repo (`spec/` + `dist/`) |
 | Conformance suite, reference client | this repo (`tests/conformance/`) |
-| Cross-implementation operator guidance | this repo (`LLM-OPERATORS.md`) |
+| Cross-implementation operator guidance | this repo (`spec/operators/` → `dist/LLM-OPERATORS.md`) |
 | Windows agent implementation | [agent repo](https://github.com/WilliamIsted/agent-remote-hands) |
 | MCP bridge | agent repo |
 | Install scripts, release pipeline, Scoop manifest | agent repo |

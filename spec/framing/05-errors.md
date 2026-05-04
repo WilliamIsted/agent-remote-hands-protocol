@@ -19,7 +19,7 @@ Errors take the form:
 | `wire_desync` | — | Caller payload corrupt; recoverable via `connection.reset` |
 | `timeout` | `{deadline}` | `*.wait` or streaming verb expired |
 | `busy` | `{max}` | Too many concurrent connections |
-| `conflict` | varies | Verb cannot proceed because of in-flight state (e.g. `system.power` `--delay` while one is already pending — detail `{"pending_until_ms":<n>}`) |
+| `conflict` | varies | Verb cannot proceed because of in-flight state (e.g. `system.power.shutdown` `--delay-seconds` while one is already pending — detail `{"pending_until_ms":<n>}`) |
 | `protocol_mismatch` | `{agent, client}` | Hello specified an incompatible protocol version |
 | `auth_required` | — | Reserved for v0.4 SSPI (Protocol 4.0) |
 | `auth_invalid` | — | Authentication token rejected. Used today by `connection.tier_raise` when the supplied tier-elevation token is wrong; reserved for v0.4 SSPI in addition. |

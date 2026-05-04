@@ -19,8 +19,9 @@ The spec is split into **source** (humans edit) and **generated** (machines + hu
 | [`spec/verbs/`](spec/verbs/) | One JSON file per verb. Each file is a strict-tool definition with `x-*` extensions for protocol metadata (CRUDX, families, errors, output schema, tool-fallback chains). |
 | [`spec/families.json`](spec/families.json) | OS-family declarations + per-family metadata (token paths, capability hints). |
 | [`spec/framing/`](spec/framing/) | Hand-written markdown for the non-verb sections of `dist/PROTOCOL.md` (wire format, lifecycle, error model, etc.). |
+| [`spec/operators/`](spec/operators/) | Hand-written markdown for `dist/LLM-OPERATORS.md` (the operator's-eye view for LLMs driving an agent). |
 | [`spec/AUTHORING-CHECKLIST.md`](spec/AUTHORING-CHECKLIST.md) | Per-verb completion definition. |
-| [`spec/reserved-names.json`](spec/reserved-names.json) | v1 verb names + superseded v2.0 names that MUST NOT be reintroduced. Enforced by `tests/check_spec.py`. |
+| [`spec/reserved-names.json`](spec/reserved-names.json) | v1 verb names + superseded v2.0 / v2.1.0-rc names that MUST NOT be reintroduced. Enforced by `tests/check_spec.py`. |
 | [`Tools/gen.py`](Tools/gen.py) | Renders the generated artefacts below from the source files. Stdlib-only Python. |
 
 | Generated (under `dist/`, gitignored — run `python Tools/gen.py` to produce) | Purpose |
@@ -29,8 +30,8 @@ The spec is split into **source** (humans edit) and **generated** (machines + hu
 | `dist/windows-modern/VERBS.md` | One-line conceptual catalogue of every verb the `windows-modern` agent implements. |
 | `dist/windows-classic/VERBS.md` | Same for the `windows-classic` agent (UIA-only verbs filtered out). |
 | `dist/verbs.json` | Concatenated strict-tool definitions with `x-*` stripped, ready for `client.messages.create(tools=...)`. |
-| [`LLM-OPERATORS.md`](LLM-OPERATORS.md) | Operator's-eye view for LLMs driving an agent. (Hand-written; not generated.) |
-| [`tests/conformance/`](tests/conformance/) | Executable contract — pytest suite that any agent claiming to speak the protocol must pass. Includes [`wire.py`](tests/conformance/wire.py), the canonical Python reference client (~170 lines, stdlib-only). |
+| `dist/LLM-OPERATORS.md` | Operator's-eye view for LLMs driving an agent. Concatenated from `spec/operators/`. |
+| [`tests/conformance/`](tests/conformance/) | Executable contract — pytest suite that any agent claiming to speak the protocol must pass. Includes [`wire.py`](tests/conformance/wire.py), the canonical Python reference client (~220 lines, stdlib-only). |
 
 ## Reading paths
 
@@ -39,7 +40,7 @@ Different reading tasks, different docs:
 - **"I want to understand the wire"** → `dist/PROTOCOL.md` (run `python Tools/gen.py` first).
 - **"What verbs exist and what do they do"** → `dist/<family>/VERBS.md` for the family you target. One-line per verb; scan in 30 seconds.
 - **"I want to register the verbs as Anthropic strict-tool definitions"** → `dist/verbs.json`.
-- **"I'm an LLM about to drive an agent"** → [`LLM-OPERATORS.md`](LLM-OPERATORS.md). What to read, what to assume, footguns to know about, a worked example.
+- **"I'm an LLM about to drive an agent"** → `dist/LLM-OPERATORS.md` (run `python Tools/gen.py` first; source under [`spec/operators/`](spec/operators/)). What to read, what to assume, footguns to know about, a worked example.
 - **"I need to verify my implementation conforms"** → [`tests/conformance/`](tests/conformance/) + [`wire.py`](tests/conformance/wire.py).
 - **"I want to author / amend the spec itself"** → [`spec/`](spec/). Edit `spec/verbs/<verb>.json` for verb changes; `spec/framing/*.md` for framing-section changes; regenerate with `python Tools/gen.py`.
 
@@ -96,7 +97,7 @@ Produces `dist/PROTOCOL.md`, `dist/windows-modern/VERBS.md`, `dist/windows-class
 
 ## Relationship to the agent repo
 
-The agent (Windows binary, MCP bridge, install scripts, release pipeline) lives in [agent-remote-hands](https://github.com/WilliamIsted/agent-remote-hands). That repo references this one as a git submodule at `protocol/`, pinned to a specific Protocol-repo tag. Each agent release ships the rendered `dist/PROTOCOL.md`, `LLM-OPERATORS.md`, and `wire.py` alongside the binary in the release zip — sourced from the submodule, generated at release time.
+The agent (Windows binary, MCP bridge, install scripts, release pipeline) lives in [agent-remote-hands](https://github.com/WilliamIsted/agent-remote-hands). That repo references this one as a git submodule at `protocol/`, pinned to a specific Protocol-repo tag. Each agent release ships the rendered `dist/PROTOCOL.md`, `dist/LLM-OPERATORS.md`, and `wire.py` alongside the binary in the release zip — sourced from the submodule, generated at release time.
 
 ## Contributing
 

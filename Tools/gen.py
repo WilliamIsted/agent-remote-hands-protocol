@@ -5,6 +5,7 @@ Reads:
   - spec/verbs/*.json          per-verb strict-tool definitions with x-* extensions
   - spec/families.json         family declarations + per-family metadata (token paths, etc.)
   - spec/framing/*.md          hand-written markdown for non-verb PROTOCOL.md sections
+  - spec/operators/*.md        hand-written markdown for LLM-OPERATORS.md sections
 
 Writes:
   - dist/PROTOCOL.md           framing sections + generated §4 (verbs by namespace)
@@ -12,6 +13,7 @@ Writes:
                                family actually implements
   - dist/verbs.json            concatenated strict-tool definitions with x-* stripped,
                                ready for `client.messages.create(tools=...)`
+  - dist/LLM-OPERATORS.md      operators markdown concatenated in filename-ordinal order
 
 Run from the repo root:
 
@@ -69,11 +71,20 @@ def load_families():
 
 def load_framing():
     """Return list of (slug, content) pairs, sorted by filename ordinal."""
-    framing_dir = SPEC_DIR / "framing"
-    if not framing_dir.is_dir():
+    return _load_markdown_dir(SPEC_DIR / "framing")
+
+
+def load_operators():
+    """Return list of (slug, content) pairs for spec/operators/*.md, sorted
+    by filename ordinal."""
+    return _load_markdown_dir(SPEC_DIR / "operators")
+
+
+def _load_markdown_dir(d):
+    if not d.is_dir():
         return []
     out = []
-    for path in sorted(framing_dir.glob("*.md")):
+    for path in sorted(d.glob("*.md")):
         if path.name == "README.md":
             continue
         slug = path.stem
@@ -481,6 +492,23 @@ def render_verbs_json(verbs):
 
 
 # ---------------------------------------------------------------------------
+# dist/LLM-OPERATORS.md: operators markdown concat
+# ---------------------------------------------------------------------------
+
+def render_llm_operators_md(operators):
+    """Concat operators markdown files in filename-ordinal order, separated
+    by horizontal rules (same convention as the framing concatenation)."""
+    parts = []
+    for _slug, content in operators:
+        parts.append(content.rstrip())
+        parts.append("\n\n---\n\n")
+    text = "".join(parts).rstrip()
+    if text.endswith("---"):
+        text = text[:-3].rstrip()
+    return text + "\n"
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
@@ -488,6 +516,7 @@ def main():
     verbs = load_verbs()
     families = load_families()
     framing = load_framing()
+    operators = load_operators()
 
     DIST_DIR.mkdir(exist_ok=True)
 
@@ -511,6 +540,11 @@ def main():
         encoding="utf-8",
     )
 
+    # 4. dist/LLM-OPERATORS.md
+    if operators:
+        llm_operators_md = render_llm_operators_md(operators)
+        (DIST_DIR / "LLM-OPERATORS.md").write_text(llm_operators_md, encoding="utf-8")
+
     # Report
     print(f"Wrote dist/PROTOCOL.md       ({len(protocol_md)} chars)")
     for family_name in families:
@@ -520,6 +554,8 @@ def main():
         if path.exists():
             print(f"Wrote dist/{family_name}/VERBS.md")
     print(f"Wrote dist/verbs.json        ({len(api_tools)} verbs)")
+    if operators:
+        print(f"Wrote dist/LLM-OPERATORS.md  ({len(llm_operators_md)} chars)")
     return 0
 
 
