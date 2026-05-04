@@ -18,7 +18,7 @@ The spec is split into **source** (humans edit) and **generated** (machines + hu
 |---|---|
 | [`spec/verbs/`](spec/verbs/) | One JSON file per verb. Each file is a strict-tool definition with `x-*` extensions for protocol metadata (CRUDX, families, errors, output schema, tool-fallback chains). |
 | [`spec/families.json`](spec/families.json) | OS-family declarations + per-family metadata (token paths, capability hints). |
-| [`spec/framing/`](spec/framing/) | Hand-written markdown for the non-verb sections of `PROTOCOL.md` (wire format, lifecycle, error model, etc.). |
+| [`spec/framing/`](spec/framing/) | Hand-written markdown for the non-verb sections of `dist/PROTOCOL.md` (wire format, lifecycle, error model, etc.). |
 | [`spec/AUTHORING-CHECKLIST.md`](spec/AUTHORING-CHECKLIST.md) | Per-verb completion definition. |
 | [`spec/reserved-names.json`](spec/reserved-names.json) | v1 verb names + superseded v2.0 names that MUST NOT be reintroduced. Enforced by `tests/check_spec.py`. |
 | [`Tools/gen.py`](Tools/gen.py) | Renders the generated artefacts below from the source files. Stdlib-only Python. |
@@ -47,7 +47,7 @@ Different reading tasks, different docs:
 
 | Version | Status | Notes |
 |---|---|---|
-| 2.1 | Stable (this repo's `main`) | CRUDX tier ladder (`read` < `create` < `update` < `delete` < `extra_risky`); `clipboard.read`/`write` renamed to `clipboard.get`/`set`; new `directory.*` namespace split out of `file.*` with full CRUDX-complete primitives; header-line argument quoting (`"path with spaces"`). Wire-breaking change vs 2.0 — clean cut, no aliases. Implemented by `windows-modern@v0.3.x`. See `dist/PROTOCOL.md` §12.5 for the full release notes and migration ladder. |
+| 2.1 | Stable (this repo's `main`) | CRUDX tier ladder (`read` < `create` < `update` < `delete` < `extra_risky`); `clipboard.read`/`write` → `clipboard.get`/`set`; `directory.*` namespace split out of `file.*` with full CRUDX-complete primitives; `file.*` create/update split (new `file.create` C-tier verb); `system.*` power verbs re-namespaced to `system.power.*`; `registry.*` restructured into resource-first `registry.value.{read,create,update,delete}` + `registry.key.{read,delete}`; `input.*` split into `input.mouse.*` + `input.keyboard.*` sub-namespaces (rc.3) plus 6 new verbs closing v1.0.0-milestone parity (`input.position`, `input.mouse.press`/`release`/`drag`, `input.keyboard.key_down`/`key_up`); header-line argument quoting (`"path with spaces"`). Wire-breaking change vs 2.0 — clean cut, no aliases. Implemented by `windows-modern@v0.3.x`. See `dist/PROTOCOL.md` §12.5 for the full release notes and migration ladder. |
 | 2.0 | Released | Pin clients here for the old `observe`/`drive`/`power` tier vocabulary and the `clipboard.read`/`write`/`file.list`/`file.mkdir` verb names. Implemented by `windows-modern@v0.2.x`. |
 | 3.0 | In design | Modern-family major — privsep dispatcher + tier-restricted workers; JSON-RPC 2.0 wire format with binary side-channel. See the agent repo's `Documents/Overview/Planning/v3-structural-review.md` for the cross-repo design context. |
 

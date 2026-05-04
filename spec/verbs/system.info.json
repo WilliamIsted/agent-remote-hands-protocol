@@ -84,9 +84,14 @@
       "capabilities": {
         "type": "object",
         "description": "Open-ended per-family sub-capability map. Common keys (per the windows-modern / windows-classic families): `ui_automation`, `wgc`, `gdi`, `uipi`, `integrity_levels`, `image_formats`, `wake_timer_supported` (issue #82), `input_settings` (issue #86)."
+      },
+      "current_tier": {
+        "type": "string",
+        "enum": ["read", "create", "update", "delete", "extra_risky"],
+        "description": "Connection's currently-active CRUDX tier. Echoes the result of the most recent `connection.tier_raise` / `connection.tier_drop` (or `read` on a fresh connection). Lets callers introspect their own tier without tracking it client-side."
       }
     },
-    "required": ["family", "agent", "agent_protocol", "os_name", "os_version", "cpu_arch", "integrity", "uiaccess", "hostname", "screens", "capabilities"],
+    "required": ["family", "agent", "agent_protocol", "os_name", "os_version", "cpu_arch", "integrity", "uiaccess", "hostname", "screens", "capabilities", "current_tier"],
     "additionalProperties": false
   },
   "x-errors": [],

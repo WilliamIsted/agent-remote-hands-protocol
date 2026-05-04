@@ -22,9 +22,9 @@ fresh VM you can occasionally see 1618 if the OS is mid-update.
 
 ```
 process.start  msiexec.exe /i \"C:\\path\\firefox.msi\" /quiet
-process.wait   <pid> 600000
+process.wait   <pid> --timeout-ms 600000
 process.start  msiexec.exe /i \"C:\\path\\thunderbird.msi\" /quiet
-process.wait   <pid> 600000
+process.wait   <pid> --timeout-ms 600000
 ```
 
 If you must parallelise across hosts, run each on a separate machine — the
@@ -65,15 +65,18 @@ own the foreground (or that hasn't been blessed by `AllowSetForegroundWindow`
 from the current foreground process). This is anti-focus-stealing
 protection.
 
-Agent Remote Hands surfaces denial as `ERR lock_held {"lock_type":"foreground"}`
-on `window.focus`. Common-case fix: ensure the current foreground process
-(usually `explorer.exe` on a fresh logon) has called `AllowSetForegroundWindow`
-or that the requesting process has been registered via the same mechanism.
-The agent already calls `AllowSetForegroundWindow(ASFW_ANY)` before
-`SetForegroundWindow`; that handles the idle-desktop case but not the
+Agent Remote Hands surfaces denial as a success-with-status: `window.focus`
+returns `OK` with `focused_status: "lock_held"` in its response body (alongside
+the captured `prior_handle`). The move/focus didn't take effect, but the verb
+didn't error — distinguishing "the OS denied this for foreground-lock reasons"
+from "the handle was bad" or "UIPI blocked us". Common-case fix: ensure the
+current foreground process (usually `explorer.exe` on a fresh logon) has called
+`AllowSetForegroundWindow` or that the requesting process has been registered
+via the same mechanism. The agent already calls `AllowSetForegroundWindow(ASFW_ANY)`
+before `SetForegroundWindow`; that handles the idle-desktop case but not the
 case where another app has just stolen focus.
 
-If a verb returns `ERR lock_held` repeatedly:
+If `window.focus` returns `focused_status: "lock_held"` repeatedly:
 
 1. Check `system.info.integrity` — UIPI may also be in play (see
    [`dist/PROTOCOL.md` §8](../dist/PROTOCOL.md#8-elevation-and-integrity-levels)). A
@@ -144,7 +147,7 @@ you're looking at this. To rule out other causes:
 - Foreground check: confirm the game window has focus when the verb fires.
 - IL check: `input.click` reaching the target rules out a UIPI block (which
   would affect mouse synthesis equally).
-- Last resort: try `input.send_message <hwnd> 0x100 ...` then
+- Last resort: try `input.send_message <handle> 0x100 ...` then
   `input.post_message`. If both also produce `OK` + no effect, the target
   is reading kernel keyboard state, not user32.
 

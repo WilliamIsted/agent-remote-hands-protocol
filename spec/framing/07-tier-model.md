@@ -10,7 +10,7 @@ The tier vocabulary follows CRUDX — each verb's required tier matches the side
 | `create` | C | All `read` capabilities plus operations that bring something new into existence: `directory.create`, `process.start`, `process.shell`. |
 | `update` | U | All `create` capabilities plus operations that overwrite or move existing things: synthetic input, file writes, registry writes, focus changes, element invocations, window moves, file rename. |
 | `delete` | D | All `update` capabilities plus operations that make existing things cease to be: `file.delete`, `process.kill`, `registry.delete`. |
-| `extra_risky` | X | All `delete` capabilities plus operations that affect system / power state: `system.shutdown`, `system.reboot`, `system.logoff`, `system.hibernate`, `system.sleep`, `system.lock`. |
+| `extra_risky` | X | All `delete` capabilities plus operations that affect system / power state: `system.power.shutdown`, `system.power.reboot`, `system.power.logoff`, `system.power.hibernate`, `system.power.sleep`, `system.power.lock`. |
 
 The ladder is strict — holding a higher tier subsumes every lower tier. A connection at `delete` can call any `R`/`C`/`U`/`D`-tier verb (but not `X`-tier).
 

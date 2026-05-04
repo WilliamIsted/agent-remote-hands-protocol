@@ -14,6 +14,8 @@ Source-of-truth for citations:
 
 Status legend: ⬜ not started · 🟨 in progress · ✅ done.
 
+The per-row **Conformance** columns below name the test file that exercises each verb when there is one. They were last refreshed before the 2026-05-03 conformance backfill — at this point `tests/check_spec.py` enforces that every verb in `spec/verbs/` has at least one `needs_verb(capabilities, "<verb>")` gate somewhere under `tests/conformance/test_*.py`, so any ❌ in the rows below is stale-and-will-be-reconciled rather than a real coverage gap. Authoritative source-of-truth: run `python tests/check_spec.py`.
+
 ---
 
 ## `connection.*` (5 verbs)
@@ -186,7 +188,7 @@ The PROTOCOL.md columns are dropped post-audit (PROTOCOL.md being deleted; mock-
 | Status | Count |
 |---|---|
 | Total v2.1 verbs (post-rc.3) | 86 |
-| Currently exercised by conformance suite | ~36 (input.* tests need rename to test_input_mouse / test_input_keyboard) |
+| Currently exercised by conformance suite | 86 (every verb has a `needs_verb(capabilities, "<verb>")` gate; enforced by `tests/check_spec.py`) |
 | With v1 ancestor verb(s) | 47 |
 | v2-only (no v1 ancestor) | 39 |
 
@@ -331,9 +333,70 @@ Captures the load-bearing preferences confirmed for each namespace so the same q
 - **`uia_blind` vs `not_found`**: `uia_blind` = couldn't see across IL barrier; `not_found` = search ran cleanly but matched zero. Distinct codes for "elevate and retry" vs "the element doesn't exist".
 - **`target_gone` for stale handles**; **`not_supported_by_target`** for elements lacking the relevant UIA pattern (invoke/toggle/expand/collapse/focus/set_text/text); **`readonly`** specifically when ValuePattern.IsReadOnly=true on set_text.
 
-### `file.*`, `directory.*`, `process.*`, `registry.*`, `clipboard.*`, `watch.*`
+### `file.*` (10/10 done)
 
-Conventions to be established as each namespace is reached.
+- **Files-only narrowing in v2.1.0-rc.2:** all directory primitives moved to `directory.*`; the `file.*` namespace handles regular files exclusively. `file.list` was renamed to `directory.list`; `file.mkdir` to `directory.create`. The narrowed `file.delete` no longer accepts `recursive`/`not_empty` flags.
+- **CRUDX split for write-side verbs:** `file.create` is the C verb (errors `already_exists` if the file is present); `file.write` is U-only (errors `not_found` if absent — no auto-create). The split formalises the create-vs-overwrite intent at the caller.
+- **`file.write_at` is the chunked-upload primitive.** `truncate: true` is conditional on `offset: 0` (encoded as `x-conditional` — invalid otherwise). Returns `new_size` so callers know where to set the next chunk's offset.
+- **Encoding enum is uniform across read/write/create/write_at:** `[utf-8, utf-16le, utf-16be, ascii, latin-1, cp1252, binary]`. `binary` means base64 in/out for raw bytes.
+- **Atomic writes by default.** `file.create` and `file.write` default to `atomic: true` (write to temp + rename); `false` is opt-in for files held open by other processes via FILE_SHARE_WRITE.
+- **Timestamp suffix is `_unix_s`** (not `_unix`). Consistent with `directory.*` post-rc.2 timestamp normalisation.
+- **`flags` array per #93** (file.stat, directory.list, directory.stat): drawn from a closed enum of Win32 `FILE_ATTRIBUTE_*` flag names. Cloud-file flags (`recall_on_*`) are Windows 10+; older Windows omits them rather than reporting absent ones.
+- **`file.download.local_path`** (not `dest_path`): cross-platform-friendly destination path naming. Three-tier implementation chain on modern (curl → wget → powershell-bits); error_unsupported on classic when no transfer tool is installed.
+- **`file.rename` returns `{renamed, fallback_used}`** where `fallback_used: copy_delete` flags non-atomic cross-FS path; `none` for atomic same-volume.
+
+### `directory.*` (6/6 done)
+
+- **Carved out of `file.*` in v2.1.0-rc.2.** New verbs: `directory.create` (renamed from `file.mkdir`), `directory.list` (renamed from `file.list`), `directory.stat`, `directory.exists`, `directory.rename`, `directory.delete` (renamed from `directory.remove`).
+- **`removed: true` field dropped** on `directory.delete` response — the OK status already conveys success. Only `entries_removed: int` remains.
+- **`directory.list` defaults are non-recursive.** Pass `recursive: true` to walk the subtree depth-first; reparse points (junctions/symlinks) appear as `link`-type entries but are NOT followed (cycle protection). `pattern` is glob-style (`*`/`?`); `limit` caps the walk.
+- **Per-entry shape includes `flags` array** (per #93 — same enum as file.stat). All three timestamps (`mtime_unix_s`, `ctime_unix_s`, `atime_unix_s`) on every entry; expensive only if very large directory.
+- **`directory.stat.type` is a const enum** containing only `"directory"` — non-directories return `ERR not_a_directory` rather than reporting a different type. This is unlike `file.stat.type` which uses the open `file/directory/link/other` enum.
+- **`directory.exists` is non-polymorphic.** Returns `false` for files (use `file.exists` for the polymorphic test).
+- **`directory.rename` returns `{renamed, fallback_used}`** mirroring `file.rename`; `cross_fs: true` opts into copy+delete on cross-volume moves.
+- **`mode` field on `directory.create` is silently ignored on Windows** (NTFS uses ACLs, not POSIX bits) — encoded via per-family `fields_ignored: ["mode"]` overlay.
+
+### `process.*` (5/5 done)
+
+- **`process.list` filter is `pattern`** (renamed from `filter` pre-rc.2). Case-insensitive substring against the image name.
+- **`include_counters: true` adds CPU/memory/handle counts** (`cpu_percent`, `rss_bytes`, `working_set_bytes`, `private_bytes`, `thread_count`, `handle_count`, `start_time_unix_s`). Modest cost (per-pid OpenProcess + GetProcessTimes + GetProcessMemoryInfo + GetProcessHandleCount), so opt-in. Protected processes report empty/zero values.
+- **`process.start.argv` is a string array** — agent assembles `lpCommandLine` correctly, avoiding shell-escape hazards. For path-with-spaces / unicode-name / shell-verb cases (open, runas, print, edit, explore, find), use `process.shell` instead.
+- **`process.shell.pid` may be null** when no process spawns (e.g. `print` on a file that opens in an existing handler instance). Caller MUST null-check before passing to `process.kill`/`process.wait` (both require `pid >= 1`).
+- **`process.wait` exit-code cache (per #16):** the agent retains the spawned process handle so `process.wait` returns the exit code even after the OS reaped the process. Without the cache this would return `ERR target_gone` after a fast exit.
+- **`process.kill` is hard kill** (TerminateProcess) — no graceful shutdown signal. Children are NOT cascaded; callers wanting tree-kill must enumerate descendants and kill individually first (job-object pattern is out of scope for this verb).
+- **CRUDX D for kill, R for list/wait, C for start/shell.** wait is read-tier (it observes; doesn't change state).
+
+### `registry.*` (6/6 done)
+
+- **Resource-first CRUD restructure in v2.1.0-rc.2.** `registry.read`/`write`/`delete` were replaced by separate verb sets for values vs. keys: `registry.value.{read, create, update, delete}` for individual values, `registry.key.{read, delete}` for whole keys. Pre-rc.2 names are reserved (`spec/reserved-names.json`) and won't be reintroduced.
+- **`registry.value.create` vs. `update` are explicit** at the verb layer. create errors with `already_exists` when the value is present; update errors with `not_found` when it's missing. RegSetValueExW itself doesn't distinguish — the agent does a probe RegQueryValueExW first to surface the right error.
+- **`registry.key.read` returns names + types only**, not data. Callers use `registry.value.read` to fetch a specific value's data. This split prevents accidental large-payload responses for keys with many values.
+- **`registry.value.delete` dropped the always-true `deleted` field.** OK status already conveys success.
+- **`registry.wait` consolidated into `watch.registry --until-change`.** The standalone `registry.wait` verb was removed in v2.1.0-rc.2; same semantics now live in `watch.registry` with the `until_change: true` flag (synchronous one-shot wait).
+- **Hive abbreviations expanded server-side:** `HKLM`, `HKCU`, `HKCR`, `HKU`, `HKCC`. Accepted in any path argument; case-insensitive.
+- **Type enum is the full Win32 set:** `REG_SZ`, `REG_EXPAND_SZ`, `REG_BINARY`, `REG_DWORD`, `REG_DWORD_BIG_ENDIAN`, `REG_LINK`, `REG_MULTI_SZ`, `REG_QWORD`, `REG_NONE`. Pre-9x agents may return `ERR not_supported` for `REG_QWORD` / `REG_LINK`.
+- **`registry.key.delete --recursive` mirrors directory.delete.** Without the flag, deleting a key with subkeys returns `ERR not_empty`.
+
+### `clipboard.*` (2/2 done)
+
+- **Renamed in v2.1.0:** `clipboard.read` → `clipboard.get`; `clipboard.write` → `clipboard.set`. Old names are reserved.
+- **`x-since: 2.1` plus `x-renamed-from`** on each. v1 ancestors are `CLIPGET`/`CLIPSET`.
+- **Bytes-on-the-wire payload semantics.** The clipboard data is the wire payload (after the verb header line), not a JSON-wrapped string — preserves binary fidelity for non-text formats (CF_DIB, CF_HDROP, etc.).
+- **`clipboard.set` echoes `format`** in its response body — confirms the agent honoured the requested format (no silent fallback).
+- **CRUDX:** R for get, U for set (clipboard is shared OS state — set is not creating a new resource).
+- **Tier:** read for get, update for set. `set` writes; gating prevents unprivileged callers from clobbering active clipboard contents.
+
+### `watch.*` (7/7 done)
+
+- **Subscription-id format is `sub:N`** (connection-scoped). Allocated per subscription; reusable after `watch.cancel`.
+- **`watch.cancel` is idempotent.** Cancellation of a subscription that doesn't exist returns `OK 0` (not `ERR not_found`) — matches the cleanup-fail-safe pattern used by `input.*.release` / `input.keyboard.key_up`. The connection-cancel event from the framing layer signals every `watch.*` worker thread on connection close, so subscriptions don't leak.
+- **`watch.cancel` is subscription-scoped only.** The v1 global `ABORT` form is a hard-drop — it was a cross-connection denial-of-service vector. Sub-scoped cancellation is the v2 safety improvement.
+- **EVENT-payload reconciliation per-verb.** Every `watch.*` verb declares an `x-event-schema` for the EVENT-frame body shape; framing-section §3 documents the EVENT envelope.
+- **`watch.region` was narrowed to screen-only in v2.** The v1 `WATCH` had broader semantics; v2.0+ restricts it to a single concern. Recursive directory watches live on `watch.file --recursive`.
+- **`watch.region.encoding` enum is `[binary, base64]`** (added in rc.2 along with the matching `screen.capture.encoding` flag). Binary mode emits raw bytes; base64 emits a JSON envelope.
+- **`watch.registry --until-change`** is the synchronous one-shot wait that subsumed v2.0's `registry.wait`. With the flag set, the verb blocks the connection until the first change fires (or `timeout_ms` expires); without it, returns a `subscription_id` immediately and emits EVENTs until cancelled.
+- **`watch.process` events use `kind: started/exited`** plus the affected pid. `watch.window` events use `kind: created/destroyed/renamed` plus the affected handle. `watch.file` events use `kind: created/modified/deleted/renamed` with `path` and optional `old_path` (only for `renamed`).
+- **`watch.element` is one-shot.** Emits a single EVENT on element invalidation (destroyed / reparented / structure_changed), then auto-cancels. Differs from the streaming subscriptions on the other watch.* verbs.
 
 ---
 

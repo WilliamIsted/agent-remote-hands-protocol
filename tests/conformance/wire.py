@@ -198,7 +198,7 @@ class WireClient:
     # Convenience wrappers
 
     def hello(self, client_name: str = "conformance",
-              version: str = "2.0") -> None:
+              version: str = "2.1") -> None:
         r = self.request("connection.hello", client_name, version)
         if isinstance(r, ErrResponse):
             raise WireError(f"hello failed: {r.code} {r.detail}")

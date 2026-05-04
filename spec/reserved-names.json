@@ -1,4 +1,31 @@
 {
-  "_doc": "Names that MUST NOT appear as a `spec/verbs/<name>.json` file or as a verb's `name` field. The mechanism is preserved (validator continues to cross-check verb files and `name` fields against this list) but the protocol is still green-field — no entries are needed yet. Add entries here when a wire-shipped verb is renamed or removed in a way that would create caller confusion if the old name were re-used. Enforced by tests/check_spec.py.",
-  "reserved": []
+  "_doc": "Names that MUST NOT appear as a `spec/verbs/<name>.json` file or as a verb's `name` field. Enforced by tests/check_spec.py — adding spec/verbs/<reserved>.json or setting a verb's `name` field to a reserved value fails the validator. Backs the v2.1.0 release-notes promise that v2.1 agents reject the v2.0 verb names with ERR not_supported. Add new entries here when a wire-shipped verb is renamed or removed in a way that would create caller confusion if the old name were re-used. Each entry: { name, kind, reason, replacement? }.",
+  "reserved": [
+    { "name": "clipboard.read",         "kind": "v2.0-superseded", "reason": "Renamed to clipboard.get in v2.1.0-rc.2 for wire-vocabulary symmetry with clipboard.set.", "replacement": "clipboard.get" },
+    { "name": "clipboard.write",        "kind": "v2.0-superseded", "reason": "Renamed to clipboard.set in v2.1.0-rc.2 for wire-vocabulary symmetry with clipboard.get.", "replacement": "clipboard.set" },
+
+    { "name": "file.list",              "kind": "v2.0-superseded", "reason": "Directory-only verb moved out of file.* into directory.* in v2.1.0-rc.2.", "replacement": "directory.list" },
+    { "name": "file.mkdir",             "kind": "v2.0-superseded", "reason": "Directory-only verb moved out of file.* into directory.* in v2.1.0-rc.2.", "replacement": "directory.create" },
+
+    { "name": "directory.remove",       "kind": "v2.1.0-rc-superseded", "reason": "Renamed to directory.delete in v2.1.0-rc.2 for symmetry with file.delete and the CRUDX D-tier convention.", "replacement": "directory.delete" },
+
+    { "name": "system.shutdown",        "kind": "v2.0-superseded", "reason": "Power verbs moved into the system.power.* sub-namespace in v2.1.0-rc.2.", "replacement": "system.power.shutdown" },
+    { "name": "system.reboot",          "kind": "v2.0-superseded", "reason": "Power verbs moved into the system.power.* sub-namespace in v2.1.0-rc.2.", "replacement": "system.power.reboot" },
+    { "name": "system.logoff",          "kind": "v2.0-superseded", "reason": "Power verbs moved into the system.power.* sub-namespace in v2.1.0-rc.2.", "replacement": "system.power.logoff" },
+    { "name": "system.hibernate",       "kind": "v2.0-superseded", "reason": "Power verbs moved into the system.power.* sub-namespace in v2.1.0-rc.2.", "replacement": "system.power.hibernate" },
+    { "name": "system.sleep",           "kind": "v2.0-superseded", "reason": "Power verbs moved into the system.power.* sub-namespace in v2.1.0-rc.2.", "replacement": "system.power.sleep" },
+    { "name": "system.lock",            "kind": "v2.0-superseded", "reason": "Power verbs moved into the system.power.* sub-namespace in v2.1.0-rc.2.", "replacement": "system.power.lock" },
+    { "name": "system.shutdown_blockers","kind": "v2.0-superseded","reason": "Power verbs moved into the system.power.* sub-namespace in v2.1.0-rc.2.", "replacement": "system.power.blockers" },
+
+    { "name": "registry.read",          "kind": "v2.0-superseded", "reason": "Replaced by resource-first split in v2.1.0-rc.2: whole-key read became registry.key.read; single-value read became registry.value.read.", "replacement": "registry.key.read" },
+    { "name": "registry.write",         "kind": "v2.0-superseded", "reason": "Replaced by explicit create/update split in v2.1.0-rc.2: registry.value.create errors with already_exists, registry.value.update errors with not_found." },
+    { "name": "registry.delete",        "kind": "v2.0-superseded", "reason": "Replaced by resource-first split in v2.1.0-rc.2: registry.value.delete for individual values, registry.key.delete for whole keys." },
+    { "name": "registry.wait",          "kind": "v2.0-superseded", "reason": "Synchronous one-shot wait consolidated into watch.registry --until-change in v2.1.0-rc.2.", "replacement": "watch.registry" },
+
+    { "name": "input.click",            "kind": "v2.1.0-rc-superseded", "reason": "Mouse verbs moved into the input.mouse.* sub-namespace in v2.1.0-rc.3.", "replacement": "input.mouse.click" },
+    { "name": "input.move",             "kind": "v2.1.0-rc-superseded", "reason": "Mouse verbs moved into the input.mouse.* sub-namespace in v2.1.0-rc.3.", "replacement": "input.mouse.move" },
+    { "name": "input.scroll",           "kind": "v2.1.0-rc-superseded", "reason": "Mouse verbs moved into the input.mouse.* sub-namespace in v2.1.0-rc.3.", "replacement": "input.mouse.scroll" },
+    { "name": "input.key",              "kind": "v2.1.0-rc-superseded", "reason": "Keyboard verbs moved into the input.keyboard.* sub-namespace in v2.1.0-rc.3.", "replacement": "input.keyboard.key" },
+    { "name": "input.type",             "kind": "v2.1.0-rc-superseded", "reason": "Keyboard verbs moved into the input.keyboard.* sub-namespace in v2.1.0-rc.3.", "replacement": "input.keyboard.type" }
+  ]
 }

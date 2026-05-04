@@ -34,6 +34,10 @@ to catch the structural mistakes that are hard to spot on visual review:
   - No verb file or verb `name` collides with spec/reserved-names.json
     (v1 verbs that were renamed or dropped, plus v2.0 dotted names that
     v2.1 superseded).
+  - Every verb in spec/verbs/ has at least one `needs_verb(capabilities,
+    "<verb>")` reference somewhere in tests/conformance/test_*.py — the
+    conformance suite is the wire-protocol contract; new verbs must land
+    with a test gating call.
 
 Exit code: 0 on success, 1 on the first failure batch (all failures printed).
 """
@@ -390,6 +394,67 @@ def check_shared_types(verb_files: list[pathlib.Path],
                      f"$defs.{type_name} {err} — see spec/types/{type_name}.json")
 
 
+def check_conformance_coverage(verb_files: list[pathlib.Path],
+                               root: pathlib.Path,
+                               failures: list[str]) -> int:
+    """Every verb in spec/verbs/<verb>.json must have at least one
+    `needs_verb(capabilities, "<verb>")` call somewhere under
+    tests/conformance/test_*.py. The conformance suite is the wire-protocol
+    contract — adding a verb without a gating call is a contract change
+    without verification.
+
+    A verb may also be exercised via `client.<wrapper>()` convenience
+    methods on `WireClient` (e.g. `connection.hello`, `system.info`,
+    `system.capabilities`); those wrappers are recognised here too.
+
+    Returns the count of covered verbs.
+    """
+    conf_dir = root / "tests" / "conformance"
+    if not conf_dir.is_dir():
+        # No conformance suite to check against; skip rather than fail.
+        return 0
+
+    # Concatenate every test_*.py source file once.
+    sources = []
+    for path in sorted(conf_dir.glob("test_*.py")):
+        try:
+            sources.append(path.read_text(encoding="utf-8"))
+        except OSError:
+            continue
+    blob = "\n".join(sources)
+
+    # Verbs invoked through WireClient convenience wrappers rather than
+    # through `needs_verb(capabilities, ...)`. Keep this set tight — the
+    # default expectation is a `needs_verb` gating call.
+    wrapper_covered = {
+        "connection.hello",      # exercised by every test via client.hello()
+        "connection.tier_raise", # exercised by *_client elevation fixtures
+        "system.info",           # exercised by client.info()
+        "system.capabilities",   # exercised by client.capabilities()
+    }
+
+    covered = 0
+    for path in verb_files:
+        try:
+            spec = json.loads(path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            continue
+        name = spec.get("name")
+        if not isinstance(name, str):
+            continue
+        token = f'needs_verb(capabilities, "{name}")'
+        if token in blob or name in wrapper_covered:
+            covered += 1
+            continue
+        _err(failures, path,
+             f"verb {name!r} has no `needs_verb(capabilities, {name!r})` "
+             f"reference in tests/conformance/test_*.py — every verb in "
+             f"spec/verbs/ must be exercised by the conformance suite. "
+             f"Add a tier-gate or arg-validation test to the relevant "
+             f"test_<namespace>.py.")
+    return covered
+
+
 def main() -> int:
     root = _repo_root()
     spec_dir = root / "spec"
@@ -414,8 +479,10 @@ def main() -> int:
     check_reserved_collisions(verb_files, reserved, failures)
     check_shared_types(verb_files, shared_types, failures)
     check_error_codes(verb_files, error_dict, failures)
+    covered = check_conformance_coverage(verb_files, root, failures)
 
-    print(f"check_spec: {len(verb_files)} verb files, "
+    print(f"check_spec: {len(verb_files)} verb files "
+          f"({covered} with conformance coverage), "
           f"{len(families)} families, "
           f"{len(reserved)} reserved names, "
           f"{len(shared_types)} shared types, "

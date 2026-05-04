@@ -44,19 +44,22 @@ Tier-raising tests read the agent's elevation token from `%ProgramData%\AgentRem
 
 ```
 tests/conformance/
-├── README.md          (this file)
-├── run.py             (entry point: `python run.py <host> [port]`)
-├── conftest.py        (pytest fixtures)
-├── wire.py            (Python wire-protocol client)
+├── README.md             (this file)
+├── run.py                (entry point: `python run.py <host> [port]`)
+├── conftest.py           (pytest fixtures)
+├── wire.py               (Python wire-protocol client)
 ├── test_connection.py
-├── test_system.py
+├── test_system.py        (system.* + system.power.*)
 ├── test_window.py
-├── test_input.py
+├── test_input.py         (top-level input.*)
+├── test_input_mouse.py   (input.mouse.*  — split out v2.1.0-rc.3)
+├── test_input_keyboard.py (input.keyboard.* — split out v2.1.0-rc.3)
 ├── test_element.py
 ├── test_clipboard.py
+├── test_directory.py
 ├── test_file.py
 ├── test_process.py
-├── test_registry.py
+├── test_registry.py      (registry.value.* + registry.key.*)
 ├── test_screen.py
 └── test_watch.py
 ```
@@ -68,4 +71,4 @@ When wire-protocol changes land:
 1. Update `spec/verbs/<verb>.json` (per-verb spec — feeds `dist/PROTOCOL.md` §4) or `spec/framing/*.md` (framing-section content). Run `python Tools/gen.py` to regenerate `dist/`.
 2. Implement the verb in `agents/<target>/...`.
 3. Add a test case in the appropriate `test_<namespace>.py` (or a new file for a new namespace).
-4. The test SHOULD use `needs_verb(capabilities, "<verb>")` so older agents that don't implement it are skipped, not failed.
+4. The test MUST use `needs_verb(capabilities, "<verb>")` so older agents that don't implement it are skipped, not failed. `tests/check_spec.py` enforces this — every verb in `spec/verbs/` must have at least one `needs_verb(capabilities, "<verb>")` call somewhere under `tests/conformance/test_*.py`, or the spec validator will fail.

@@ -19,11 +19,7 @@ If you're writing a custom client, running on a host without the MCP bridge, or 
 
 1. **[`dist/PROTOCOL.md`](dist/PROTOCOL.md)** — the contract. Framing rules, every verb's argument shape, error codes, the connection state machine, the tier model. This is the source of truth; nothing on the wire works differently from what's documented here.
 2. **[`tests/conformance/wire.py`](tests/conformance/wire.py)** — a canonical Python client that implements the framing correctly. ~170 lines, no dependencies beyond the Python stdlib. Use it as a reference, copy it, or just import it. The framing has corners (length-prefixed payloads, EVENT frames interleaving with command responses) that are easy to get wrong from scratch.
-3. **[`tests/conformance/test_*.py`](tests/conformance/)** — one file per namespace, with worked examples of every conformant verb call. When you're not sure how to invoke `screen.capture --window` or `registry.read --value`, find the test that does it.
-
-For idiomatic Win32-side reference (e.g., when you need to compare the agent's behaviour against a hand-rolled implementation):
-
-4. **[`tests/conformance/fixtures/`](tests/conformance/fixtures/)** — PowerShell scripts that implement the canonical Win32 form of operations the agent performs. Useful as ground truth when investigating discrepancies. See the README in that directory.
+3. **[`tests/conformance/test_*.py`](tests/conformance/)** — one file per namespace, with worked examples of every conformant verb call. When you're not sure how to invoke `screen.capture --window` or `registry.value.read`, find the test that does it.
 
 ## What the agent tells you at runtime
 
@@ -96,7 +92,7 @@ The same flow via the MCP bridge would be a sequence of MCP tool calls — diffe
 
 ## What not to assume
 
-- **Don't assume verb argument shapes from the verb name.** `process.start` doesn't take a structured args object — it takes a single command-line string (currently joined back from whitespace-tokenised positional args). `registry.read` with `--value` takes a path and a value name, not "key + value" together. The shape lives in `dist/PROTOCOL.md`; check there.
+- **Don't assume verb argument shapes from the verb name.** `process.start` doesn't take a structured args object — it takes a single command-line string (currently joined back from whitespace-tokenised positional args). `registry.value.read` takes a path and a value name as separate args, not "key + value" concatenated. The shape lives in `dist/PROTOCOL.md`; check there.
 - **Don't assume the wire is JSON-framed.** Headers are line-oriented ASCII; payloads are length-prefixed bytes. JSON appears *inside* error details and structured responses, not in framing. Several third-party AI summaries of this project have got this wrong; ignore the binary-length-prefix-around-JSON description that surfaces in some reviews.
 - **Don't assume the agent is local.** It might be on a VM, a different physical machine, behind firewall rules. The MCP bridge reads `REMOTE_HANDS_HOST` / `REMOTE_HANDS_PORT` / `REMOTE_HANDS_TOKEN_PATH` for exactly this reason. `system.info` returns the agent's hostname so you can confirm you're talking to the host you think you are.
 - **Don't assume input verbs always work.** UIPI (User Interface Privilege Isolation) blocks input from a lower-IL process to a higher-IL window. If `input.click` returns `ERR uipi_blocked` with `{agent_il, target_il}`, the agent isn't broken — the target window is at a higher integrity level than the agent. Document this in your error-handling.

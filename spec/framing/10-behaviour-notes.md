@@ -16,7 +16,9 @@ Element IDs are stable for the connection lifetime unless the underlying UI elem
 
 ### 10.4 Foreground locks
 
-Windows enforces foreground-window locks to prevent applications from stealing focus. When `window.focus` is denied by this mechanism, the agent returns `ERR lock_held` rather than silently succeeding. Callers may retry after granting their own process the foreground privilege via `AllowSetForegroundWindow`.
+Windows enforces foreground-window locks to prevent applications from stealing focus. When `window.focus` is denied by this mechanism, the agent returns `OK` with `focused_status: "lock_held"` in the response body — the verb call itself succeeded, only the focus change was denied. The same `lock_held` status appears in `window.move.foreground_status` when the optional `--foreground` attempt is denied. Callers may retry after granting their own process the foreground privilege via `AllowSetForegroundWindow`.
+
+Other verbs (`input.*`, `element.*`, the screen / file / process / registry namespaces) do not encounter foreground-lock policy and have no `lock_held` path.
 
 ### 10.5 UIPI behaviour
 

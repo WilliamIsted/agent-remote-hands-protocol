@@ -8,6 +8,10 @@
       "client_version": {
         "type": "string",
         "description": "Protocol version the client wishes to speak, e.g. '2.1'. Server picks the highest mutually-supported version and echoes it in the response's `agent_protocol` field."
+      },
+      "client_name": {
+        "type": "string",
+        "description": "Free-form client identifier echoed in the agent's session log (e.g. \"claude-code\", \"conformance\", \"my-llm-rig\"). Optional; defaults to an empty string when omitted. Useful for log correlation on multi-client agents."
       }
     },
     "required": ["client_version"],
