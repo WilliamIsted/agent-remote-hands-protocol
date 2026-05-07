@@ -14,6 +14,7 @@
         "send_input",
         "cf_unicodetext"
       ],
+      "format_supported": ["png", "webp", "bmp"],
       "token_file_path": "%ProgramData%\\AgentRemoteHands\\token",
       "token_file_acl": "Local Administrators (full control) + agent run-as account (read). Inherited permissions disabled. Token rotates on every agent start.",
       "protocol_versions_spoken": [
@@ -23,8 +24,7 @@
       ]
     },
     "windows-legacy": {
-      "_placeholder": true,
-      "description": "Windows XP SP3 / Server 2003 SP2 / Vista / 7 / 8 / 8.1 / Server 2008 / 2008 R2 / 2012 / 2012 R2 / Win 10 builds before 1809. Built with the VS2017 v141_xp toolset on a modern dev workstation. UI Automation 3.0 (Vista+ via redist; in-box on 7+); GDI BitBlt capture; WIC encoders for PNG/WebP/BMP. No WGC (modern-floor API), no long-path support pre-Win-10-1607. Wire-identity exists from Protocol v2.2 onward; pre-v2.2 the same agent code advertised itself as `windows-classic` on the wire.",
+      "description": "Windows XP SP3 / Server 2003 SP2 / Vista / 7 / 8 / 8.1 / Server 2008 / 2008 R2 / 2012 / 2012 R2 / Win 10 builds before 1809. Built with the VS2017 v141_xp toolset on a modern dev workstation. UI Automation 3.0 (Vista+ via redist; in-box on 7+); GDI BitBlt capture; WIC encoders for PNG/WebP/BMP. No WGC (modern-floor API), no long-path support pre-Win-10-1607. Honours v2.2 MCP-stdio framing; rejects WS framing (RFC 6455 reserved for `windows-modern`). Wire-identity exists from Protocol v2.2 onward; pre-v2.2 the same agent code advertised itself as `windows-classic` on the wire.",
       "portability_tier": "windows",
       "capabilities": [
         "ui_automation",
@@ -35,6 +35,8 @@
         "send_input",
         "cf_unicodetext"
       ],
+      "format_supported": ["bmp"],
+      "format_supported_runtime_extra": ["png", "webp"],
       "token_file_path": "%ProgramData%\\AgentRemoteHands\\token",
       "token_file_acl": "Local Administrators (full control) + agent run-as account (read). Inherited permissions disabled. Token rotates on every agent start.",
       "protocol_versions_spoken": [
@@ -51,6 +53,8 @@
         "cf_unicodetext",
         "cf_text"
       ],
+      "format_supported": ["bmp"],
+      "format_supported_runtime_extra": ["png"],
       "token_file_path": "%ALLUSERSPROFILE%\\Application Data\\AgentRemoteHands\\token",
       "token_file_acl": "Local Administrators (full control) + agent run-as account (read), enforceable on NTFS only. On FAT32 the token file is plaintext-readable by every user on the machine; tier elevation degrades to a per-machine-trust model. Token rotates on every agent start.",
       "protocol_versions_spoken": [

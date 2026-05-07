@@ -16,7 +16,7 @@
       "framing": {
         "type": "string",
         "enum": ["ws", "mcp"],
-        "description": "Wire framing for this connection. When omitted: defaults to 'mcp' on a v2.2+ negotiated session; v2.1 clients are rejected with `ERR protocol_mismatch` (no v2.1 backward compat in v2.2+ agents). 'mcp' = MCP-stdio framing (`Content-Length: N\\r\\n\\r\\n<JSON>`) carrying MCP JSON-RPC 2.0 messages, active after this OK body is consumed. 'ws' = RFC 6455 binary frames (FIN=1, opcode 0x02, client-masked) carrying the same MCP JSON-RPC 2.0 body, also active after this OK body is consumed; no HTTP upgrade — the framing change is in-protocol. Both available on `windows-modern` only; `windows-classic` returns `ERR framing_unsupported`. Added v2.2."
+        "description": "Wire framing for this connection. When omitted: defaults to 'mcp' on a v2.2+ negotiated session; v2.1 clients are rejected with `ERR protocol_mismatch` (no v2.1 backward compat in v2.2+ agents). 'mcp' = MCP-stdio framing (`Content-Length: N\\r\\n\\r\\n<JSON>`) carrying MCP JSON-RPC 2.0 messages, active after this OK body is consumed. 'ws' = RFC 6455 binary frames (FIN=1, opcode 0x02, client-masked) carrying the same MCP JSON-RPC 2.0 body, also active after this OK body is consumed; no HTTP upgrade — the framing change is in-protocol. Per-family availability: `windows-modern` honours both `mcp` and `ws`; `windows-legacy` honours `mcp` only and rejects `ws` with `ERR framing_unsupported`; `windows-classic` rejects both. Added v2.2."
       }
     },
     "required": ["client_version"],
@@ -57,8 +57,12 @@
       "description": "Agent-internal lifecycle verb; no Windows-specific behaviour. The handshake runs in the agent's framing thread before any OS call. Honours `--framing mcp` (default for v2.2+) and `--framing ws`; both are advertised in `system.info.framings`. Returns `ERR framing_unsupported` for any other value.",
       "implementations_in_order": ["agent_native"]
     },
+    "windows-legacy": {
+      "description": "Agent-internal lifecycle verb; no Windows-specific behaviour. The handshake runs in the agent's framing thread before any OS call. Honours `--framing mcp` (default for v2.2+ on legacy) and rejects `--framing ws` with `ERR framing_unsupported` — RFC 6455 framing is reserved for `windows-modern`. `system.info.framings` reports `[\"mcp\"]` on legacy.",
+      "implementations_in_order": ["agent_native"]
+    },
     "windows-classic": {
-      "description": "Agent-internal lifecycle verb; no Windows-specific behaviour. The handshake runs in the agent's framing thread before any OS call. `--framing ws` and `--framing mcp` always return `ERR framing_unsupported` on classic — the family stays on the v2.0 / v2.1 ARH header-line wire format, which is also used as the bootstrap framing on modern. `system.info.framings` therefore reports an empty / single-entry list on classic.",
+      "description": "Agent-internal lifecycle verb; no Windows-specific behaviour. The handshake runs in the agent's framing thread before any OS call. `--framing ws` and `--framing mcp` always return `ERR framing_unsupported` on classic — the family stays on the v2.0 / v2.1 ARH header-line wire format, which is also used as the bootstrap framing on modern and legacy. `system.info.framings` therefore reports an empty / single-entry list on classic.",
       "implementations_in_order": ["agent_native"]
     }
   }

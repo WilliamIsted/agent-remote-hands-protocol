@@ -93,7 +93,7 @@ A v2.2 client requests the `ws` framing by passing `--framing ws` in the bootstr
 - The frame payload is one complete MCP JSON-RPC 2.0 object, UTF-8 encoded — the same body shape as §1.6 (MCP-stdio), with the WS frame boundary replacing the `Content-Length` header. The MCP session lifecycle, tool catalogue, tier enforcement, subscription/event mapping, and binary handling described in §1.6.1–1.6.7 apply identically over `ws`.
 - The agent SHOULD respond to WS ping frames (opcode `0x09`) with a matching pong (opcode `0x0A`). Close frames (opcode `0x08`) are honoured per RFC 6455 §5.5.1.
 
-**Availability:** `windows-modern` only. `windows-classic` returns `ERR framing_unsupported` to `--framing ws`.
+**Availability:** `windows-modern` only. `windows-legacy` and `windows-classic` both return `ERR framing_unsupported` to `--framing ws` — RFC 6455 framing is reserved for the modern family.
 
 ### 1.6 MCP framing mode (`mcp`)
 
@@ -109,7 +109,7 @@ Content-Length: <N>\r\n
 
 This is the same framing Claude Code uses for stdio MCP servers (LSP-style header). Each frame carries one MCP JSON-RPC 2.0 object: a request, a result, an error, or a notification. There is no separate length-prefixed binary payload alongside the JSON — every byte transferred over the framing belongs to one of those four shapes.
 
-**Availability:** `windows-modern` only. `windows-classic` returns `ERR framing_unsupported` to `--framing mcp`.
+**Availability:** `windows-modern` and `windows-legacy`. `windows-classic` returns `ERR framing_unsupported` to `--framing mcp` and stays on the v2.0 / v2.1 ARH header-line wire format.
 
 #### 1.6.1 MCP session lifecycle
 
