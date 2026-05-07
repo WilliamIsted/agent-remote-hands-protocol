@@ -8,7 +8,7 @@ Source-of-truth for citations:
 
 - **PROTOCOL.md** = `PROTOCOL.md` at HEAD; cited as `§4.X:NNN` (subsection : verb-row line number).
 - **VERBS.md** = `VERBS.md` at HEAD; cited as `:NNN` (line number).
-- **spec/verbs** = `spec/verbs/<verb>.json` at HEAD. ✅ if a (mock-up) file exists today; per the locked decision in the plan, every row is re-authored from scratch regardless.
+- **spec/verbs** = `spec/verbs/common/<verb>.json` or `spec/verbs/windows/<verb>.json` at HEAD. ✅ if a (mock-up) file exists today; per the locked decision in the plan, every row is re-authored from scratch regardless.
 - **v1 archive** = the v1 verb name in `git show af6c413:PROTOCOL.md`. The v1 archive lives only in git history (commit `af6c413`); not present in the working tree.
 - **Conformance** = `tests/conformance/test_<namespace>.py` if the verb is exercised. Symbol-level grep confirms each ✅.
 
@@ -261,7 +261,7 @@ Captures the load-bearing preferences confirmed for each namespace so the same q
 
 ### Cross-cutting (apply to every verb)
 
-- **Mock-up first.** When a `spec/verbs/<verb>.json` mock-up file exists at HEAD, treat it as the ratified contract. Do NOT strip fields, rename fields, or change shapes to match PROTOCOL.md (which is being deleted). When the mock-up shape and PROTOCOL.md disagree, follow the mock-up. PROTOCOL.md is loose-reference only.
+- **Mock-up first.** When a `spec/verbs/common/<verb>.json` or `spec/verbs/windows/<verb>.json` mock-up file exists at HEAD, treat it as the ratified contract. Do NOT strip fields, rename fields, or change shapes to match PROTOCOL.md (which is being deleted). When the mock-up shape and PROTOCOL.md disagree, follow the mock-up. PROTOCOL.md is loose-reference only.
 - **Ask, don't assume.** When a mock-up has fields that look invented (encoding/offset/length on file.read, automation_id on element.find, etc.), ASK the user — those may be intentional design that PROTOCOL.md hasn't caught up to.
 - **Description budget:** top-level `description` is 1–2 sentences, action-focused. `input_schema.properties.<f>.description` is similarly tight. Per-family description and per-output-schema field descriptions are richer (1–4 sentences, humans-only).
 - **x-crudx letter:** R/C/U/D/X. Lifecycle verbs use `R` to preserve the lifecycle exemption.

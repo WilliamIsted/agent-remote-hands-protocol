@@ -12,7 +12,8 @@ The spec is **source-authored as JSON + markdown** under `spec/` and **rendered 
 
 | Source (humans edit) | What it carries |
 |---|---|
-| `spec/verbs/<verb>.json` | Per-verb strict-tool definition with `x-*` extensions (CRUDX, families, errors, output schema, implementations chain). |
+| `spec/verbs/common/<verb>.json` | Per-verb strict-tool definition for cross-OS verbs. Any conforming agent must implement all verbs in this directory. |
+| `spec/verbs/windows/<verb>.json` | Per-verb strict-tool definition for Windows-only verbs (UI Automation, registry, Win32 power APIs, etc.). |
 | `spec/families.json` | OS-family declarations with per-family metadata (token paths, capability hints). |
 | `spec/framing/*.md` | Hand-written markdown for `dist/PROTOCOL.md` non-verb sections (wire format, lifecycle, errors, tier model, etc.). |
 | `spec/operators/*.md` | Hand-written markdown for `dist/LLM-OPERATORS.md` (the operator's-eye view for LLMs driving an agent). |
@@ -21,7 +22,7 @@ The spec is **source-authored as JSON + markdown** under `spec/` and **rendered 
 
 | Generated (run `python Tools/gen.py`) | What it carries |
 |---|---|
-| `dist/PROTOCOL.md` | Canonical rendered spec. Concatenated `spec/framing/*.md` + generated §4 from `spec/verbs/*.json`. |
+| `dist/PROTOCOL.md` | Canonical rendered spec. Concatenated `spec/framing/*.md` + generated §4 from `spec/verbs/**/*.json`. |
 | `dist/verbs-<family>.md` | One-line per-verb catalogue, filtered to verbs that family implements. |
 | `dist/verbs.json` | Concatenated strict-tool defs with `x-*` stripped, all-families superset. |
 | `dist/verbs-<family>.json` | Same shape, filtered to verbs that family implements. Drop-in for `client.messages.create(tools=...)` against a known-family agent. |
@@ -64,7 +65,7 @@ python Tools/gen.py
 cat dist/PROTOCOL.md
 ```
 
-Or browse the source files directly: `cat spec/verbs/screen.capture.json` etc.
+Or browse the source files directly: `cat spec/verbs/common/screen.capture.json` etc.
 
 For pre-deletion versions:
 
@@ -93,13 +94,14 @@ Produces `dist/PROTOCOL.md`, `dist/verbs-<family>.md` per family, `dist/verbs.js
 ### Adding a new verb to the spec
 
 1. Open an issue tagged `enhancement` first. Design discussion happens in comments.
-2. Create `spec/verbs/<verb>.json` per [`spec/AUTHORING-CHECKLIST.md`](spec/AUTHORING-CHECKLIST.md). Three stages: skeleton, `windows-modern` family fill, `windows-classic` family fill (or `implemented: false` if unsupported).
-3. Add a conformance test in `tests/conformance/test_<namespace>.py`. Gate it with `needs_verb(capabilities, "<verb>")` so older agents skip rather than fail.
-4. Run `python tests/check_spec.py` to validate the new file.
-5. Run `python Tools/gen.py` and eyeball the `dist/PROTOCOL.md` and `dist/verbs-<family>.md` output.
-6. Run the conformance suite locally against the agent that implements it.
+2. Choose the target directory: `spec/verbs/common/` for portable verbs (no Windows-specific API dependency), `spec/verbs/windows/` for verbs that require UI Automation, the Windows registry, Win32 power APIs, or the Win32 message queue.
+3. Create `spec/verbs/common/<verb>.json` or `spec/verbs/windows/<verb>.json` per [`spec/AUTHORING-CHECKLIST.md`](spec/AUTHORING-CHECKLIST.md). Three stages: skeleton, `windows-modern` family fill, `windows-classic` family fill (or `implemented: false` if unsupported).
+4. Add a conformance test in `tests/conformance/test_<namespace>.py`. Gate it with `needs_verb(capabilities, "<verb>")` so older agents skip rather than fail.
+5. Run `python tests/check_spec.py` to validate the new file.
+6. Run `python Tools/gen.py` and eyeball the `dist/PROTOCOL.md` and `dist/verbs-<family>.md` output.
+7. Run the conformance suite locally against the agent that implements it.
 
-PRs missing any of (1)–(4) are incomplete.
+PRs missing any of (1)–(5) are incomplete.
 
 ### Coordinating a wire-protocol change with the agent repo
 
@@ -114,13 +116,12 @@ The agent repo's CI fetches submodules and runs `python Tools/gen.py`; the pin u
 - Commit messages: short, bullet-pointed, present-tense. Mirror existing log style.
 - Branch off `main`; PRs target `main`.
 - Markdown for hand-written docs; JSON for verb specs and family declarations.
-- Spec changes always touch `spec/verbs/<verb>.json` + a conformance test. PRs missing either are incomplete.
+- Spec changes always touch `spec/verbs/common/<verb>.json` or `spec/verbs/windows/<verb>.json` + a conformance test. PRs missing either are incomplete.
 - Mock-up files in `spec/verbs/` are the contract — do NOT strip fields back to match older PROTOCOL.md content (PROTOCOL.md was deleted; the source files in `spec/` are now authoritative).
 
 ## Things not to do
 
 - **Don't edit archived tags.** Pre-deletion tags (`v2.0.0`, `v2.1.0`) still have root `PROTOCOL.md`/`VERBS.md`. Errata go into migration notes for the next version, not retroactively into the tagged spec.
-- **Don't pre-split into per-OS verb subdirectories.** Today's `spec/verbs/` is flat. The split into `verbs/<os>/` happens when a second-OS implementation appears, not pre-emptively. See `Documents/Overview/Planning/v3-structural-review.md` (in the Overview repo) for the design rationale.
 - **Don't add implementation code.** This repo is specs only. The Python reference client (`wire.py`) and PowerShell ground-truth fixtures (`tests/conformance/fixtures/`) are in support of the conformance suite, not implementations.
 - **Don't skip conformance tests when changing verb signatures.** The suite is the contract. A spec change without a matching test is a contract change without verification.
 - **Don't commit `dist/`.** It's gitignored; the generator produces it on demand. Committing the generated files defeats the source-of-truth design.
@@ -129,7 +130,7 @@ The agent repo's CI fetches submodules and runs `python Tools/gen.py`; the pin u
 
 Long-form proposals (RFC-shaped, pre-implementation) live as GitHub issues tagged `enhancement`. Cross-cutting design that spans agent + protocol lives in the Overview repo's `Documents/Overview/Planning/` directory (in the user's local Overview workspace).
 
-If a proposal lands and ships, the contract moves into `spec/verbs/<verb>.json` (or `spec/framing/*.md` for framing-level changes); the rendered `dist/` follows automatically. Issue and Overview-side notes stay as record of what was considered and why.
+If a proposal lands and ships, the contract moves into `spec/verbs/common/<verb>.json` or `spec/verbs/windows/<verb>.json` (or `spec/framing/*.md` for framing-level changes); the rendered `dist/` follows automatically. Issue and Overview-side notes stay as record of what was considered and why.
 
 ## Out of scope
 

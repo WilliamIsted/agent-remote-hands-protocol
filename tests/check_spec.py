@@ -405,8 +405,8 @@ def check_shared_types(verb_files: list[pathlib.Path],
 def check_conformance_coverage(verb_files: list[pathlib.Path],
                                root: pathlib.Path,
                                failures: list[str]) -> int:
-    """Every verb in spec/verbs/<verb>.json must have at least one
-    `needs_verb(capabilities, "<verb>")` call somewhere under
+    """Every verb in spec/verbs/common/<verb>.json or spec/verbs/windows/<verb>.json
+    must have at least one `needs_verb(capabilities, "<verb>")` call somewhere under
     tests/conformance/test_*.py. The conformance suite is the wire-protocol
     contract — adding a verb without a gating call is a contract change
     without verification.
@@ -500,7 +500,7 @@ def check_doc_verb_references(verb_files: list[pathlib.Path],
         "test_directory.py", "test_file.py", "test_process.py",
         "test_registry.py", "test_watch.py", "test_vision.py",
         # Tooling references
-        "agent_client.py", "wire.py", "gen.py", "check_spec.py",
+        "agent_client.py", "wire.py", "gen.py", "check_spec.py", "families.json",
         # File-name references in prose
         "input.cpp", "PROTOCOL.md", "VERBS.md",
         # Process / executable names in operational prose
@@ -586,7 +586,7 @@ def main() -> int:
         print(f"FAIL: {verbs_dir} is not a directory", file=sys.stderr)
         return 1
 
-    verb_files = sorted(verbs_dir.glob("*.json"))
+    verb_files = sorted(verbs_dir.glob("**/*.json"))
     for vf in verb_files:
         check_verb_file(vf, families.keys(), failures)
     check_reserved_collisions(verb_files, reserved, failures)
