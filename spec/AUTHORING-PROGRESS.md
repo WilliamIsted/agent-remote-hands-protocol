@@ -28,13 +28,14 @@ The per-row **Conformance** columns below name the test file that exercises each
 | 4 | `connection.reset` | ✅ | §4.12:460 | :152 | ❌ | ❌ | ❌ |
 | 5 | `connection.close` | ✅ | §4.12:461 | :153 | ❌ | `QUIT` / `EXIT` / `BYE` (consolidated) | `test_connection.py` |
 
-## `system.*` (3 verbs)
+## `system.*` (4 verbs)
 
 | # | Verb | Status | PROTOCOL.md | VERBS.md | spec/verbs | v1 archive | Conformance |
 |---|---|---|---|---|---|---|---|
 | 6 | `system.info` | ✅ | §4.1:284 | :23 | ✅ (mock) | `INFO` | `test_system.py` |
 | 7 | `system.capabilities` | ✅ | §4.1:285 | :24 | ❌ | `CAPS` | `test_system.py` |
 | 8 | `system.health` | ✅ | §4.1:286 | :25 | ❌ | `PING` | `test_system.py` |
+| 8a | `system.verbs` | ✅ | _new in v2.2_ | _new in v2.2_ | ✅ (NEW; embedded-spec corpus per #97; windows-classic implemented:false) | ❌ | `test_system.py` |
 
 ## `system.power.*` (8 verbs — migrated from `system.*` in v2.1.0-rc.2)
 
@@ -194,9 +195,10 @@ The PROTOCOL.md columns are dropped post-audit (PROTOCOL.md being deleted; mock-
 | Status | Count |
 |---|---|
 | Total v2.1 verbs | 87 |
-| Currently exercised by conformance suite | 87 (every verb has a `needs_verb(capabilities, "<verb>")` gate; enforced by `tests/check_spec.py`) |
+| Total v2.2 verbs | 88 (v2.1 surface + `system.verbs` per #97) |
+| Currently exercised by conformance suite | 88 (every verb has a `needs_verb(capabilities, "<verb>")` gate; enforced by `tests/check_spec.py`) |
 | With v1 ancestor verb(s) | 47 |
-| v2-only (no v1 ancestor) | 40 |
+| v2-only (no v1 ancestor) | 41 |
 
 Verb-count history: rc.1 had 77; rc.2 took it to 80 (file.write split, registry restructure); rc.3 takes it to 86 (input.* split into input.mouse.* + input.keyboard.* sub-namespaces, plus 6 new verbs to close v1.0.0 milestone parity issues).
 

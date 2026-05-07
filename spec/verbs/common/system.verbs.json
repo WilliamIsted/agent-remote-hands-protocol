@@ -1,0 +1,48 @@
+{
+  "name": "system.verbs",
+  "strict": false,
+  "description": "Returns the agent's full strict-tool definitions for every verb it implements. Lets clients build their tool catalogue from the live agent rather than bundling spec files alongside themselves; closes the bundled-bridge-vs-agent drift footgun.",
+  "input_schema": {
+    "type": "object",
+    "properties": {},
+    "additionalProperties": false
+  },
+  "x-crudx": "R",
+  "x-since": "2.2",
+  "x-namespace": "system",
+  "x-strict-false-reason": "The response's `verbs` field is an open-ended map keyed by verb name; each value is an entire strict-tool definition whose own shape varies per verb. A closed key enumeration would defeat the discovery role of this verb (and would have to be regenerated for every spec change). Per Option 13 design subsection C, strict mode is per-tool — system.verbs opts out while every verb-call tool stays strict.",
+  "x-output-schema": {
+    "type": "object",
+    "properties": {
+      "verbs": {
+        "type": "object",
+        "description": "Map of verb name → strict-tool definition. Keys are dotted-namespace verb names matching `spec/verbs/common/<verb>.json` or `spec/verbs/windows/<verb>.json`. Values are the verbatim contents of the corresponding spec/verbs file: `name`, `strict`, `description`, `input_schema`, plus the protocol's `x-*` extension keys. Clients that don't recognise an `x-*` key MUST ignore it.",
+        "additionalProperties": {
+          "type": "object",
+          "description": "Strict-tool definition for the verb. Exact shape mirrors the `spec/verbs/<verb>.json` file the agent was built from (name + strict + description + input_schema + x-* extensions). See `spec/verbs/common/<verb>.json` or `spec/verbs/windows/<verb>.json`."
+        }
+      }
+    },
+    "required": ["verbs"],
+    "additionalProperties": false
+  },
+  "x-errors": [],
+  "x-implementations": [
+    {
+      "name": "embedded_specs",
+      "detect": { "type": "always" },
+      "available_on": ["windows-modern"],
+      "description": "Spec JSON content compiled into the agent at build time (typically via the agent repo's `gen.py`). Returned by structural concatenation — each embedded blob is already valid JSON, so no per-request re-parse is required. Filtered to the verb subset the agent actually implements (per `x-families.<this-family>.implemented != false` in the embedded source)."
+    }
+  ],
+  "x-families": {
+    "windows-modern": {
+      "description": "Embeds the compiled-in spec corpus produced at agent build time, filtered to verbs whose `x-families.windows-modern.implemented` is not false. Response size is typically around 220 KB for the full v2.2 surface; once-per-bridge-startup call so transport compression is unnecessary at this scale.",
+      "implementations_in_order": ["embedded_specs"]
+    },
+    "windows-classic": {
+      "implemented": false,
+      "reason": "Not yet ported. Classic family has fewer verbs implemented; bundling specs alongside the smaller bridge surface remains acceptable until parity work begins."
+    }
+  }
+}
