@@ -1,17 +1,22 @@
 {
   "name": "connection.hello",
   "strict": true,
-  "description": "Handshake. First verb on a new connection; required before any other verb is accepted.",
+  "description": "Handshake. First verb on a new connection; required before any other verb is accepted. From v2.2 onwards the response body is mandatory and carries the negotiated framing — clients consume the OK body fully and then switch to that framing for every subsequent message on the connection.",
   "input_schema": {
     "type": "object",
     "properties": {
       "client_version": {
         "type": "string",
-        "description": "Protocol version the client wishes to speak, e.g. '2.1'. Server picks the highest mutually-supported version and echoes it in the response's `agent_protocol` field."
+        "description": "Protocol version the client wishes to speak, e.g. '2.2'. Server picks the highest mutually-supported version and echoes it in the response's `agent_protocol` field. v2.2+ agents do NOT advertise v2.1 as supported — v2.1 clients receive `ERR protocol_mismatch` and must upgrade."
       },
       "client_name": {
         "type": "string",
         "description": "Free-form client identifier echoed in the agent's session log (e.g. \"claude-code\", \"conformance\", \"my-llm-rig\"). Optional; defaults to an empty string when omitted. Useful for log correlation on multi-client agents."
+      },
+      "framing": {
+        "type": "string",
+        "enum": ["ws", "mcp"],
+        "description": "Wire framing for this connection. When omitted: defaults to 'mcp' on a v2.2+ negotiated session; v2.1 clients are rejected with `ERR protocol_mismatch` (no v2.1 backward compat in v2.2+ agents). 'mcp' = MCP-stdio framing (`Content-Length: N\\r\\n\\r\\n<JSON>`) carrying MCP JSON-RPC 2.0 messages, active after this OK body is consumed. 'ws' = RFC 6455 binary frames (FIN=1, opcode 0x02, client-masked) carrying the same MCP JSON-RPC 2.0 body, also active after this OK body is consumed; no HTTP upgrade — the framing change is in-protocol. Per-family availability: `windows-modern` honours both `mcp` and `ws`; `windows-legacy` honours `mcp` only and rejects `ws` with `ERR framing_unsupported`; `windows-classic` rejects both. Added v2.2."
       }
     },
     "required": ["client_version"],
@@ -25,15 +30,20 @@
     "properties": {
       "protocol":       { "const": "arh", "description": "Protocol identifier — always the literal \"arh\" (Agent Remote Hands). Lets clients verify the wire protocol upfront." },
       "agent":          { "type": "string", "description": "Agent software name, e.g. \"AgentRemoteHands\". Mirrors `system.info.agent`." },
-      "agent_protocol": { "type": "string", "description": "Wire-protocol version this agent speaks for this connection, e.g. \"2.1\". The negotiated highest mutually-supported version. Mirrors `system.info.agent_protocol`." },
+      "agent_protocol": { "type": "string", "description": "Wire-protocol version this agent speaks for this connection, e.g. \"2.2\". The negotiated highest mutually-supported version. Mirrors `system.info.agent_protocol`." },
       "os_name":        { "type": "string", "description": "Human-readable OS product name, e.g. \"Windows 11 Pro\". Mirrors `system.info.os_name`." },
       "os_version":     { "type": "string", "description": "OS version designation, e.g. \"22H2\". Mirrors `system.info.os_version`." },
-      "session_id":     { "type": "string", "description": "Fresh per-connection identifier for log correlation; opaque to the client." }
+      "session_id":     { "type": "string", "description": "Fresh per-connection identifier for log correlation; opaque to the client." },
+      "framing":        {
+        "type": "string",
+        "enum": ["mcp", "ws"],
+        "description": "Wire framing active on this connection from the byte immediately following this OK body. 'mcp' = MCP-stdio framing carrying MCP JSON-RPC 2.0 (default for v2.2+). 'ws' = RFC 6455 binary frames carrying the same body shape. Always present on a v2.2+ session — clients use this field to confirm which framing the agent has selected before switching their parser. Added v2.2."
+      }
     },
-    "required": ["protocol", "agent", "agent_protocol", "os_name", "os_version", "session_id"],
+    "required": ["protocol", "agent", "agent_protocol", "os_name", "os_version", "session_id", "framing"],
     "additionalProperties": false
   },
-  "x-errors": ["protocol_mismatch", "invalid_args"],
+  "x-errors": ["protocol_mismatch", "invalid_args", "framing_unsupported"],
   "x-implementations": [
     {
       "name": "agent_native",
@@ -44,11 +54,15 @@
   ],
   "x-families": {
     "windows-modern": {
-      "description": "Agent-internal lifecycle verb; no Windows-specific behaviour. The handshake runs in the agent's framing thread before any OS call.",
+      "description": "Agent-internal lifecycle verb; no Windows-specific behaviour. The handshake runs in the agent's framing thread before any OS call. Honours `--framing mcp` (default for v2.2+) and `--framing ws`; both are advertised in `system.info.framings`. Returns `ERR framing_unsupported` for any other value.",
+      "implementations_in_order": ["agent_native"]
+    },
+    "windows-legacy": {
+      "description": "Agent-internal lifecycle verb; no Windows-specific behaviour. The handshake runs in the agent's framing thread before any OS call. Honours `--framing mcp` (default for v2.2+ on legacy) and rejects `--framing ws` with `ERR framing_unsupported` — RFC 6455 framing is reserved for `windows-modern`. `system.info.framings` reports `[\"mcp\"]` on legacy.",
       "implementations_in_order": ["agent_native"]
     },
     "windows-classic": {
-      "description": "Agent-internal lifecycle verb; no Windows-specific behaviour. The handshake runs in the agent's framing thread before any OS call.",
+      "description": "Agent-internal lifecycle verb; no Windows-specific behaviour. The handshake runs in the agent's framing thread before any OS call. `--framing ws` and `--framing mcp` always return `ERR framing_unsupported` on classic — the family stays on the v2.0 / v2.1 ARH header-line wire format, which is also used as the bootstrap framing on modern and legacy. `system.info.framings` therefore reports an empty / single-entry list on classic.",
       "implementations_in_order": ["agent_native"]
     }
   }

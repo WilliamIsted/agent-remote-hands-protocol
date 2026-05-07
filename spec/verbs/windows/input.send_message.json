@@ -1,7 +1,7 @@
 {
   "name": "input.send_message",
   "strict": true,
-  "description": "Synchronous Win32 `SendMessage` escape hatch. Posts the message and waits for the target's wndproc to return; the LRESULT is returned in the response body.",
+  "description": "Synchronous Win32 `SendMessage` escape hatch. Posts the message and waits for the target's wndproc to return; the LRESULT is returned in the response body. Note: messages dispatch via user32 only — synthetic `WM_KEYDOWN` / `WM_KEYUP` will not reach DirectInput / RawInput / `GetAsyncKeyState` targets, same boundary as `input.keyboard.*`. See `spec/operators/05-footguns.md`.",
   "input_schema": {
     "type": "object",
     "properties": {

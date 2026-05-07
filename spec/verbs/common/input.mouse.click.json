@@ -22,13 +22,30 @@
       "double": {
         "type": "boolean",
         "default": false,
-        "description": "If true, synthesises a double-click (two press/release pairs within the OS double-click time, see system.info.capabilities.input_settings.double_click_time_ms)."
+        "description": "If true, synthesises a double-click — two press/release pairs batched within `system.info.capabilities.input_settings.double_click_time_ms` so the OS double-click handler fires (used for word selection in text fields, double-click-to-open in shell views, etc.)."
+      },
+      "triple": {
+        "type": "boolean",
+        "default": false,
+        "description": "If true, synthesises a triple-click — three press/release pairs batched within `system.info.capabilities.input_settings.double_click_time_ms` so the OS triple-click handler fires (used for line / paragraph selection in text fields). New in v2.2."
+      },
+      "clicks": {
+        "type": "integer",
+        "minimum": 2,
+        "maximum": 10,
+        "description": "Issue N independent click events at this position, separated by `clicks_interval_ms`. Use this when you want N separate clicks the OS will NOT conflate into a double/triple-click event — e.g. test fixtures, rapid-fire inputs, scripted UI exercise. For OS-recognised multi-click events use `double` / `triple` instead. Range 2-10; values outside that window almost certainly indicate a caller bug. New in v2.2."
+      },
+      "clicks_interval_ms": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 10000,
+        "description": "Inter-click gap in milliseconds for the `clicks` field. Only valid when `clicks` is set; rejected with `ERR invalid_args` otherwise. Default when omitted: `system.info.capabilities.input_settings.double_click_time_ms + 50` — explicitly outside the OS double-click window so the OS treats each click as an independent event. Set to 0 for back-to-back (which the OS may interpret as a double-click for clicks=2). New in v2.2."
       },
       "duration_ms": {
         "type": "integer",
         "minimum": 0,
         "maximum": 1000,
-        "description": "Optional press-to-release gap in milliseconds (0-1000). Default = OS-minimum (a regular fast click). Useful for slow-press-detection workflows. Cap is 1 second; the verb is synchronous and longer holds belong on `input.mouse.press` + `input.mouse.release`. Mutually exclusive with `double` (a duration on a double-click is ambiguous — use one or the other)."
+        "description": "Optional press-to-release gap in milliseconds (0-1000). Default = OS-minimum (a regular fast click). Useful for slow-press-detection workflows. Cap is 1 second; the verb is synchronous and longer holds belong on `input.mouse.press` + `input.mouse.release`. Mutually exclusive with `double`, `triple`, and `clicks` (a duration on a multi-click batch is ambiguous — use one or the other)."
       },
       "modifiers": {
         "type": "array",
@@ -46,7 +63,7 @@
   "x-since": "2.1",
   "x-renamed-from": "input.click",
   "x-namespace": "input",
-  "x-mutually-exclusive": ["double", "duration_ms"],
+  "x-mutually-exclusive": ["double", "triple", "clicks", "duration_ms"],
   "x-output-schema": {
     "type": "object",
     "properties": {
@@ -77,7 +94,7 @@
       "name": "send_input",
       "detect": { "type": "always" },
       "available_on": ["windows-modern", "windows-classic"],
-      "description": "Win32 `SendInput` with INPUT_MOUSE structures. Modifier-down events bracket the click; double batches four mouse events in a single call to stay within `GetDoubleClickTime`. When `duration_ms > 0`, the agent issues the down event, sleeps via the request thread for the requested interval, then issues the up event — the connection is wedged for the duration."
+      "description": "Win32 `SendInput` with INPUT_MOUSE structures. Modifier-down events bracket the click; double batches four mouse events in a single SendInput call, triple batches six, both within `GetDoubleClickTime` so the OS multi-click handler fires. `clicks: N` issues N separate SendInput calls (two events each) separated by `clicks_interval_ms` (default explicitly outside `GetDoubleClickTime` so each click stays independent). When `duration_ms > 0`, the agent issues the down event, sleeps via the request thread for the requested interval, then issues the up event — the connection is wedged for the duration."
     },
     {
       "name": "mouse_event",
@@ -88,11 +105,11 @@
   ],
   "x-families": {
     "windows-modern": {
-      "description": "SendInput with INPUT_MOUSE structures. UIPI may silently drop synthesised input directed at higher-IL windows — agent post-checks (e.g. via WindowFromPoint comparison or GetLastInputInfo) and returns ERR uipi_blocked plus `synthesised: false`. When the event reaches user32 the field is true. `duration_ms` adds a Sleep between the down and up events; the call is synchronous so the connection blocks for that long.",
+      "description": "SendInput with INPUT_MOUSE structures. UIPI may silently drop synthesised input directed at higher-IL windows — agent post-checks (e.g. via WindowFromPoint comparison or GetLastInputInfo) and returns ERR uipi_blocked plus `synthesised: false`. When the event reaches user32 the field is true. `duration_ms` adds a Sleep between the down and up events; the call is synchronous so the connection blocks for that long. `triple` follows the same SendInput-batching path as `double` (six mouse events in one call instead of four). `clicks: N` issues N independent SendInput calls separated by `clicks_interval_ms`; the agent Sleeps between calls so the connection blocks for `(N-1) * clicks_interval_ms` total.",
       "implementations_in_order": ["send_input"]
     },
     "windows-classic": {
-      "description": "SendInput on NT 5+; mouse_event on NT 4 and 9x where SendInput is unavailable. No UIPI on classic, so synthesised input crosses process boundaries freely and `synthesised` is true on success. `duration_ms` behaves the same as on modern.",
+      "description": "SendInput on NT 5+; mouse_event on NT 4 and 9x where SendInput is unavailable. No UIPI on classic, so synthesised input crosses process boundaries freely and `synthesised` is true on success. `duration_ms` behaves the same as on modern. `triple` and `clicks` follow the same batching pattern as on modern; on NT 4 / 9x `mouse_event` substitutes for SendInput but the inter-click timing model is identical.",
       "implementations_in_order": ["send_input", "mouse_event"]
     }
   }

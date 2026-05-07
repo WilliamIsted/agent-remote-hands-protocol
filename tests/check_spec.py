@@ -499,6 +499,9 @@ def check_doc_verb_references(verb_files: list[pathlib.Path],
         "test_screen.py", "test_element.py", "test_clipboard.py",
         "test_directory.py", "test_file.py", "test_process.py",
         "test_registry.py", "test_watch.py", "test_vision.py",
+        "test_websocket.py",
+        # MCP JSON-RPC field paths referenced in framing prose (not ARH verbs)
+        "params.name", "params.arguments",
         # Tooling references
         "agent_client.py", "wire.py", "gen.py", "check_spec.py", "families.json",
         # File-name references in prose

@@ -28,16 +28,15 @@
       },
       "format": {
         "type": "string",
-        "enum": ["png", "webp", "bmp"],
+        "enum": ["png", "webp", "bmp", "jpeg", "heic"],
         "default": "png",
-        "description": "Output image format. Family-dependent — `system.info.capabilities.image_formats` reports what the connected agent actually supports (composed from each x-implementations entry's `produces_formats`). Requesting an unsupported format returns ERR unsupported_format. Future families may extend this enum (e.g. macOS adding `heic`/`jpeg`)."
+        "description": "Output image format. Family-dependent — `system.info.capabilities.image_formats` reports what the connected agent actually supports (composed from each x-implementations entry's `produces_formats`). Requesting an unsupported format returns ERR unsupported_format. `jpeg` and `heic` are forward-compat enum entries reserved for future families (macOS, Linux); current Windows families (`windows-modern`, `windows-legacy`, `windows-classic`) emit `ERR unsupported_format` for those values."
       },
       "quality": {
         "type": "integer",
         "minimum": 1,
         "maximum": 100,
-        "default": 80,
-        "description": "Encoder quality, 1-100. Only meaningful for lossy formats (webp, jpeg, heic); silently ignored for png/bmp. Default 80 when format is lossy. See issue #83."
+        "description": "Encoder quality, 1-100. Only meaningful for lossy formats (`webp`, `jpeg`, `heic`); silently ignored for `png`/`bmp`. Optional — when omitted, agents use their encoder-appropriate default (libwebp, WIC, GDI+ each carry their own sensible default; no spec-mandated value). See issue #83."
       },
       "cursor": {
         "type": "boolean",
@@ -69,7 +68,7 @@
       "detect": { "type": "always" },
       "available_on": ["windows-modern"],
       "produces_formats": ["png", "webp", "bmp"],
-      "description": "Windows.Graphics.Capture (WGC) fast path. Win 10 1803+. Composes via DWM — captures DirectComposition / hardware-accelerated content correctly. WIC-backed encoder produces PNG/WebP/BMP."
+      "description": "Windows.Graphics.Capture (WGC) fast path. Win 10 1809+ (build 17763); WGC API was introduced in 1803 but unstable until 1809. Composes via DWM — captures DirectComposition / hardware-accelerated content correctly. WIC-backed encoder produces PNG/WebP/BMP."
     },
     {
       "name": "gdi_bitblt",
@@ -95,7 +94,7 @@
   ],
   "x-families": {
     "windows-modern": {
-      "description": "WGC fast path on Win 10 1803+; GDI BitBlt fallback for Vista-8.1 if WGC is unavailable. PNG/WebP/BMP via WIC. Multi-monitor full. Cursor overlay via GetCursorInfo + DrawIcon when `cursor: true`.",
+      "description": "WGC fast path on Win 10 1809+ (build 17763); WGC API introduced 1803, stable from 1809. GDI BitBlt fallback if WGC is unavailable on a particular session (e.g. cross-IL or DRM-protected content). PNG/WebP/BMP via WIC. Multi-monitor full. Cursor overlay via GetCursorInfo + DrawIcon when `cursor: true`.",
       "implementations_in_order": ["wgc", "print_window", "gdi_bitblt"],
       "capture_path": ["wgc", "gdi"]
     },

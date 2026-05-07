@@ -22,7 +22,7 @@ The per-row **Conformance** columns below name the test file that exercises each
 
 | # | Verb | Status | PROTOCOL.md | VERBS.md | spec/verbs | v1 archive | Conformance |
 |---|---|---|---|---|---|---|---|
-| 1 | `connection.hello` | ✅ | §4.12:457 | :149 | ✅ (mock) | ❌ | `test_connection.py` |
+| 1 | `connection.hello` | ✅ | §4.12:457 | :149 | ✅ (mock; v2.2 adds `--framing` arg + mandatory response body w/ `framing` field) | ❌ | `test_connection.py`, `test_websocket.py` |
 | 2 | `connection.tier_raise` | ✅ | §4.12:458 | :150 | ❌ | ❌ | `test_connection.py` |
 | 3 | `connection.tier_drop` | ✅ | §4.12:459 | :151 | ❌ | ❌ | (inferred — no explicit test) |
 | 4 | `connection.reset` | ✅ | §4.12:460 | :152 | ❌ | ❌ | ❌ |
@@ -32,7 +32,7 @@ The per-row **Conformance** columns below name the test file that exercises each
 
 | # | Verb | Status | PROTOCOL.md | VERBS.md | spec/verbs | v1 archive | Conformance |
 |---|---|---|---|---|---|---|---|
-| 6 | `system.info` | ✅ | §4.1:284 | :23 | ✅ (mock) | `INFO` | `test_system.py` |
+| 6 | `system.info` | ✅ | §4.1:284 | :23 | ✅ (mock; v2.2 adds `framings` array advertising negotiable wire-framing modes) | `INFO` | `test_system.py`, `test_websocket.py` |
 | 7 | `system.capabilities` | ✅ | §4.1:285 | :24 | ❌ | `CAPS` | `test_system.py` |
 | 8 | `system.health` | ✅ | §4.1:286 | :25 | ❌ | `PING` | `test_system.py` |
 | 8a | `system.verbs` | ✅ | _new in v2.2_ | _new in v2.2_ | ✅ (NEW; embedded-spec corpus per #97; windows-classic implemented:false) | ❌ | `test_system.py` |
@@ -237,13 +237,13 @@ Cross-reference of open GitHub enhancement issues that touch verbs in this manif
 
 | Verb | Open issues |
 |---|---|
-| `connection.hello` | [#77](https://github.com/WilliamIsted/agent-remote-hands-protocol/issues/77) — response body with protocol identity / session_id (mock-up shape, formalised in v2.1.0) |
-| `screen.capture` | [#66](https://github.com/WilliamIsted/agent-remote-hands-protocol/issues/66) — optional cursor overlay (high-priority); [#83](https://github.com/WilliamIsted/agent-remote-hands-protocol/issues/83) — format/quality split + jpeg/heic forward-compat; [#91](https://github.com/WilliamIsted/agent-remote-hands-protocol/issues/91) — `encoding` selector (base64 default, binary opt-in) |
-| `system.info` | [#74](https://github.com/WilliamIsted/agent-remote-hands-protocol/issues/74) — per-monitor dimensions in mock-up's `screens` field (high-priority); [#80](https://github.com/WilliamIsted/agent-remote-hands-protocol/issues/80) — `os_name` field; [#82](https://github.com/WilliamIsted/agent-remote-hands-protocol/issues/82) — `system.info.capabilities.wake_timer_supported` flag; [#86](https://github.com/WilliamIsted/agent-remote-hands-protocol/issues/86) — `system.info.capabilities.input_settings` for OS input-timing values |
+| `connection.hello` | [#77](https://github.com/WilliamIsted/agent-remote-hands-protocol/issues/77) — response body with protocol identity / session_id (mock-up shape, formalised in v2.1.0); Overview [#3](https://github.com/WilliamIsted/agent-remote-hands-overview/issues/3) — `--framing` arg for in-protocol framing negotiation (added v2.2: `mcp` default, `ws` opt-in); response body now mandatory from v2.2 with `framing` field |
+| `screen.capture` | [#66](https://github.com/WilliamIsted/agent-remote-hands-protocol/issues/66) — optional cursor overlay (high-priority); [#83](https://github.com/WilliamIsted/agent-remote-hands-protocol/issues/83) — format/quality split + jpeg/heic forward-compat; Overview [#4](https://github.com/WilliamIsted/agent-remote-hands-overview/issues/4) P3 — extend `format` enum with `jpeg`/`heic` forward-compat values (landed v2.2); P4 — remove hard-coded `quality: 80` default (landed v2.2); [#91](https://github.com/WilliamIsted/agent-remote-hands-protocol/issues/91) — `encoding` selector (base64 default, binary opt-in) |
+| `system.info` | [#74](https://github.com/WilliamIsted/agent-remote-hands-protocol/issues/74) — per-monitor dimensions in mock-up's `screens` field (high-priority); [#80](https://github.com/WilliamIsted/agent-remote-hands-protocol/issues/80) — `os_name` field; [#82](https://github.com/WilliamIsted/agent-remote-hands-protocol/issues/82) — `system.info.capabilities.wake_timer_supported` flag; [#86](https://github.com/WilliamIsted/agent-remote-hands-protocol/issues/86) — `system.info.capabilities.input_settings` for OS input-timing values; Overview [#9](https://github.com/WilliamIsted/agent-remote-hands-overview/issues/9) — `framings` array advertising negotiable wire-framing modes (added v2.2); Overview [#4](https://github.com/WilliamIsted/agent-remote-hands-overview/issues/4) P6 — `family` enum extended to include `windows-legacy` (landed v2.2) |
 | `system.hibernate` | [#82](https://github.com/WilliamIsted/agent-remote-hands-protocol/issues/82) — `wake_at` + `force` for scheduled wake (capability-gated for VMs) |
 | `system.sleep` | [#82](https://github.com/WilliamIsted/agent-remote-hands-protocol/issues/82) — `wake_at` + `force` (same as hibernate) |
 | `window.move` | [#73](https://github.com/WilliamIsted/agent-remote-hands-protocol/issues/73) — atomic move-and-foreground (formalised post-audit; `foreground` flag + `foreground_status` enum) |
-| `input.click` | [#72](https://github.com/WilliamIsted/agent-remote-hands-protocol/issues/72) — atomic double-click (mock-up has `double` flag; lock the SendInput batch implementation); [#87](https://github.com/WilliamIsted/agent-remote-hands-protocol/issues/87) — `target_handle` + `actual_position` response fields |
+| `input.click` | [#72](https://github.com/WilliamIsted/agent-remote-hands-protocol/issues/72) — atomic double-click (mock-up has `double` flag; lock the SendInput batch implementation); [#87](https://github.com/WilliamIsted/agent-remote-hands-protocol/issues/87) — `target_handle` + `actual_position` response fields; Overview [#11](https://github.com/WilliamIsted/agent-remote-hands-overview/issues/11) item 2 — `triple: true` (OS-recognised triple-click) + `clicks: N` (open-ended, caller-controlled `clicks_interval_ms`) landed v2.2 |
 | `input.move` | [#71](https://github.com/WilliamIsted/agent-remote-hands-protocol/issues/71) — relative offsets |
 | `input.scroll` | [#88](https://github.com/WilliamIsted/agent-remote-hands-protocol/issues/88) — `horizontal: bool` for tilt-wheel / shift-wheel |
 | `input.send_message` | [#89](https://github.com/WilliamIsted/agent-remote-hands-protocol/issues/89) — return LRESULT in response body |
@@ -274,6 +274,7 @@ Captures the load-bearing preferences confirmed for each namespace so the same q
 - **Reserved-name guard:** filenames and `name` fields cross-checked against `spec/reserved-names.json` by `tests/check_spec.py`.
 - **Wire changes get GitHub issues:** any genuine wire-shape addition (new field, new flag, new response key) lands as an issue tagged `enhancement`, milestoned to the next cut (currently v2.1.0). Issues that were tracking PROTOCOL.md→mock-up alignment are obsolete (close them).
 - **VM / legacy-OS caveats:** go in `x-families.<f>.description`, never in the LLM-facing `description`.
+- **windows-legacy declared (v2.2):** XP SP3 → Win 10 builds before 1809; v141_xp toolchain. Honours `mcp` framing only (rejects `ws` with `framing_unsupported`). Per-verb `x-families.windows-legacy` opt-ins land iteratively as legacy verbs are implemented; verbs without an entry are treated as `implemented: false` for legacy by `gen.py`. Currently only `connection.hello` opts in. See Overview repo issue #4 P1 and the v2.2 framing PR.
 
 ### `connection.*` (5/5 done)
 

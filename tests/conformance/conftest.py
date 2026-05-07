@@ -22,7 +22,7 @@ from typing import Iterator
 
 import pytest
 
-from wire import ErrResponse, WireClient
+from wire import ErrResponse, WireClient, WsWireClient
 
 
 def pytest_addoption(parser: pytest.Parser) -> None:
@@ -115,6 +115,23 @@ def extra_risky_client(client: WireClient, token: str) -> WireClient:
     if isinstance(r, ErrResponse):
         pytest.skip(f"could not elevate to extra_risky: {r.code} {r.detail}")
     return client
+
+
+@pytest.fixture
+def ws_client(host: str, port: int) -> Iterator[WsWireClient]:
+    """Per-test connection using `--framing ws` (RFC 6455 binary frames).
+
+    Skips if `system.info.framings` does not advertise `"ws"` (probed via a
+    short-lived MCP `client` connection)."""
+    # Probe framings via the standard MCP client first.
+    with WireClient(host, port) as probe:
+        probe.hello()
+        info = probe.info()
+        if "ws" not in info.get("framings", []):
+            pytest.skip("agent does not advertise 'ws' framing")
+    with WsWireClient(host, port) as c:
+        c.hello()
+        yield c
 
 
 def needs_verb(capabilities: dict, verb: str) -> None:

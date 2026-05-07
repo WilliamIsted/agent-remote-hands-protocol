@@ -1,7 +1,7 @@
 {
   "name": "input.post_message",
   "strict": true,
-  "description": "Non-blocking Win32 `PostMessage` peer of input.send_message. Use when the target's message pump is unresponsive to a synchronous send (PostMessage queues the message and returns immediately).",
+  "description": "Non-blocking Win32 `PostMessage` peer of input.send_message. Use when the target's message pump is unresponsive to a synchronous send (PostMessage queues the message and returns immediately). Note: messages dispatch via user32 only — synthetic `WM_KEYDOWN` / `WM_KEYUP` will not reach DirectInput / RawInput / `GetAsyncKeyState` targets, same boundary as `input.keyboard.*`. See `spec/operators/05-footguns.md`.",
   "input_schema": {
     "type": "object",
     "properties": {

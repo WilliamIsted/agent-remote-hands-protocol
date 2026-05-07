@@ -1,7 +1,7 @@
 {
   "name": "input.keyboard.type",
   "strict": true,
-  "description": "Type a UTF-8 string into the focused window. Handles Unicode (including supplementary-plane chars) and avoids the quote-escape hazards of synthesising it as individual `input.keyboard.key` calls. Same RawInput / DirectInput limitation as input.keyboard.key.",
+  "description": "Type a UTF-8 string into the focused window. Handles Unicode (including supplementary-plane chars) and avoids the quote-escape hazards of synthesising it as individual `input.keyboard.key` calls. Synthesised keystrokes deliver via the user32 layer only; targets that read the kernel keyboard table directly (DirectInput, RawInput, `GetAsyncKeyState`) — including Unity and most game frameworks — won't observe them. See `spec/operators/05-footguns.md` for the capability boundary.",
   "input_schema": {
     "type": "object",
     "properties": {
