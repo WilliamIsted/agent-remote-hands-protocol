@@ -2,7 +2,7 @@
 """Spec generator.
 
 Reads:
-  - spec/verbs/*.json          per-verb strict-tool definitions with x-* extensions
+  - spec/verbs/**/*.json       per-verb strict-tool definitions with x-* extensions
   - spec/families.json         family declarations + per-family metadata (token paths, etc.)
   - spec/framing/*.md          hand-written markdown for non-verb PROTOCOL.md sections
   - spec/operators/*.md        hand-written markdown for LLM-OPERATORS.md sections
@@ -60,7 +60,7 @@ def strip_x_extensions(node):
 
 def load_verbs():
     verbs = []
-    for path in sorted((SPEC_DIR / "verbs").glob("*.json")):
+    for path in sorted((SPEC_DIR / "verbs").glob("**/*.json")):
         with path.open(encoding="utf-8") as f:
             verbs.append(json.load(f))
     return verbs
@@ -347,7 +347,7 @@ def render_section_4(verbs, families):
     namespaces.extend(tail)
 
     lines = ["## 4. Verbs by namespace", ""]
-    lines.append("This section is generated from `spec/verbs/*.json`. Edit the per-verb files, not this section.")
+    lines.append("This section is generated from `spec/verbs/**/*.json`. Edit the per-verb files, not this section.")
     lines.append("")
 
     for n_idx, ns in enumerate(namespaces, start=1):
@@ -451,7 +451,7 @@ def render_verbs_md(verbs, family_name, families_meta):
     if fam_desc:
         lines.append(fam_desc)
         lines.append("")
-    lines.append(f"One-line conceptual index of every verb the `{family_name}` agent implements. Generated from `spec/verbs/*.json` filtered by each verb's `x-families.{family_name}` slot. Verbs marked `implemented: false` for this family are omitted.")
+    lines.append(f"One-line conceptual index of every verb the `{family_name}` agent implements. Generated from `spec/verbs/**/*.json` filtered by each verb's `x-families.{family_name}` slot. Verbs marked `implemented: false` for this family are omitted.")
     lines.append("")
     lines.append("Tier shorthand: **R** = read, **C** = create, **U** = update, **D** = delete, **X** = extra_risky.")
     lines.append("")

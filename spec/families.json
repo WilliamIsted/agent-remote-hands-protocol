@@ -2,6 +2,7 @@
   "families": {
     "windows-modern": {
       "description": "Windows 10 1803 and newer (including Windows 11). Modern feature set: WGC capture, full UI Automation, mandatory integrity levels, UIPI, WIC image codecs, WIC-backed PNG/WebP/BMP. The default Windows family for new agent installs.",
+      "portability_tier": "windows",
       "capabilities": [
         "ui_automation",
         "wgc_capture",
@@ -22,6 +23,7 @@
     },
     "windows-classic": {
       "description": "Windows NT 4 through Windows 8.1, plus Windows 9x where applicable. No UI Automation, no WGC, no UIPI; GDI BitBlt capture only. PNG via GDI+ runtime if present (XP+ ships GDI+; NT 4 needs the redist). Multi-monitor on 2000 and later. Used for the legacy Windows agent build.",
+      "portability_tier": "windows",
       "capabilities": [
         "gdi_capture",
         "send_input",
