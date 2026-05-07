@@ -29,7 +29,7 @@
     "properties": {
       "family": {
         "type": "string",
-        "enum": ["windows-modern", "windows-classic"],
+        "enum": ["windows-modern", "windows-classic", "windows-legacy"],
         "description": "Agent product family. Strict enum sourced from spec/families.json keys."
       },
       "agent": {

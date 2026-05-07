@@ -1,7 +1,7 @@
 {
   "families": {
     "windows-modern": {
-      "description": "Windows 10 1803 and newer (including Windows 11). Modern feature set: WGC capture, full UI Automation, mandatory integrity levels, UIPI, WIC image codecs, WIC-backed PNG/WebP/BMP. The default Windows family for new agent installs.",
+      "description": "Windows 10 build 17763 (1809) and newer (including Windows 11). Modern feature set: WGC capture, full UI Automation, mandatory integrity levels, UIPI, WIC image codecs, WIC-backed PNG/WebP/BMP. The default Windows family for new agent installs. Note: WGC was introduced in Win 10 1803 but stabilised in 1809; the modern floor is set at 1809 because earlier WGC behaviour was unreliable.",
       "portability_tier": "windows",
       "capabilities": [
         "ui_automation",
@@ -18,11 +18,31 @@
       "token_file_acl": "Local Administrators (full control) + agent run-as account (read). Inherited permissions disabled. Token rotates on every agent start.",
       "protocol_versions_spoken": [
         "2.0",
-        "2.1"
+        "2.1",
+        "2.2"
+      ]
+    },
+    "windows-legacy": {
+      "_placeholder": true,
+      "description": "Windows XP SP3 / Server 2003 SP2 / Vista / 7 / 8 / 8.1 / Server 2008 / 2008 R2 / 2012 / 2012 R2 / Win 10 builds before 1809. Built with the VS2017 v141_xp toolset on a modern dev workstation. UI Automation 3.0 (Vista+ via redist; in-box on 7+); GDI BitBlt capture; WIC encoders for PNG/WebP/BMP. No WGC (modern-floor API), no long-path support pre-Win-10-1607. Wire-identity exists from Protocol v2.2 onward; pre-v2.2 the same agent code advertised itself as `windows-classic` on the wire.",
+      "portability_tier": "windows",
+      "capabilities": [
+        "ui_automation",
+        "gdi_capture",
+        "uipi",
+        "integrity_levels",
+        "wic_codecs",
+        "send_input",
+        "cf_unicodetext"
+      ],
+      "token_file_path": "%ProgramData%\\AgentRemoteHands\\token",
+      "token_file_acl": "Local Administrators (full control) + agent run-as account (read). Inherited permissions disabled. Token rotates on every agent start.",
+      "protocol_versions_spoken": [
+        "2.2"
       ]
     },
     "windows-classic": {
-      "description": "Windows NT 4 through Windows 8.1, plus Windows 9x where applicable. No UI Automation, no WGC, no UIPI; GDI BitBlt capture only. PNG via GDI+ runtime if present (XP+ ships GDI+; NT 4 needs the redist). Multi-monitor on 2000 and later. Used for the legacy Windows agent build.",
+      "description": "Windows NT 4.0 SP6a, Windows 95 OSR2 through ME, and Windows 2000. Built with the VS6 toolset on a Windows XP SP3 VM. No UI Automation, no WGC, no UIPI; GDI BitBlt capture only. PNG via GDI+ runtime if present (XP+ ships GDI+; NT 4 needs the redist). Multi-monitor on 2000 and later. Used for the earliest Windows agent build; Vista through Windows 8.1 / Win 10 pre-1809 are covered by the `windows-legacy` family, not classic.",
       "portability_tier": "windows",
       "capabilities": [
         "gdi_capture",

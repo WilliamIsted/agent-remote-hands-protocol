@@ -45,7 +45,7 @@ def test_info_has_required_fields(client: WireClient) -> None:
 def test_info_family_is_known(client: WireClient) -> None:
     """`family` is the strict-enum source for routing per-OS verb behaviour."""
     info = client.info()
-    assert info["family"] in {"windows-modern", "windows-classic"}, \
+    assert info["family"] in {"windows-modern", "windows-classic", "windows-legacy"}, \
         f"unknown family: {info['family']!r}"
 
 
