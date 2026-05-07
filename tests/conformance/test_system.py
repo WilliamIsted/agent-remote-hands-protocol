@@ -29,7 +29,7 @@ from wire import ErrResponse, OkResponse, WireClient
 REQUIRED_INFO_FIELDS = {
     "family", "agent", "agent_protocol", "os_name", "os_version",
     "cpu_arch", "integrity", "uiaccess", "hostname", "screens",
-    "capabilities", "current_tier",
+    "capabilities", "current_tier", "framings",
 }
 
 

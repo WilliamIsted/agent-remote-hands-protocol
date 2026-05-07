@@ -12,5 +12,6 @@ TXT record fields:
 | `os` | `windows-modern` | Target identifier |
 | `tiers` | `read,create,update,delete,extra_risky` | Comma-separated tier list |
 | `auth` | `token` | Comma-separated auth methods |
+| `framings` | `mcp,ws` | Comma-separated wire-framing modes the agent will honour in `connection.hello`. Always includes `mcp` on a v2.2+ agent. Added v2.2. |
 
 Discovery is opt-in per deployment. The protocol has no transport authentication, so mDNS advertising on an untrusted network is a footgun.

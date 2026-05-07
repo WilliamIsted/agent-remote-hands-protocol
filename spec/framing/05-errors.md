@@ -21,6 +21,7 @@ Errors take the form:
 | `busy` | `{max}` | Too many concurrent connections |
 | `conflict` | varies | Verb cannot proceed because of in-flight state (e.g. `system.power.shutdown` `--delay-seconds` while one is already pending — detail `{"pending_until_ms":<n>}`) |
 | `protocol_mismatch` | `{agent, client}` | Hello specified an incompatible protocol version |
+| `framing_unsupported` | `{requested, supported?}` | Hello requested a framing the agent cannot honour (unknown name, or family lacks support — e.g. `windows-classic` for `mcp` / `ws`). Trigger: `connection.hello` only. Remedy: reconnect with a different `--framing` value or omit the flag. |
 | `auth_required` | — | Reserved for v0.4 SSPI (Protocol 4.0) |
 | `auth_invalid` | — | Authentication token rejected. Used today by `connection.tier_raise` when the supplied tier-elevation token is wrong; reserved for v0.4 SSPI in addition. |
 

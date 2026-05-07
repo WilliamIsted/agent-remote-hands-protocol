@@ -19,13 +19,31 @@ The connection terminates on `connection.close` (graceful), socket drop, or agen
 ### 2.2 Hello
 
 ```
-> connection.hello <client-name> <protocol-version>
-< OK 0
+> connection.hello <client-name> <protocol-version> [--framing <name>]
+< OK <length>\n
+{"protocol":"arh","agent":"AgentRemoteHands","agent_protocol":"2.2",
+ "os_name":"Windows 11 Pro","os_version":"22H2","session_id":"...",
+ "framing":"mcp"}
 ```
 
-The client identifies itself and asserts a protocol major version. The agent rejects mismatched versions with `ERR protocol_mismatch {"agent":"2","client":"<n>"}`.
+The client identifies itself, asserts a protocol version, and optionally selects a wire-framing mode. The agent rejects mismatched versions with `ERR protocol_mismatch {"agent":"2.2","client":"<n>"}`. v2.2+ agents do **not** advertise v2.1 as supported — v2.1 clients connecting to a v2.2+ agent receive `ERR protocol_mismatch` and must upgrade.
 
 `<client-name>` is informational and logged by the agent.
+
+**Response body is mandatory from v2.2 onward.** Earlier versions returned `OK 0`; v2.2 closes that gap. The body carries the negotiated protocol version, agent identifying fields, a fresh `session_id`, and the active `framing` (see `spec/verbs/common/connection.hello.json` for the full schema). Clients use the `framing` field to confirm which framing the agent has selected before switching their parser.
+
+**Framing negotiation (`--framing <name>`).**
+
+| Argument | Behaviour |
+|---|---|
+| omitted | Default is `mcp` when negotiated version `>= "2.2"`. v2.1 clients receive `ERR protocol_mismatch` (no v2.1 compat in v2.2+ agents). |
+| `--framing mcp` | MCP-stdio framing (§1.6) — `Content-Length: N\r\n\r\n<JSON>`, MCP JSON-RPC 2.0 body. Available `windows-modern` only. |
+| `--framing ws` | RFC 6455 binary frames carrying MCP JSON-RPC 2.0 body (§1.5). Available `windows-modern` only. No HTTP upgrade — the framing change happens entirely in `connection.hello`. |
+| any other value | `ERR framing_unsupported`. |
+
+The agent returns `ERR framing_unsupported` whenever it cannot honour the requested framing — either because the value is unknown, or because the family lacks support (`windows-classic` for `mcp` / `ws`). On `framing_unsupported` the connection remains in pre-hello state; the client may retry with a different `--framing` argument or omit the flag.
+
+**Framing switch timing.** The framing switch takes effect **after** the hello `OK` body has been fully consumed by the client. There is no partial-read ambiguity: the bootstrap framing (§1.2) covers the entire request and its response; from the byte immediately following the hello body, the negotiated framing applies. The MCP session handshake described in §1.6.1 then runs on the new framing.
 
 ### 2.3 Tier negotiation
 

@@ -22,7 +22,7 @@ The per-row **Conformance** columns below name the test file that exercises each
 
 | # | Verb | Status | PROTOCOL.md | VERBS.md | spec/verbs | v1 archive | Conformance |
 |---|---|---|---|---|---|---|---|
-| 1 | `connection.hello` | ✅ | §4.12:457 | :149 | ✅ (mock) | ❌ | `test_connection.py` |
+| 1 | `connection.hello` | ✅ | §4.12:457 | :149 | ✅ (mock; v2.2 adds `--framing` arg + mandatory response body w/ `framing` field) | ❌ | `test_connection.py`, `test_websocket.py` |
 | 2 | `connection.tier_raise` | ✅ | §4.12:458 | :150 | ❌ | ❌ | `test_connection.py` |
 | 3 | `connection.tier_drop` | ✅ | §4.12:459 | :151 | ❌ | ❌ | (inferred — no explicit test) |
 | 4 | `connection.reset` | ✅ | §4.12:460 | :152 | ❌ | ❌ | ❌ |
@@ -32,7 +32,7 @@ The per-row **Conformance** columns below name the test file that exercises each
 
 | # | Verb | Status | PROTOCOL.md | VERBS.md | spec/verbs | v1 archive | Conformance |
 |---|---|---|---|---|---|---|---|
-| 6 | `system.info` | ✅ | §4.1:284 | :23 | ✅ (mock) | `INFO` | `test_system.py` |
+| 6 | `system.info` | ✅ | §4.1:284 | :23 | ✅ (mock; v2.2 adds `framings` array advertising negotiable wire-framing modes) | `INFO` | `test_system.py`, `test_websocket.py` |
 | 7 | `system.capabilities` | ✅ | §4.1:285 | :24 | ❌ | `CAPS` | `test_system.py` |
 | 8 | `system.health` | ✅ | §4.1:286 | :25 | ❌ | `PING` | `test_system.py` |
 | 8a | `system.verbs` | ✅ | _new in v2.2_ | _new in v2.2_ | ✅ (NEW; embedded-spec corpus per #97; windows-classic implemented:false) | ❌ | `test_system.py` |
@@ -237,9 +237,9 @@ Cross-reference of open GitHub enhancement issues that touch verbs in this manif
 
 | Verb | Open issues |
 |---|---|
-| `connection.hello` | [#77](https://github.com/WilliamIsted/agent-remote-hands-protocol/issues/77) — response body with protocol identity / session_id (mock-up shape, formalised in v2.1.0) |
+| `connection.hello` | [#77](https://github.com/WilliamIsted/agent-remote-hands-protocol/issues/77) — response body with protocol identity / session_id (mock-up shape, formalised in v2.1.0); Overview [#3](https://github.com/WilliamIsted/agent-remote-hands-overview/issues/3) — `--framing` arg for in-protocol framing negotiation (added v2.2: `mcp` default, `ws` opt-in); response body now mandatory from v2.2 with `framing` field |
 | `screen.capture` | [#66](https://github.com/WilliamIsted/agent-remote-hands-protocol/issues/66) — optional cursor overlay (high-priority); [#83](https://github.com/WilliamIsted/agent-remote-hands-protocol/issues/83) — format/quality split + jpeg/heic forward-compat; [#91](https://github.com/WilliamIsted/agent-remote-hands-protocol/issues/91) — `encoding` selector (base64 default, binary opt-in) |
-| `system.info` | [#74](https://github.com/WilliamIsted/agent-remote-hands-protocol/issues/74) — per-monitor dimensions in mock-up's `screens` field (high-priority); [#80](https://github.com/WilliamIsted/agent-remote-hands-protocol/issues/80) — `os_name` field; [#82](https://github.com/WilliamIsted/agent-remote-hands-protocol/issues/82) — `system.info.capabilities.wake_timer_supported` flag; [#86](https://github.com/WilliamIsted/agent-remote-hands-protocol/issues/86) — `system.info.capabilities.input_settings` for OS input-timing values |
+| `system.info` | [#74](https://github.com/WilliamIsted/agent-remote-hands-protocol/issues/74) — per-monitor dimensions in mock-up's `screens` field (high-priority); [#80](https://github.com/WilliamIsted/agent-remote-hands-protocol/issues/80) — `os_name` field; [#82](https://github.com/WilliamIsted/agent-remote-hands-protocol/issues/82) — `system.info.capabilities.wake_timer_supported` flag; [#86](https://github.com/WilliamIsted/agent-remote-hands-protocol/issues/86) — `system.info.capabilities.input_settings` for OS input-timing values; Overview [#9](https://github.com/WilliamIsted/agent-remote-hands-overview/issues/9) — `framings` array advertising negotiable wire-framing modes (added v2.2) |
 | `system.hibernate` | [#82](https://github.com/WilliamIsted/agent-remote-hands-protocol/issues/82) — `wake_at` + `force` for scheduled wake (capability-gated for VMs) |
 | `system.sleep` | [#82](https://github.com/WilliamIsted/agent-remote-hands-protocol/issues/82) — `wake_at` + `force` (same as hibernate) |
 | `window.move` | [#73](https://github.com/WilliamIsted/agent-remote-hands-protocol/issues/73) — atomic move-and-foreground (formalised post-audit; `foreground` flag + `foreground_status` enum) |

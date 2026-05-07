@@ -89,9 +89,14 @@
         "type": "string",
         "enum": ["read", "create", "update", "delete", "extra_risky"],
         "description": "Connection's currently-active CRUDX tier. Echoes the result of the most recent `connection.tier_raise` / `connection.tier_drop` (or `read` on a fresh connection). Lets callers introspect their own tier without tracking it client-side."
+      },
+      "framings": {
+        "type": "array",
+        "items": { "type": "string" },
+        "description": "Wire-framing modes this agent will honour in `connection.hello`. Always includes `\"mcp\"` on a v2.2+ `windows-modern` agent; adds `\"ws\"` when the family supports RFC 6455 binary framing. `windows-classic` reports an empty list (the bootstrap header-line framing is implicit and not selectable). Clients use this field to decide which `--framing` value (if any) to pass on their next connection. Added v2.2."
       }
     },
-    "required": ["family", "agent", "agent_protocol", "os_name", "os_version", "cpu_arch", "integrity", "uiaccess", "hostname", "screens", "capabilities", "current_tier"],
+    "required": ["family", "agent", "agent_protocol", "os_name", "os_version", "cpu_arch", "integrity", "uiaccess", "hostname", "screens", "capabilities", "current_tier", "framings"],
     "additionalProperties": false
   },
   "x-errors": [],
