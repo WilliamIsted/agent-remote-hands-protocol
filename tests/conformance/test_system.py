@@ -110,6 +110,55 @@ def test_capabilities_tier_values_are_known(client: WireClient) -> None:
 
 
 # ---------------------------------------------------------------------------
+# system.verbs — full strict-tool defs over the wire (issue #97; since v2.2)
+
+def test_verbs_returns_verbs_object(
+        client: WireClient, capabilities: dict) -> None:
+    """system.verbs returns `{verbs: {<name>: <strict-tool-def>, ...}}`."""
+    needs_verb(capabilities, "system.verbs")
+    r = client.request("system.verbs")
+    assert isinstance(r, OkResponse)
+    body = json.loads(r.payload)
+    assert "verbs" in body
+    assert isinstance(body["verbs"], dict)
+    assert body["verbs"], "verbs map must be non-empty"
+
+
+def test_verbs_entries_are_strict_tool_defs(
+        client: WireClient, capabilities: dict) -> None:
+    """Each map value is a strict-tool definition with the required keys
+    (name, description, input_schema). x-* extensions are allowed but not
+    required by this assertion — the agent is free to strip or preserve."""
+    needs_verb(capabilities, "system.verbs")
+    r = client.request("system.verbs")
+    body = json.loads(r.payload)
+    for verb_name, definition in body["verbs"].items():
+        assert isinstance(definition, dict), f"{verb_name}: not an object"
+        assert definition.get("name") == verb_name, \
+            f"{verb_name}: `name` field must match the map key"
+        assert isinstance(definition.get("description"), str) and definition["description"], \
+            f"{verb_name}: missing/empty description"
+        schema = definition.get("input_schema")
+        assert isinstance(schema, dict) and schema.get("type") == "object", \
+            f"{verb_name}: input_schema must be an object schema"
+
+
+def test_verbs_superset_of_capabilities(
+        client: WireClient, capabilities: dict) -> None:
+    """Every verb advertised by `system.capabilities` must also appear in
+    `system.verbs`. The reverse is not required (system.verbs MAY include
+    verbs the agent registers but doesn't gate via capabilities — though
+    today every dispatcher entry shows up in both)."""
+    needs_verb(capabilities, "system.verbs")
+    r = client.request("system.verbs")
+    body = json.loads(r.payload)
+    advertised = set(capabilities.keys())
+    served = set(body["verbs"].keys())
+    missing = advertised - served
+    assert not missing, f"system.capabilities advertises verbs not in system.verbs: {sorted(missing)}"
+
+
+# ---------------------------------------------------------------------------
 # system.health
 
 def test_health_succeeds(client: WireClient, capabilities: dict) -> None:

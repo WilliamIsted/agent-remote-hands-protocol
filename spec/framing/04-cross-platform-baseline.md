@@ -4,10 +4,10 @@ The verb surface is split into two directories that reflect portability intent:
 
 | Directory | Count | Requirement |
 |---|---|---|
-| `spec/verbs/common/` | 54 verbs | Any conforming agent on any OS MUST implement all verbs in this directory |
+| `spec/verbs/common/` | 55 verbs | Any conforming agent on any OS MUST implement all verbs in this directory |
 | `spec/verbs/windows/` | 33 verbs | Windows agents additionally implement these; non-Windows agents declare `implemented: false` |
 
-### 4.1 Common surface (54 verbs)
+### 4.1 Common surface (55 verbs)
 
 These verbs carry no Windows-specific API dependency. Any OS with a process model, filesystem, screen, and input system can implement all of them.
 
@@ -22,7 +22,7 @@ These verbs carry no Windows-specific API dependency. Any OS with a process mode
 | `input.mouse.*` | `input.mouse.click`, `input.mouse.drag`, `input.mouse.move`, `input.mouse.press`, `input.mouse.release`, `input.mouse.scroll` |
 | `process.*` | `process.kill`, `process.list`, `process.start`, `process.wait` |
 | `screen.*` | `screen.capture` |
-| `system.*` | `system.capabilities`, `system.health`, `system.info` |
+| `system.*` | `system.capabilities`, `system.health`, `system.info`, `system.verbs` |
 | `vision.*` | `vision.ocr` |
 | `watch.*` | `watch.cancel`, `watch.file`, `watch.process`, `watch.region`, `watch.window` |
 | `window.*` | `window.close`, `window.find`, `window.focus`, `window.list`, `window.move`, `window.state` |
