@@ -2,7 +2,7 @@
 
 [![Specification](https://github.com/WilliamIsted/agent-remote-hands-protocol/actions/workflows/specification.yml/badge.svg?branch=main)](https://github.com/WilliamIsted/agent-remote-hands-protocol/actions/workflows/specification.yml)
 [![License](https://img.shields.io/github/license/WilliamIsted/agent-remote-hands-protocol?label=License&color=blue)](LICENSE)
-[![Version](https://img.shields.io/badge/version-2.1%20stable-blue)](spec/verbs/)
+[![Version](https://img.shields.io/badge/version-2.2%20stable-blue)](spec/verbs/)
 [![Conformance: pytest](https://img.shields.io/badge/conformance-pytest-0A9EDC)](tests/conformance/)
 [![Last commit](https://img.shields.io/github/last-commit/WilliamIsted/agent-remote-hands-protocol?logo=github)](https://github.com/WilliamIsted/agent-remote-hands-protocol/commits/main)
 
@@ -28,12 +28,14 @@ The spec is split into **source** (humans edit) and **generated** (machines + hu
 |---|---|
 | `dist/PROTOCOL.md` | The canonical rendered spec — wire format, framing, lifecycle, tier model, error model, every verb's signature. Concatenated from `spec/framing/` + generated §4. |
 | `dist/verbs-windows-modern.md` | One-line conceptual catalogue of every verb the `windows-modern` agent implements. |
+| `dist/verbs-windows-legacy.md` | Same for the `windows-legacy` agent (XP SP3 → Win 10 pre-1809; v141_xp toolchain). Currently MVP — only `connection.hello` opted-in. Added v2.2. |
 | `dist/verbs-windows-classic.md` | Same for the `windows-classic` agent (UIA-only verbs filtered out). |
 | `dist/verbs.json` | Concatenated strict-tool definitions with `x-*` stripped, all-families superset. Use when the target family isn't known at registration time and you'll capability-gate at runtime. |
 | `dist/verbs-windows-modern.json` | Same shape as `dist/verbs.json`, filtered to verbs the `windows-modern` family implements. Drop-in for `client.messages.create(tools=...)` against a known-family agent. |
+| `dist/verbs-windows-legacy.json` | Same for `windows-legacy`. |
 | `dist/verbs-windows-classic.json` | Same for `windows-classic`. |
 | `dist/LLM-OPERATORS.md` | Operator's-eye view for LLMs driving an agent. Concatenated from `spec/operators/`. |
-| [`tests/conformance/`](tests/conformance/) | Executable contract — pytest suite that any agent claiming to speak the protocol must pass. Includes [`wire.py`](tests/conformance/wire.py), the canonical Python reference client (~220 lines, stdlib-only). |
+| [`tests/conformance/`](tests/conformance/) | Executable contract — pytest suite that any agent claiming to speak the protocol must pass. Includes [`wire.py`](tests/conformance/wire.py), the canonical Python reference client (stdlib-only — speaks MCP-stdio framing post-hello, with a `WsWireClient` subclass for RFC 6455 binary frames). |
 
 ## Reading paths
 
@@ -50,9 +52,10 @@ Different reading tasks, different docs:
 
 | Version | Status | Notes |
 |---|---|---|
-| 2.1 | Stable (this repo's `main`) | CRUDX tier ladder (`read` < `create` < `update` < `delete` < `extra_risky`); `clipboard.read`/`write` → `clipboard.get`/`set`; `directory.*` namespace split out of `file.*` with full CRUDX-complete primitives; `file.*` create/update split (new `file.create` C-tier verb); `system.*` power verbs re-namespaced to `system.power.*`; `registry.*` restructured into resource-first `registry.value.{read,create,update,delete}` + `registry.key.{read,delete}`; `input.*` split into `input.mouse.*` + `input.keyboard.*` sub-namespaces (rc.3) plus 6 new verbs closing v1.0.0-milestone parity (`input.position`, `input.mouse.press`/`release`/`drag`, `input.keyboard.key_down`/`key_up`); header-line argument quoting (`"path with spaces"`); native OCR via `vision.ocr` (Windows.Media.Ocr.OcrEngine on windows-modern; five-way input selector covering live capture and image files); `system.info.capabilities` gains `ocr_languages` / `ocr_max_dimension` / `ocr_input_formats`; new `image_too_large` error code. Wire-breaking change vs 2.0 — clean cut, no aliases. Implemented by `windows-modern@v0.3.x`. See `dist/PROTOCOL.md` §12.5 for the full release notes and migration ladder. |
+| 2.2 | Stable (this repo's `main`) | Wire-framing modernisation: MCP-stdio (`Content-Length: N\r\n\r\n<JSON>` carrying MCP JSON-RPC 2.0) becomes the default ongoing framing; RFC 6455 WS framing is opt-in via `--framing ws`. The v2.0 / v2.1 ARH header-line text format is retired as an ongoing framing — retained only for the `connection.hello` bootstrap. v2.1 clients receive `ERR protocol_mismatch`; clean break. New `windows-legacy` family declared (XP SP3 → Win 10 builds before 1809; v141_xp toolchain; honours `mcp` framing only). windows-modern floor corrected to Win 10 1809 / build 17763. `system.verbs` returns full strict-tool defs over the wire (backs MCP `tools/list`). `input.mouse.click` gains `triple: true` and `clicks: N` (caller-controlled `clicks_interval_ms`). `screen.capture` `format` enum extended with `jpeg`/`heic` forward-compat values; hard-coded `quality: 80` default removed. `system.info` gains `framings` array. New `framing_unsupported` error code. Per-family `format_supported` arrays in `families.json`. New `tools/list_changed` is **not** emitted on tier transitions — the catalog is complete from first call (resolves the tier-elevation cost concern). See `dist/PROTOCOL.md` §1.5 / §1.6 / §2.2 / §12.5. |
+| 2.1 | Superseded by 2.2; never tagged final | CRUDX tier ladder; `clipboard.read`/`write` → `clipboard.get`/`set`; `directory.*` namespace split; `system.*` power verbs re-namespaced; `registry.*` resource-first restructure; `input.*` split into mouse/keyboard sub-namespaces; argument quoting; native `vision.ocr`. Released as `v2.1.0-rc.3` only — final tag was never cut; v2.1 features are included in `v2.2.0`. |
 | 2.0 | Released | Pin clients here for the old `observe`/`drive`/`power` tier vocabulary and the `clipboard.read`/`write`/`file.list`/`file.mkdir` verb names. Implemented by `windows-modern@v0.2.x`. |
-| 3.0 | In design | Modern-family major — privsep dispatcher + tier-restricted workers; JSON-RPC 2.0 wire format with binary side-channel. See the agent repo's `Documents/Overview/Planning/v3-structural-review.md` for the cross-repo design context. |
+| 3.0 | In design | Modern-family major — privsep dispatcher + tier-restricted workers. The "JSON-RPC + Content-Length framing" portion of the original v3 design landed in v2.2 ahead of schedule; v3.0 now focuses on the privsep architecture. See the agent repo's `Documents/Overview/Planning/v3-structural-review.md` for the cross-repo design context. |
 
 Protocol versioning is **per-family-branched**, not linear: `windows-classic` (NT, 2000, XP, 2003) plateaus at the 2.x line; `windows-modern` (10, 11, Server 2016+) moves to 3.x. Both are alive at the same time. See `dist/PROTOCOL.md` §12 for the full versioning policy.
 

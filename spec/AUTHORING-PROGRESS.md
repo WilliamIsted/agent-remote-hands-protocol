@@ -274,6 +274,7 @@ Captures the load-bearing preferences confirmed for each namespace so the same q
 - **Reserved-name guard:** filenames and `name` fields cross-checked against `spec/reserved-names.json` by `tests/check_spec.py`.
 - **Wire changes get GitHub issues:** any genuine wire-shape addition (new field, new flag, new response key) lands as an issue tagged `enhancement`, milestoned to the next cut (currently v2.1.0). Issues that were tracking PROTOCOL.md→mock-up alignment are obsolete (close them).
 - **VM / legacy-OS caveats:** go in `x-families.<f>.description`, never in the LLM-facing `description`.
+- **windows-legacy declared (v2.2):** XP SP3 → Win 10 builds before 1809; v141_xp toolchain. Honours `mcp` framing only (rejects `ws` with `framing_unsupported`). Per-verb `x-families.windows-legacy` opt-ins land iteratively as legacy verbs are implemented; verbs without an entry are treated as `implemented: false` for legacy by `gen.py`. Currently only `connection.hello` opts in. See Overview repo issue #4 P1 and the v2.2 framing PR.
 
 ### `connection.*` (5/5 done)
 
