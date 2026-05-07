@@ -1,7 +1,7 @@
 {
   "name": "input.keyboard.key_down",
   "strict": true,
-  "description": "Press a virtual key by name and leave it held indefinitely. Returns immediately. Pair with `input.keyboard.key_up` (or rely on connection-close cleanup) to lift. Use this for multi-verb chord workflows (Shift+drag, Ctrl across multiple invocations); for single-verb timed holds use `input.keyboard.key {duration_ms}`. Per issue #70.",
+  "description": "Press a virtual key by name and leave it held indefinitely. Returns immediately. Pair with `input.keyboard.key_up` (or rely on connection-close cleanup) to lift. Use this for multi-verb chord workflows (Shift+drag, Ctrl across multiple invocations); for single-verb timed holds use `input.keyboard.key {duration_ms}`. Same user32-layer-only delivery as `input.keyboard.key` — DirectInput / RawInput / `GetAsyncKeyState` targets won't observe the held state. See `spec/operators/05-footguns.md` for the capability boundary. Per issue #70.",
   "input_schema": {
     "type": "object",
     "properties": {

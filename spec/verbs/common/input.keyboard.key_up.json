@@ -1,7 +1,7 @@
 {
   "name": "input.keyboard.key_up",
   "strict": true,
-  "description": "Release a virtual key if held by anything (this connection or another). Idempotent — returns `OK 0` whether or not the key was held. Use to lift a key held by `input.keyboard.key_down`, or as a cross-connection fail-safe to recover from a stuck state. Per issue #70.",
+  "description": "Release a virtual key if held by anything (this connection or another). Idempotent — returns `OK 0` whether or not the key was held. Use to lift a key held by `input.keyboard.key_down`, or as a cross-connection fail-safe to recover from a stuck state. Same user32-layer-only delivery as `input.keyboard.key` — DirectInput / RawInput targets won't observe the release event. See `spec/operators/05-footguns.md` for the capability boundary. Per issue #70.",
   "input_schema": {
     "type": "object",
     "properties": {
