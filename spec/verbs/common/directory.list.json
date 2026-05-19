@@ -21,7 +21,30 @@
       "limit": {
         "type": "integer",
         "minimum": 1,
-        "description": "Optional cap on the returned entry count. Walk halts when the limit is reached. Omit for no cap."
+        "default": 200,
+        "description": "Cap on the returned entry count. Default 200. Pass a higher value or omit with `full: true` for larger directories (System32 has ~5 000 entries)."
+      },
+      "offset": {
+        "type": "integer",
+        "minimum": 0,
+        "default": 0,
+        "description": "Number of entries to skip before returning results. Use with `limit` for pagination."
+      },
+      "sort": {
+        "type": "string",
+        "enum": ["name", "mtime", "size", "ctime"],
+        "default": "name",
+        "description": "Sort key. `name`: alphabetical, case-insensitive, directories before files (default). `mtime`: most recently modified first. `size`: largest first (directories treated as 0). `ctime`: most recently created first."
+      },
+      "reverse": {
+        "type": "boolean",
+        "default": false,
+        "description": "Reverse the sort order after applying `sort`. E.g. `sort: mtime, reverse: true` gives oldest-first."
+      },
+      "full": {
+        "type": "boolean",
+        "default": false,
+        "description": "When true, removes the `limit` cap and returns all entries. Intended for small directories or explicit full-enumeration tasks."
       }
     },
     "required": ["path"],

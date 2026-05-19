@@ -1,7 +1,7 @@
 {
   "name": "process.list",
   "strict": true,
-  "description": "Enumerate running processes. Returns pid, image name, and parent pid per entry. Pass `include_counters: true` to include CPU/memory/handle counts. Read-only.",
+  "description": "Enumerate running processes. Returns pid, ppid, and image name per entry, sorted alphabetically by image name. Session-0 service processes are excluded by default (`include_system: true` to restore). Pass `include_counters: true` to add CPU/memory/handle counts. Read-only.",
   "input_schema": {
     "type": "object",
     "properties": {
@@ -13,6 +13,17 @@
         "type": "boolean",
         "default": false,
         "description": "If true, each entry adds resource counters: CPU%, RSS, working set, private bytes, thread count, handle count, start time. Adds modest cost (per-pid OpenProcess + GetProcessTimes + GetProcessMemoryInfo + GetProcessHandleCount), so opt-in."
+      },
+      "limit": {
+        "type": "integer",
+        "minimum": 1,
+        "default": 100,
+        "description": "Cap on the number of processes returned after filtering and sorting. Default 100. Use `pattern` to narrow results on machines with many processes (developer machines commonly have 200–300+)."
+      },
+      "include_system": {
+        "type": "boolean",
+        "default": false,
+        "description": "When false (default), session-0 processes (Windows service host session) are excluded. Session-0 contains background services (antivirus, audio, VPN) that are rarely relevant to interactive agent tasks. Pass `include_system: true` to include them. Requires one `ProcessIdToSessionId` call per snapshot entry."
       }
     },
     "additionalProperties": false

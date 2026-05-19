@@ -39,10 +39,16 @@
         "type": "string",
         "description": "Root element handle (`elt:N` form). Use a window-root id from element.list, or descend from a previously-found element."
       },
-      "max_depth": {
+      "depth": {
         "type": "integer",
         "minimum": 0,
-        "description": "Stop descending past this depth (0 = root only). Omit for unbounded descent. Useful for shallow traversal of large windows."
+        "default": 5,
+        "description": "Maximum traversal depth from the root (0 = root only, 1 = root + direct children, …). Default 5. Covers most single-window dialogs without runaway descent into complex apps. Use `full: true` to raise the internal cap to 12."
+      },
+      "full": {
+        "type": "boolean",
+        "default": false,
+        "description": "When true: raises the depth cap to 12, removes the element count cap (default 200), and includes `value` and `flags` on each element instead of the compact defaults (id, role, name, bounds)."
       }
     },
     "required": [
@@ -102,6 +108,10 @@
           "additionalProperties": false
         },
         "description": "Pre-order traversal: root first, then each subtree in turn. Reconstruct the tree client-side via `depth` (entries with depth d+1 immediately following depth d are the children of the most-recent depth-d entry)."
+      },
+      "truncated": {
+        "type": "boolean",
+        "description": "Present and true when the walk was stopped early by the depth cap or element count cap. Absent (or false) when the full subtree was returned. Signal to callers to use `depth` or `full: true` if more detail is needed."
       }
     },
     "required": [

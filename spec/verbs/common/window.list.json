@@ -1,7 +1,7 @@
 {
   "name": "window.list",
   "strict": true,
-  "description": "Enumerates top-level windows. Returns an array of {handle, title, pid, bounds} entries. Pass `include_monitor: true` to add `monitor_index` to each entry. Read-only.",
+  "description": "Enumerates top-level windows. Default response is compact: handle, title, pid. Pass `full: true` to add bounds and monitor_index. Read-only.",
   "$defs": {
     "Bounds": {
       "type": "object",
@@ -36,6 +36,17 @@
         "type": "boolean",
         "default": false,
         "description": "When true, each entry's output gains a `monitor_index` field identifying the monitor whose centre intersects the window's bounds (via `MonitorFromWindow`). Adds one MonitorFromWindow call per entry. Default false keeps the typical-case payload tight."
+      },
+      "limit": {
+        "type": "integer",
+        "minimum": 1,
+        "default": 50,
+        "description": "Cap on the number of windows returned. Default 50. Phantom windows (invisible, zero-size, or no title) are excluded before the cap is applied."
+      },
+      "full": {
+        "type": "boolean",
+        "default": false,
+        "description": "When true, each entry includes bounds (x, y, w, h) and monitor_index in addition to the compact defaults (handle, title, pid)."
       }
     },
     "additionalProperties": false
@@ -54,7 +65,7 @@
         "bounds":        { "$ref": "#/$defs/Bounds", "description": "Window's screen position and size." },
         "monitor_index": { "type": "integer", "minimum": 0, "description": "0-based monitor index from `system.info.screens[].index`. Present iff `include_monitor: true` was passed in the request." }
       },
-      "required": ["handle", "title", "pid", "bounds"],
+      "required": ["handle", "title", "pid"],
       "additionalProperties": false
     }
   },

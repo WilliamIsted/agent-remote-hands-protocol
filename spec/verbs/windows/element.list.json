@@ -38,6 +38,23 @@
       "region": {
         "$ref": "#/$defs/Bounds",
         "description": "Restrict enumeration to elements whose bounding rectangle intersects this region. Omit to enumerate the entire desktop."
+      },
+      "limit": {
+        "type": "integer",
+        "minimum": 1,
+        "default": 100,
+        "description": "Cap on the number of elements returned. Default 100. A full desktop walk can produce 500–1500+ elements; use `region` to scope first, then paginate with `offset` if needed."
+      },
+      "offset": {
+        "type": "integer",
+        "minimum": 0,
+        "default": 0,
+        "description": "Number of matching elements to skip. Use with `limit` for pagination across large element sets."
+      },
+      "full": {
+        "type": "boolean",
+        "default": false,
+        "description": "When true, each element includes `value` (ValuePattern content) and `flags` (enabled, focused, offscreen, password, checked, etc.) in addition to the compact defaults (id, role, name, bounds). These fields require additional UIA property queries per element."
       }
     },
     "additionalProperties": false
