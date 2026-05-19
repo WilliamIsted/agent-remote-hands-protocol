@@ -57,6 +57,41 @@ def _quote(arg: str) -> str:
     return arg
 
 
+def _tokenize(line: str) -> list:
+    """Parse a wire header argument string into a list of string tokens.
+
+    Inverse of ``" ".join(_quote(a) for a in args)``. Quoted tokens (wrapped
+    in ``"..."`` ) may contain spaces and backslashes — backslash is a literal
+    byte with no escape meaning. Unquoted tokens end at whitespace. Multiple
+    consecutive spaces collapse (produce no empty tokens between them).
+
+    Raises ``WireError`` on an unclosed quote.
+    """
+    tokens = []
+    i = 0
+    n = len(line)
+    while i < n:
+        while i < n and line[i] == " ":
+            i += 1
+        if i >= n:
+            break
+        if line[i] == '"':
+            i += 1
+            start = i
+            while i < n and line[i] != '"':
+                i += 1
+            if i >= n:
+                raise WireError("unmatched quote in wire header line")
+            tokens.append(line[start:i])
+            i += 1
+        else:
+            start = i
+            while i < n and line[i] != " ":
+                i += 1
+            tokens.append(line[start:i])
+    return tokens
+
+
 @dataclass
 class OkResponse:
     """Mirror of v2.1's OkResponse. `payload` carries the verb's OK-body JSON
