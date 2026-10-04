@@ -56,6 +56,12 @@
         "windows-modern"
       ],
       "description": "Internal: element.find followed by element.invoke. The intermediate elt:N id is allocated, used, and discarded within the verb call (not returned to the caller)."
+    },
+    {
+      "name": "msaa_iaccessible",
+      "detect": {"type": "dll", "value": "oleacc.dll", "exports": ["AccessibleObjectFromWindow", "AccessibleObjectFromPoint", "AccessibleChildren", "WindowFromAccessibleObject"]},
+      "available_on": ["windows-classic"],
+      "description": "As `element.find`, then `accDoDefaultAction` on the match."
     }
   ],
   "x-families": {
@@ -66,8 +72,8 @@
       ]
     },
     "windows-classic": {
-      "implemented": false,
-      "reason": "Requires UI Automation (Vista+)."
+      "description": "Find as `element.find`, then invoke as `element.invoke`. Shared MSAA rules (roles, tree shape, hidden elements, hung windows, handle limits): PROTOCOL.md §10.7.",
+      "implementations_in_order": ["msaa_iaccessible"]
     }
   }
 }

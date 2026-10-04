@@ -64,7 +64,7 @@
     },
     "windows-classic": {
       "implemented": false,
-      "reason": "Requires UI Automation (Vista+)."
+      "reason": "MSAA has no ExpandCollapse equivalent: collapse is reachable only through some controls' default actions, with no reliable resulting state. The rest of element.* is implemented on classic via MSAA (PROTOCOL.md §10.7)."
     }
   }
 }

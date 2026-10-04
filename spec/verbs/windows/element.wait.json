@@ -82,6 +82,12 @@
       "detect": { "type": "always" },
       "available_on": ["windows-modern"],
       "description": "Wraps `element.find` in a 250 ms-interval poll loop with deadline. Each iteration walks the visible-element subtree from the root, applies the role/name/automation_id condition, and (if flags_required is set) checks the matched element's flags."
+    },
+    {
+      "name": "msaa_iaccessible",
+      "detect": {"type": "dll", "value": "oleacc.dll", "exports": ["AccessibleObjectFromWindow", "AccessibleObjectFromPoint", "AccessibleChildren", "WindowFromAccessibleObject"]},
+      "available_on": ["windows-classic"],
+      "description": "As `element.find`, re-run every 250 ms; the match must also carry every `flags_required` entry, read from the MSAA state word."
     }
   ],
   "x-families": {
@@ -90,8 +96,8 @@
       "implementations_in_order": ["uia_poll"]
     },
     "windows-classic": {
-      "implemented": false,
-      "reason": "Requires UI Automation (Vista+)."
+      "description": "Polling MSAA find. `required` has no MSAA source and is never set, so `flags_required: [\"required\"]` waits until timeout. Shared MSAA rules (roles, tree shape, hidden elements, hung windows, handle limits): PROTOCOL.md §10.7.",
+      "implementations_in_order": ["msaa_iaccessible"]
     }
   }
 }

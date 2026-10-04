@@ -135,6 +135,12 @@
         "windows-modern"
       ],
       "description": "UIA `IUIAutomation::CreateTreeWalker` (raw-view condition). Recursive descent emitting depth-tagged entries; `max_depth` short-circuits the walk."
+    },
+    {
+      "name": "msaa_iaccessible",
+      "detect": {"type": "dll", "value": "oleacc.dll", "exports": ["AccessibleObjectFromWindow", "AccessibleObjectFromPoint", "AccessibleChildren", "WindowFromAccessibleObject"]},
+      "available_on": ["windows-classic"],
+      "description": "MSAA `AccessibleChildren` descent from the handle. A child window's `ROLE_SYSTEM_WINDOW` wrapper is transparent (its children take its depth)."
     }
   ],
   "x-families": {
@@ -145,8 +151,8 @@
       ]
     },
     "windows-classic": {
-      "implemented": false,
-      "reason": "Requires UI Automation (Vista+)."
+      "description": "MSAA descent. Because window wrappers are transparent, depth counts controls rather than HWND layers (Explorer's file list is at depth 6, not 10+). Hidden containers drop with their subtree. `truncated` is set by the element cap (200, or about 1000 with `full`), the response-size cap, a 10 s walk limit, or a container with more than 8192 children. `depth` is clamped to 32. Shared MSAA rules (roles, tree shape, hidden elements, hung windows, handle limits): PROTOCOL.md §10.7.",
+      "implementations_in_order": ["msaa_iaccessible"]
     }
   }
 }

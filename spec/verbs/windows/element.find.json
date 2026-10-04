@@ -123,6 +123,12 @@
         "windows-modern"
       ],
       "description": "UIA `IUIAutomationElement::FindFirst` with `TreeScope_Subtree` from the supplied root (or RootElement). Builds an `IUIAutomationCondition` from role + (automation_id OR name). Wraps the find in a 250 ms-interval poll loop bounded by `timeout_ms`."
+    },
+    {
+      "name": "msaa_iaccessible",
+      "detect": {"type": "dll", "value": "oleacc.dll", "exports": ["AccessibleObjectFromWindow", "AccessibleObjectFromPoint", "AccessibleChildren", "WindowFromAccessibleObject"]},
+      "available_on": ["windows-classic"],
+      "description": "MSAA depth-first walk from `root` (or every responsive top-level window) using `AccessibleChildren`, re-run every 250 ms until `timeout_ms`. `name` is a case-insensitive substring of `accName`; `role` compares the mapped UIA control-type name."
     }
   ],
   "x-families": {
@@ -133,8 +139,8 @@
       ]
     },
     "windows-classic": {
-      "implemented": false,
-      "reason": "Requires UI Automation (Vista+)."
+      "description": "MSAA walk with the same FindFirst semantics as modern: the root itself is a candidate. `automation_id` is always `\"\"`; a query on `automation_id` returns `ERR not_found` at once rather than polling, since nothing can match. A `root` handle naming a simple child (no subtree) gives `ERR invalid_args`. Shared MSAA rules (roles, tree shape, hidden elements, hung windows, handle limits): PROTOCOL.md §10.7.",
+      "implementations_in_order": ["msaa_iaccessible"]
     }
   }
 }

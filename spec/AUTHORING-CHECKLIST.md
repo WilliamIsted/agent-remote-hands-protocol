@@ -23,7 +23,10 @@ Required:
 - `x-namespace` — the namespace prefix as a string (e.g. `"screen"`).
 - `x-output-schema` — JSON-schema description of the response payload. Even when the response is a simple string, declare it.
 - `x-errors` — array of `ERR <code>` codes the verb may return. Cross-check against dist/PROTOCOL.md §5.
-- `x-implementations` — global registry of every backend the verb could plausibly use across families (tools, native APIs, fallbacks). Required on every verb. For single-backend verbs the array has one entry; uniformity is the point. Each entry: `{ "name", "detect": { ... }, "available_on": [ ... ], "description" }`.
+- `x-implementations` — global registry of every backend the verb could plausibly use across families (tools, native APIs, fallbacks). Required on every verb. For single-backend verbs the array has one entry; uniformity is the point. Each entry: `{ "name", "detect": { ... }, "available_on": [ ... ], "description" }`. `detect` types:
+  - `{"type": "always"}` — the backend is part of every host of the listed families.
+  - `{"type": "command", "value": "<exe>"}` — available when the executable is on `PATH` (e.g. `curl`).
+  - `{"type": "dll", "value": "<dll>", "exports": ["<fn>", ...]}` — available when the DLL loads and every listed export resolves (e.g. `oleacc.dll` for MSAA on `windows-classic`). Agents MUST resolve it at runtime with `LoadLibrary` / `GetProcAddress`, never through the import table, so a host without the DLL still starts. When detection fails the verb is left out of `system.capabilities` and calls return `ERR not_supported`.
 
 Conditional (Stage A):
 
