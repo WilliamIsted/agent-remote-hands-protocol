@@ -28,7 +28,7 @@
       },
       "role": {
         "type": "string",
-        "description": "Control-type / role, e.g. 'Button', 'Edit', 'AXButton'."
+        "description": "UIA control-type name, e.g. 'Button', 'Edit', 'ListItem' (§10.8). Matched case-insensitively."
       },
       "automation_id": {
         "type": "string",
@@ -60,7 +60,7 @@
     "properties": {
       "handle":        { "type": "string", "description": "Element handle, e.g. 'elt:7'." },
       "name":          { "type": "string", "description": "UIA Name property of the matched element." },
-      "role":          { "type": "string", "description": "UIA control-type name." },
+      "role":          { "type": "string", "description": "UIA control-type name in CamelCase, e.g. `Button`, `ListItem` (§10.8)." },
       "automation_id": { "type": "string", "description": "UIA AutomationId. Empty string when the element doesn't expose one." },
       "bounds":        { "$ref": "#/$defs/Bounds", "description": "Element's screen position and size." },
       "flags": {

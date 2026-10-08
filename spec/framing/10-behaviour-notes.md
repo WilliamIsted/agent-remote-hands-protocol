@@ -72,3 +72,9 @@ Any other role reports `Custom`. Embedded HTML (MSHTML, e.g. Explorer's web view
 **Hung windows.** Classic serves requests on one thread. Before any call that resolves an object from a window or a point, the agent pings the window with `SendMessageTimeout(WM_NULL, SMTO_ABORTIFHUNG)`. Hung windows are skipped in walks (each adds about 0.5 s) and give `ERR target_gone` on direct calls. Accessibility servers that answer over COM rather than window messages (Office, Internet Explorer, Java bridges) are not covered by the ping.
 
 **Limits.** Each walk is bounded by node count, recursion depth, 8192 children per container and 10 s of wall-clock time. `element.tree` reports `truncated` when any of these, its element cap or the response-size cap stops it. See §10.3 for ID lifetime.
+
+### 10.8 Element roles
+
+`role` in every `element.*` response is a UI Automation control-type name in CamelCase: the `ControlType` programmatic name without its `ControlType.` prefix. The set is `AppBar`, `Button`, `Calendar`, `CheckBox`, `ComboBox`, `Custom`, `DataGrid`, `DataItem`, `Document`, `Edit`, `Group`, `Header`, `HeaderItem`, `Hyperlink`, `Image`, `List`, `ListItem`, `Menu`, `MenuBar`, `MenuItem`, `Pane`, `ProgressBar`, `RadioButton`, `ScrollBar`, `SemanticZoom`, `Separator`, `Slider`, `Spinner`, `SplitButton`, `StatusBar`, `Tab`, `TabItem`, `Table`, `Text`, `Thumb`, `TitleBar`, `ToolBar`, `ToolTip`, `Tree`, `TreeItem` and `Window`. An element whose control type is outside this set reports `Custom`. Families without UI Automation map their native roles onto these names.
+
+The `role` input on `element.find`, `element.find_invoke` and `element.wait` is matched case-insensitively, so `button` and `Button` select the same elements. Responses always use the CamelCase form.
