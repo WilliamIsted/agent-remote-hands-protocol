@@ -10,6 +10,17 @@ Versioning is per-family-branched (see `dist/PROTOCOL.md` §12 and
 matches the spec version embedded in the document frontmatter and reported
 by `system.info.agent_protocol`.
 
+## Unreleased
+
+### Element roles locked to CamelCase
+
+- New PROTOCOL.md §10.8: `role` in every `element.*` response is a CamelCase UIA control-type
+  name (`Button`, `ListItem`, ...) from a fixed set, `Custom` for anything else.
+- The `role` input on `element.find` / `.find_invoke` / `.wait` matches case-insensitively.
+- Drops the `AXButton` example from the `role` input descriptions.
+- Conformance: roles from `element.list` are in the §10.8 set; `element.find --role` matches
+  regardless of case.
+
 ## v2.2.0-rc.1 — 2026-05-07
 
 **Wire-breaking from v2.0 / v2.1.** v2.1 clients connecting to a v2.2+ agent

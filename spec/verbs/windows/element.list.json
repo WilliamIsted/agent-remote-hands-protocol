@@ -76,7 +76,7 @@
             },
             "role": {
               "type": "string",
-              "description": "UIA control-type name (`Button`, `Edit`, `MenuItem`, etc.)."
+              "description": "UIA control-type name in CamelCase, e.g. `Button`, `ListItem` (§10.8)."
             },
             "name": {
               "type": "string",

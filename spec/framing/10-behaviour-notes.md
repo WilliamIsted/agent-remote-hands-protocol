@@ -27,3 +27,9 @@ See §8 for the full discussion of integrity-level interactions. Briefly: synthe
 ### 10.6 Wire-desync recovery
 
 If a client sends a malformed request (mis-stated payload length, header exceeding 65 535 bytes, etc.), the agent SHOULD return `ERR wire_desync` and discard the inbound buffer. The client recovers by sending `connection.reset` and resuming.
+
+### 10.8 Element roles
+
+`role` in every `element.*` response is a UI Automation control-type name in CamelCase: the `ControlType` programmatic name without its `ControlType.` prefix. The set is `AppBar`, `Button`, `Calendar`, `CheckBox`, `ComboBox`, `Custom`, `DataGrid`, `DataItem`, `Document`, `Edit`, `Group`, `Header`, `HeaderItem`, `Hyperlink`, `Image`, `List`, `ListItem`, `Menu`, `MenuBar`, `MenuItem`, `Pane`, `ProgressBar`, `RadioButton`, `ScrollBar`, `SemanticZoom`, `Separator`, `Slider`, `Spinner`, `SplitButton`, `StatusBar`, `Tab`, `TabItem`, `Table`, `Text`, `Thumb`, `TitleBar`, `ToolBar`, `ToolTip`, `Tree`, `TreeItem` and `Window`. An element whose control type is outside this set reports `Custom`. Families without UI Automation map their native roles onto these names.
+
+The `role` input on `element.find`, `element.find_invoke` and `element.wait` is matched case-insensitively, so `button` and `Button` select the same elements. Responses always use the CamelCase form.

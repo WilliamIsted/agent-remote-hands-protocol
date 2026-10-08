@@ -20,6 +20,8 @@ and matcher inputs use `name` (case-insensitive substring) plus the optional
 
 import json
 
+import pytest
+
 from conftest import needs_verb
 from wire import ErrResponse, OkResponse, WireClient
 
@@ -202,3 +204,45 @@ def test_element_text_invalid_handle(client: WireClient,
     r = client.request("element.text", "elt:99999")
     assert isinstance(r, ErrResponse)
     assert r.code in ("target_gone", "not_supported_by_target", "invalid_args")
+
+
+# ---------------------------------------------------------------------------
+# Roles — CamelCase UIA control-type names out, case-insensitive match in (10.8)
+
+UIA_ROLES = {
+    "AppBar", "Button", "Calendar", "CheckBox", "ComboBox", "Custom", "DataGrid",
+    "DataItem", "Document", "Edit", "Group", "Header", "HeaderItem", "Hyperlink",
+    "Image", "List", "ListItem", "Menu", "MenuBar", "MenuItem", "Pane", "ProgressBar",
+    "RadioButton", "ScrollBar", "SemanticZoom", "Separator", "Slider", "Spinner",
+    "SplitButton", "StatusBar", "Tab", "TabItem", "Table", "Text", "Thumb", "TitleBar",
+    "ToolBar", "ToolTip", "Tree", "TreeItem", "Window",
+}
+
+
+def _listed_elements(client: WireClient) -> list:
+    r = client.request("element.list", "--limit", "50")
+    if not isinstance(r, OkResponse):
+        pytest.skip(f"element.list unavailable: {r.code}")
+    elements = json.loads(r.payload)["elements"]
+    if not elements:
+        pytest.skip("element.list returned no elements")
+    return elements
+
+
+def test_element_list_roles_are_camelcase_uia_names(client: WireClient,
+                                                    capabilities: dict) -> None:
+    needs_verb(capabilities, "element.list")
+    bad = {e["role"] for e in _listed_elements(client)} - UIA_ROLES
+    assert not bad, f"roles outside the 10.8 set: {sorted(bad)}"
+
+
+def test_element_find_role_matches_case_insensitively(client: WireClient,
+                                                      capabilities: dict) -> None:
+    """`--role button` finds what `--role Button` finds; the response stays CamelCase."""
+    needs_verb(capabilities, "element.list")
+    needs_verb(capabilities, "element.find")
+    role = _listed_elements(client)[0]["role"]
+    for query in (role, role.lower(), role.upper()):
+        r = client.request("element.find", "--role", query, "--timeout-ms", "0")
+        assert isinstance(r, OkResponse), f"--role {query!r} gave {r.code}"
+        assert json.loads(r.payload)["role"] == role

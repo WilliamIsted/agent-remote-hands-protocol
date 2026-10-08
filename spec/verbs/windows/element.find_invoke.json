@@ -15,7 +15,7 @@
       },
       "role": {
         "type": "string",
-        "description": "Control-type / role, e.g. 'Button', 'Edit'."
+        "description": "UIA control-type name, e.g. 'Button', 'Edit', 'ListItem' (§10.8). Matched case-insensitively."
       },
       "automation_id": {
         "type": "string",
