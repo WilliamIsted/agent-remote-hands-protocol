@@ -38,6 +38,12 @@
         "windows-modern"
       ],
       "description": "UIA `IUIAutomationInvokePattern::Invoke`. Returns ERR not_supported_by_target if the element doesn't expose InvokePattern (e.g. plain text labels); ERR target_gone if the underlying element was destroyed since allocation."
+    },
+    {
+      "name": "msaa_iaccessible",
+      "detect": {"type": "dll", "value": "oleacc.dll", "exports": ["AccessibleObjectFromWindow", "AccessibleObjectFromPoint", "AccessibleChildren", "WindowFromAccessibleObject"]},
+      "available_on": ["windows-classic"],
+      "description": "MSAA `accDoDefaultAction`, after checking `get_accDefaultAction` is non-empty."
     }
   ],
   "x-families": {
@@ -48,8 +54,8 @@
       ]
     },
     "windows-classic": {
-      "implemented": false,
-      "reason": "Requires UI Automation (Vista+)."
+      "description": "An element with no default-action string (static text, panes) gives `ERR not_supported_by_target` without being called. Otherwise any success code is OK, `S_FALSE` included: MSHTML returns `S_FALSE` from a default action that did run. Disconnect-type failures give `ERR target_gone`, `E_ACCESSDENIED` gives `ERR permission_denied`. Note that a list item's default action is usually a double-click, which also confirms its dialog. Shared MSAA rules (roles, tree shape, hidden elements, hung windows, handle limits): PROTOCOL.md §10.7.",
+      "implementations_in_order": ["msaa_iaccessible"]
     }
   }
 }

@@ -63,7 +63,7 @@
     },
     "windows-classic": {
       "implemented": false,
-      "reason": "Requires UI Automation (Vista+)."
+      "reason": "Not yet implemented on classic. Implementable via MSAA: state from `STATE_SYSTEM_CHECKED` / `STATE_SYSTEM_MIXED`, change via the default action. The rest of element.* is implemented on classic via MSAA (PROTOCOL.md §10.7)."
     }
   }
 }

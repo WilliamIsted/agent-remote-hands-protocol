@@ -44,9 +44,10 @@
       ]
     },
     "windows-classic": {
-      "description": "Windows NT 4.0 SP6a, Windows 95 OSR2 through ME, and Windows 2000. Built with the VS6 toolset on a Windows XP SP3 VM. No UI Automation, no WGC, no UIPI; GDI BitBlt capture only. PNG via GDI+ runtime if present (XP+ ships GDI+; NT 4 needs the redist). Multi-monitor on 2000 and later. Used for the earliest Windows agent build; Vista through Windows 8.1 / Win 10 pre-1809 are covered by the `windows-legacy` family, not classic.",
+      "description": "Windows NT 4.0 SP6a, Windows 95 OSR2 through ME, and Windows 2000. Built with the VS6 toolset on a Windows XP SP3 VM. No UI Automation, no WGC, no UIPI; GDI BitBlt capture only. Accessibility via MSAA (oleacc.dll, resolved at runtime; in-box on 98 / 2000 / XP, a redistributable on 95 / NT 4 SP6) backs element.*, see PROTOCOL.md section 10.7. PNG via GDI+ runtime if present (XP+ ships GDI+; NT 4 needs the redist). Multi-monitor on 2000 and later. Used for the earliest Windows agent build; Vista through Windows 8.1 / Win 10 pre-1809 are covered by the `windows-legacy` family, not classic.",
       "portability_tier": "windows",
       "capabilities": [
+        "msaa",
         "gdi_capture",
         "send_input",
         "mouse_event",

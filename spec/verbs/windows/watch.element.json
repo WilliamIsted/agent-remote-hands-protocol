@@ -52,7 +52,7 @@
     },
     "windows-classic": {
       "implemented": false,
-      "reason": "Requires UI Automation (Vista+)."
+      "reason": "Needs MSAA's event model (`SetWinEventHook` for object destroy / reorder), which the classic agent does not run; its watch.* verbs are registration-only. The rest of element.* is implemented on classic via MSAA (PROTOCOL.md §10.7)."
     }
   }
 }

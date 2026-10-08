@@ -12,6 +12,28 @@ by `system.info.agent_protocol`.
 
 ## Unreleased
 
+### element.* on windows-classic via MSAA (issue #106)
+
+- `windows-classic` now implements 11 `element.*` verbs (`at`, `at_invoke`, `list`, `find`,
+  `find_invoke`, `wait`, `tree`, `text`, `set_text`, `invoke`, `focus`) through MSAA
+  (`IAccessible`), replacing `implemented: false`. Same verbs and shapes as the UIA families.
+- `element.toggle`, `.expand`, `.collapse` and `watch.element` stay unimplemented on classic,
+  with accurate reasons in place of "Requires UI Automation (Vista+)".
+- New `x-implementations` detect type `dll` (runtime-resolved DLL + exports).
+- New PROTOCOL.md §10.7 (MSAA element model: role table, tree shape, hidden elements, hung
+  windows, limits) and a classic exception in §10.3 (element ID lifetime).
+- `families.json`: classic gains the `msaa` capability.
+- `system.info.capabilities.ui_automation` is defined as the backend the agent loaded: `uia`,
+  `msaa` or `no`, decided per host at startup and consistent with `system.capabilities`.
+  Classic reports `msaa` when `oleacc.dll` loads, otherwise `no`. The modern example's `yes`
+  becomes `uia`, matching what the modern agent already sends.
+- `x-errors`: `element.at` gains `target_gone` (hung window at the point); `element.find` gains
+  `invalid_args` (simple-child `root`) and `target_gone` (hung or stale `root`).
+- `element.find` / `.find_invoke` / `.wait`: `root` is documented as an element handle (`elt:N`),
+  as the modern agent already treats it, not a window handle. `element.wait` gains `target_gone` for a stale `root`.
+- `spec/narrative/element.find.md` / `element.list.md` rewritten: the earlier recommendation of
+  separate `*_msaa` verbs is reversed, with the reasoning.
+
 ### Element roles locked to CamelCase
 
 - New PROTOCOL.md §10.8: `role` in every `element.*` response is a CamelCase UIA control-type

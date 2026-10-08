@@ -49,6 +49,27 @@ def test_info_family_is_known(client: WireClient) -> None:
         f"unknown family: {info['family']!r}"
 
 
+UI_AUTOMATION_VALUES = {"uia", "msaa", "no"}
+
+
+def test_info_ui_automation_value(client: WireClient) -> None:
+    """`ui_automation` names the accessibility backend this agent loaded."""
+    caps = client.info()["capabilities"]
+    assert caps.get("ui_automation") in UI_AUTOMATION_VALUES, \
+        f"got {caps.get('ui_automation')!r}"
+
+
+def test_info_ui_automation_matches_capabilities(client: WireClient,
+                                                 capabilities: dict) -> None:
+    """element.* is advertised if and only if ui_automation is not `no`."""
+    backend = client.info()["capabilities"].get("ui_automation")
+    advertised = {v for v in capabilities if v.startswith("element.")}
+    if backend == "no":
+        assert not advertised, f"ui_automation is 'no' but advertises {advertised}"
+    else:
+        assert advertised, f"ui_automation is {backend!r} but no element.* verbs advertised"
+
+
 def test_info_agent_protocol_is_v2(client: WireClient) -> None:
     info = client.info()
     assert info["agent_protocol"].startswith("2"), \

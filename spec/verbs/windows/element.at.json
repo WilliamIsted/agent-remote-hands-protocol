@@ -95,7 +95,8 @@
     "not_found",
     "uia_blind",
     "permission_denied",
-    "invalid_args"
+    "invalid_args",
+    "target_gone"
   ],
   "x-implementations": [
     {
@@ -107,6 +108,12 @@
         "windows-modern"
       ],
       "description": "UIA `IUIAutomation::ElementFromPoint`. Allocates a fresh `elt:N` id for the returned element."
+    },
+    {
+      "name": "msaa_iaccessible",
+      "detect": {"type": "dll", "value": "oleacc.dll", "exports": ["AccessibleObjectFromWindow", "AccessibleObjectFromPoint", "AccessibleChildren", "WindowFromAccessibleObject"]},
+      "available_on": ["windows-classic"],
+      "description": "MSAA `AccessibleObjectFromPoint` at the requested screen point. The window under the point is pinged first (`SendMessageTimeout(WM_NULL, SMTO_ABORTIFHUNG)`) so a hung target gives `ERR target_gone` instead of blocking."
     }
   ],
   "x-families": {
@@ -117,8 +124,8 @@
       ]
     },
     "windows-classic": {
-      "implemented": false,
-      "reason": "Requires UI Automation (Vista+)."
+      "description": "AccessibleObjectFromPoint hit-test. A hung window at the point gives `ERR target_gone`. No UIPI on classic, so `uia_blind` is never returned. Shared MSAA rules (roles, tree shape, hidden elements, hung windows, handle limits): PROTOCOL.md §10.7.",
+      "implementations_in_order": ["msaa_iaccessible"]
     }
   }
 }

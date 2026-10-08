@@ -37,7 +37,7 @@
     "properties": {
       "root": {
         "type": "string",
-        "description": "Optional window handle to scope the search. If omitted, searches the desktop root."
+        "description": "Optional element handle (`elt:N`) to scope the search; the root itself is a candidate. If omitted, searches the desktop root. A handle that is no longer valid gives `ERR target_gone`."
       },
       "name": {
         "type": "string",
@@ -111,7 +111,9 @@
   "x-errors": [
     "not_found",
     "uia_blind",
-    "permission_denied"
+    "permission_denied",
+    "invalid_args",
+    "target_gone"
   ],
   "x-implementations": [
     {
@@ -123,6 +125,12 @@
         "windows-modern"
       ],
       "description": "UIA `IUIAutomationElement::FindFirst` with `TreeScope_Subtree` from the supplied root (or RootElement). Builds an `IUIAutomationCondition` from role + (automation_id OR name). Wraps the find in a 250 ms-interval poll loop bounded by `timeout_ms`."
+    },
+    {
+      "name": "msaa_iaccessible",
+      "detect": {"type": "dll", "value": "oleacc.dll", "exports": ["AccessibleObjectFromWindow", "AccessibleObjectFromPoint", "AccessibleChildren", "WindowFromAccessibleObject"]},
+      "available_on": ["windows-classic"],
+      "description": "MSAA depth-first walk from `root` (or every responsive top-level window) using `AccessibleChildren`, re-run every 250 ms until `timeout_ms`. `name` is a case-insensitive substring of `accName`; `role` compares the mapped UIA control-type name."
     }
   ],
   "x-families": {
@@ -133,8 +141,8 @@
       ]
     },
     "windows-classic": {
-      "implemented": false,
-      "reason": "Requires UI Automation (Vista+)."
+      "description": "MSAA walk with the same FindFirst semantics as modern: the root itself is a candidate. `automation_id` is always `\"\"`; a query on `automation_id` returns `ERR not_found` at once rather than polling, since nothing can match. A `root` element handle that names a simple MSAA child (no subtree, e.g. a list item) gives `ERR invalid_args` rather than silently searching its parent. Shared MSAA rules (roles, tree shape, hidden elements, hung windows, handle limits): PROTOCOL.md §10.7.",
+      "implementations_in_order": ["msaa_iaccessible"]
     }
   }
 }
