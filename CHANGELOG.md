@@ -34,6 +34,17 @@ by `system.info.agent_protocol`.
 - `spec/narrative/element.find.md` / `element.list.md` rewritten: the earlier recommendation of
   separate `*_msaa` verbs is reversed, with the reasoning.
 
+### Launch and wait for a window (issues #102, #103)
+
+- `watch.window` gains a `pid` filter, alone or together with `title_prefix` (both must
+  match). Passing neither stays `invalid_args`; the old description wrongly said it returned
+  every window.
+- `process.start` and `process.shell` gain `wait_for_window_ms` (up to 60000). The verb
+  returns on the first matching window (`window`), on process exit (`window_timeout: true`
+  plus `exit_code`), or on timeout (`window_timeout: true`).
+- Conformance: new `needs_arg` helper skips tests of new arguments when the agent's
+  `system.verbs` does not declare them.
+
 ## v2.2.0-rc.1 — 2026-05-07
 
 **Wire-breaking from v2.0 / v2.1.** v2.1 clients connecting to a v2.2+ agent
