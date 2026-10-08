@@ -19,6 +19,9 @@ and matcher inputs use `name` (case-insensitive substring) plus the optional
 `automation_id` and `role` selectors. The `elt:N` handle prefix is unchanged."""
 
 import json
+import time
+
+import pytest
 
 from conftest import needs_verb
 from wire import ErrResponse, OkResponse, WireClient
@@ -202,3 +205,64 @@ def test_element_text_invalid_handle(client: WireClient,
     r = client.request("element.text", "elt:99999")
     assert isinstance(r, ErrResponse)
     assert r.code in ("target_gone", "not_supported_by_target", "invalid_args")
+
+
+# ---------------------------------------------------------------------------
+# Search root — `root` is an elt:N handle (find / find_invoke / wait)
+
+def _assert_stale_root_target_gone(c: WireClient, verb: str) -> None:
+    r = c.request(verb, "--name", "anything", "--root", "elt:99999",
+                  "--timeout-ms", "0")
+    assert isinstance(r, ErrResponse)
+    assert r.code == "target_gone"
+
+
+@pytest.mark.parametrize("verb", ["element.find", "element.wait"])
+def test_element_search_stale_root_target_gone(verb: str, client: WireClient,
+                                               capabilities: dict) -> None:
+    """`root` is an elt:N handle; one that is no longer valid gives target_gone."""
+    needs_verb(capabilities, verb)
+    _assert_stale_root_target_gone(client, verb)
+
+
+def test_element_find_invoke_stale_root_target_gone(update_client: WireClient,
+                                                    capabilities: dict) -> None:
+    """As above; find_invoke is update tier, so it needs the elevated client."""
+    needs_verb(capabilities, "element.find_invoke")
+    _assert_stale_root_target_gone(update_client, "element.find_invoke")
+
+
+# ---------------------------------------------------------------------------
+# MSAA backend (windows-classic, PROTOCOL.md 10.7) — gated on ui_automation
+
+def needs_msaa(client: WireClient) -> None:
+    if client.info()["capabilities"].get("ui_automation") != "msaa":
+        pytest.skip("agent's accessibility backend is not MSAA")
+
+
+def test_element_find_automation_id_on_msaa_fails_fast(client: WireClient,
+                                                       capabilities: dict) -> None:
+    """MSAA has no AutomationId: a query on it is not_found at once, not after polling."""
+    needs_verb(capabilities, "element.find")
+    needs_msaa(client)
+    start = time.monotonic()
+    r = client.request("element.find", "--automation-id", "anything",
+                       "--timeout-ms", "5000")
+    assert isinstance(r, ErrResponse)
+    assert r.code == "not_found"
+    assert time.monotonic() - start < 2.0
+
+
+def test_element_find_simple_child_root_invalid_args(client: WireClient,
+                                                     capabilities: dict) -> None:
+    """A root naming a simple MSAA child (no subtree) is rejected, not widened to its parent."""
+    needs_verb(capabilities, "element.find")
+    needs_msaa(client)
+    hit = client.request("element.find", "--role", "ListItem", "--timeout-ms", "0")
+    if not isinstance(hit, OkResponse):
+        pytest.skip("no ListItem on screen to use as a simple child")
+    handle = json.loads(hit.payload)["handle"]
+    r = client.request("element.find", "--name", "anything", "--root", handle,
+                       "--timeout-ms", "0")
+    assert isinstance(r, ErrResponse)
+    assert r.code == "invalid_args"

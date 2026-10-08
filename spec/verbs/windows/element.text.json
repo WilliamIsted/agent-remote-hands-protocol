@@ -55,6 +55,12 @@
         "windows-modern"
       ],
       "description": "UIA `IUIAutomationValuePattern::CurrentValue` — fallback for elements (Edit boxes, ComboBoxes) that expose ValuePattern but not TextPattern."
+    },
+    {
+      "name": "msaa_iaccessible",
+      "detect": {"type": "dll", "value": "oleacc.dll", "exports": ["AccessibleObjectFromWindow", "AccessibleObjectFromPoint", "AccessibleChildren", "WindowFromAccessibleObject"]},
+      "available_on": ["windows-classic"],
+      "description": "MSAA `accValue`; for text roles (`ROLE_SYSTEM_TEXT`, `ROLE_SYSTEM_DOCUMENT`) whose value is empty, `WM_GETTEXT` via `SendMessageTimeout`; otherwise `accName`. A single trailing CR (RichEdit's final paragraph mark) is removed."
     }
   ],
   "x-families": {
@@ -66,8 +72,8 @@
       ]
     },
     "windows-classic": {
-      "implemented": false,
-      "reason": "Requires UI Automation (Vista+)."
+      "description": "Value, then window text (text roles only), then name. For a protected (password) element only the MSAA value is used: the window-text fallback would return the cleartext cross-process on 9x / NT 4 / 2000. Shared MSAA rules (roles, tree shape, hidden elements, hung windows, handle limits): PROTOCOL.md §10.7.",
+      "implementations_in_order": ["msaa_iaccessible"]
     }
   }
 }

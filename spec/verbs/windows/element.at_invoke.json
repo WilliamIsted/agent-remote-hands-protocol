@@ -44,6 +44,12 @@
         "windows-modern"
       ],
       "description": "Internal: element.at (ElementFromPoint) followed by element.invoke (InvokePattern.Invoke). The intermediate elt:N id is allocated and discarded."
+    },
+    {
+      "name": "msaa_iaccessible",
+      "detect": {"type": "dll", "value": "oleacc.dll", "exports": ["AccessibleObjectFromWindow", "AccessibleObjectFromPoint", "AccessibleChildren", "WindowFromAccessibleObject"]},
+      "available_on": ["windows-classic"],
+      "description": "MSAA `AccessibleObjectFromPoint`, then `accDoDefaultAction` on the hit element."
     }
   ],
   "x-families": {
@@ -54,8 +60,8 @@
       ]
     },
     "windows-classic": {
-      "implemented": false,
-      "reason": "Requires UI Automation (Vista+)."
+      "description": "Hit-test as `element.at`, then the default action as `element.invoke`. Shared MSAA rules (roles, tree shape, hidden elements, hung windows, handle limits): PROTOCOL.md §10.7.",
+      "implementations_in_order": ["msaa_iaccessible"]
     }
   }
 }

@@ -44,6 +44,12 @@
         "windows-modern"
       ],
       "description": "UIA `IUIAutomationValuePattern::SetValue`. The pattern's `IsReadOnly` property is checked first; readonly elements return ERR readonly without attempting the write."
+    },
+    {
+      "name": "msaa_iaccessible",
+      "detect": {"type": "dll", "value": "oleacc.dll", "exports": ["AccessibleObjectFromWindow", "AccessibleObjectFromPoint", "AccessibleChildren", "WindowFromAccessibleObject"]},
+      "available_on": ["windows-classic"],
+      "description": "MSAA `put_accValue`; for an edit window whose proxy lacks it, `WM_SETTEXT` via `SendMessageTimeout`."
     }
   ],
   "x-families": {
@@ -54,8 +60,8 @@
       ]
     },
     "windows-classic": {
-      "implemented": false,
-      "reason": "Requires UI Automation (Vista+)."
+      "description": "`put_accValue`, falling back to `WM_SETTEXT` on edit windows. `STATE_SYSTEM_READONLY` gives `ERR readonly`. On the line-framed wire `text` cannot contain CR, LF or `\"` (§1.2.5). Shared MSAA rules (roles, tree shape, hidden elements, hung windows, handle limits): PROTOCOL.md §10.7.",
+      "implementations_in_order": ["msaa_iaccessible"]
     }
   }
 }

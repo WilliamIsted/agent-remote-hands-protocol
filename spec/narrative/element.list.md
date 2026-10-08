@@ -1,12 +1,18 @@
 # element.list — long-form rationale
 
-## Why `windows-classic` is `implemented: false`
+## Why `windows-classic` implements this verb through MSAA
 
-The verb requires UI Automation (Vista+). Classic Windows (NT 4 / 2000 / XP) has only MSAA / `IAccessible`, which doesn't map cleanly to the UIA-based element model in this spec — there's no analogue to UIA's `AutomationId` property, the tree-walker abstraction differs, and content-view filtering is UIA-specific.
+Earlier versions declared `element.list` `implemented: false` on classic and suggested a separate `element.list_msaa` if classic-stack enumeration were ever needed, on the grounds that MSAA lacks AutomationId, walks a different tree and has no content-view filter. Protocol issue #106 reversed that; see `element.find.md` for the full reasoning.
 
-## Future enhancement
+How classic covers each original concern:
 
-If classic-stack element enumeration is needed, the cleanest path is a separate MSAA-backed verb (e.g. `element.list_msaa`) with its own contract reflecting MSAA's shape. Squeezing two accessibility models into the same verb's contract would either constrain UIA's expressiveness or fabricate fields MSAA can't populate. No such verb exists today; add only when there's demand.
+- **AutomationId.** Always `""`, which the contract already allows.
+- **Tree walker.** Classic enumerates visible top-level windows itself (skipping hung ones) and walks each with `AccessibleChildren`. Window wrapper objects are walked through rather than reported, so the result lists controls, not HWND layers.
+- **Content-view filtering.** Approximated: hidden containers are skipped with their subtree, scrolled-off items are kept and flagged `offscreen`, and anonymous unfocusable containers are left out as non-interactable. It is not identical to UIA's content view; it matched `directory.list` and `process.list` item for item in Explorer and Task Manager.
+
+## Paging on classic
+
+A classic response carries at most about 1000 elements, so that every returned handle is still live (PROTOCOL.md §10.3). It can also stop early at the response-size cap. Page on with `offset` until a page comes back with fewer elements than were asked for.
 
 ## Renderer note
 

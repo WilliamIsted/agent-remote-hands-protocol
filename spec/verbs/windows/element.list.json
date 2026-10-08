@@ -127,6 +127,12 @@
         "windows-modern"
       ],
       "description": "UI Automation `IUIAutomation::CreateTreeWalker` with a content-view condition; walks visible elements rooted at the desktop. Region filter applied via `IUIAutomationElement::CurrentBoundingRectangle` intersection. Allocates a fresh `elt:N` id per element via the connection-scoped allocator."
+    },
+    {
+      "name": "msaa_iaccessible",
+      "detect": {"type": "dll", "value": "oleacc.dll", "exports": ["AccessibleObjectFromWindow", "AccessibleObjectFromPoint", "AccessibleChildren", "WindowFromAccessibleObject"]},
+      "available_on": ["windows-classic"],
+      "description": "Enumerates visible top-level windows with `EnumWindows` (hung ones skipped), then walks each with MSAA `AccessibleChildren`. Elements with neither a name nor `STATE_SYSTEM_FOCUSABLE` are omitted as non-interactable."
     }
   ],
   "x-families": {
@@ -137,8 +143,8 @@
       ]
     },
     "windows-classic": {
-      "implemented": false,
-      "reason": "Requires UI Automation (Vista+)."
+      "description": "MSAA walk of the desktop's top-level windows. Stops at `limit`, at the response-size cap, or at about 1000 elements per response (so every returned handle is still live); page on with `offset`. `flags` (with `full: true`) come from the MSAA state word. Shared MSAA rules (roles, tree shape, hidden elements, hung windows, handle limits): PROTOCOL.md §10.7.",
+      "implementations_in_order": ["msaa_iaccessible"]
     }
   }
 }
