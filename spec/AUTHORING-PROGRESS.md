@@ -153,8 +153,8 @@ The PROTOCOL.md columns are dropped post-audit (PROTOCOL.md being deleted; mock-
 | # | Verb | Status | spec/verbs | v1 archive | Conformance |
 |---|---|---|---|---|---|
 | 61 | `process.list` | ✅ | ✅ (gained `include_counters` flag with full counter cookbook; `filter`→`pattern`) | `PS` | `test_process.py` |
-| 62 | `process.start` | ✅ | ✅ (stripped future-extension note; narrative file added) | `EXEC` | `test_process.py` |
-| 63 | `process.shell` | ✅ | ✅ (output `pid` widened to `[integer, null]`) | ❌ | ❌ |
+| 62 | `process.start` | ✅ | ✅ (stripped future-extension note; narrative file added; v2.2 adds `wait_for_window_ms` per #102) | `EXEC` | `test_process.py` |
+| 63 | `process.shell` | ✅ | ✅ (output `pid` widened to `[integer, null]`; v2.2 adds `wait_for_window_ms` per #102) | ❌ | ❌ |
 | 64 | `process.kill` | ✅ | ❌ | `KILL` | `test_process.py` |
 | 65 | `process.wait` | ✅ | ✅ (stripped `Per issue #76:` prefix from description) | `WAIT` | `test_process.py` |
 
@@ -182,7 +182,7 @@ The PROTOCOL.md columns are dropped post-audit (PROTOCOL.md being deleted; mock-
 |---|---|---|---|---|---|
 | 74 | `watch.region` | ✅ | ✅ (gained `encoding` input enum [binary, base64]; binary mode emits raw bytes, base64 mode emits JSON envelope) | `WATCH` (screen-only — narrowed in v2) | `test_watch.py` |
 | 75 | `watch.process` | ✅ | ✅ (event payload reconciled with framing) | ❌ | `test_watch.py` |
-| 76 | `watch.window` | ✅ | ✅ (event payload reconciled with framing) | ❌ | `test_watch.py` |
+| 76 | `watch.window` | ✅ | ✅ (event payload reconciled with framing; v2.2 adds `pid` filter per #103) | ❌ | `test_watch.py` |
 | 77 | `watch.element` | ✅ | ✅ (event payload `reason` enum kept verbatim; framing updated) | ❌ | ❌ |
 | 78 | `watch.file` | ✅ | ✅ (event payload `old_path` made optional) | ❌ | ❌ |
 | 79 | `watch.registry` | ✅ | ✅ (gained `until_change` flag — consolidates the v2.0 `registry.wait` sync verb) | ❌ | ❌ |

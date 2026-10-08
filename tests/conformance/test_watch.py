@@ -23,7 +23,7 @@ import pathlib
 import tempfile
 import uuid
 
-from conftest import needs_verb
+from conftest import needs_arg, needs_verb
 from wire import ErrResponse, OkResponse, WireClient
 
 
@@ -51,12 +51,38 @@ def test_watch_window_returns_subscription_id(client: WireClient,
     client.request("watch.cancel", body["subscription_id"])
 
 
-def test_watch_window_requires_title_prefix(client: WireClient,
-                                            capabilities: dict) -> None:
+def test_watch_window_requires_a_filter(client: WireClient,
+                                        capabilities: dict) -> None:
+    """Neither `--title-prefix` nor `--pid`: invalid_args."""
     needs_verb(capabilities, "watch.window")
     r = client.request("watch.window")
     assert isinstance(r, ErrResponse)
     assert r.code == "invalid_args"
+
+
+def test_watch_window_pid_filter(client: WireClient, capabilities: dict,
+                                 verb_defs: dict) -> None:
+    """`--pid` alone is a valid filter (issue #103)."""
+    needs_verb(capabilities, "watch.window")
+    needs_arg(verb_defs, "watch.window", "pid")
+    r = client.request("watch.window", "--pid", "4")
+    assert isinstance(r, OkResponse)
+    body = json.loads(r.payload)
+    assert body["subscription_id"].startswith("sub:")
+    client.request("watch.cancel", body["subscription_id"])
+
+
+def test_watch_window_pid_and_title_prefix(client: WireClient,
+                                           capabilities: dict,
+                                           verb_defs: dict) -> None:
+    """Both filters together are accepted (logical AND), not rejected."""
+    needs_verb(capabilities, "watch.window")
+    needs_arg(verb_defs, "watch.window", "pid")
+    r = client.request("watch.window", "--pid", "4",
+                       "--title-prefix", "Conformance")
+    assert isinstance(r, OkResponse)
+    body = json.loads(r.payload)
+    client.request("watch.cancel", body["subscription_id"])
 
 
 # ---------------------------------------------------------------------------

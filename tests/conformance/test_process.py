@@ -20,7 +20,7 @@ Wire-shape note: the filter input on `process.list` is `--pattern` (was
 import json
 import time
 
-from conftest import needs_verb
+from conftest import needs_arg, needs_verb
 from wire import ErrResponse, OkResponse, WireClient
 
 
@@ -131,6 +131,67 @@ def test_process_wait_after_exit_returns_cached_code(create_client: WireClient,
                               "--timeout-ms", "1000")
     assert isinstance(r, OkResponse), f"got {r!r}"
     assert json.loads(r.payload)["exit_code"] == 5
+
+
+# ---------------------------------------------------------------------------
+# process.start --wait-for-window-ms (issue #102; since v2.2)
+
+def test_process_start_wait_zero_is_unchanged(create_client: WireClient,
+                                              capabilities: dict,
+                                              verb_defs: dict) -> None:
+    """`--wait-for-window-ms 0` behaves exactly like omitting it."""
+    needs_verb(capabilities, "process.start")
+    needs_arg(verb_defs, "process.start", "wait_for_window_ms")
+    r = create_client.request("process.start",
+                              "--argv", ["cmd.exe", "/c", "exit 0"],
+                              "--wait-for-window-ms", "0")
+    assert isinstance(r, OkResponse)
+    body = json.loads(r.payload)
+    assert "pid" in body
+    for absent in ("window", "window_timeout", "exit_code"):
+        assert absent not in body
+
+
+def test_process_start_wait_returns_on_exit(create_client: WireClient,
+                                            capabilities: dict,
+                                            verb_defs: dict) -> None:
+    """A process that exits without a window ends the wait early with its
+    exit code, not after the full timeout."""
+    needs_verb(capabilities, "process.start")
+    needs_arg(verb_defs, "process.start", "wait_for_window_ms")
+    started = time.monotonic()
+    r = create_client.request("process.start",
+                              "--argv", ["cmd.exe", "/c", "exit 3"],
+                              "--wait-for-window-ms", "20000")
+    elapsed = time.monotonic() - started
+    assert isinstance(r, OkResponse)
+    body = json.loads(r.payload)
+    assert body["window_timeout"] is True
+    assert body["exit_code"] == 3
+    assert "window" not in body
+    assert elapsed < 10, f"wait did not end on exit ({elapsed:.1f}s)"
+
+
+def test_process_start_wait_times_out(delete_client: WireClient,
+                                      capabilities: dict,
+                                      verb_defs: dict) -> None:
+    """A windowless process still running at the deadline returns
+    window_timeout with no exit_code. Relies on console children getting
+    CREATE_NO_WINDOW (process.start spec); delete tier so it can kill."""
+    needs_verb(capabilities, "process.start")
+    needs_verb(capabilities, "process.kill")
+    needs_arg(verb_defs, "process.start", "wait_for_window_ms")
+    r = delete_client.request("process.start",
+                              "--argv", ["cmd.exe", "/c", "ping -n 5 127.0.0.1"],
+                              "--wait-for-window-ms", "1000")
+    assert isinstance(r, OkResponse)
+    body = json.loads(r.payload)
+    try:
+        assert body["window_timeout"] is True
+        assert "exit_code" not in body
+        assert "window" not in body
+    finally:
+        delete_client.request("process.kill", str(body["pid"]))
 
 
 # ---------------------------------------------------------------------------

@@ -16,13 +16,14 @@
 
 from __future__ import annotations
 
+import json
 import os
 import pathlib
 from typing import Iterator
 
 import pytest
 
-from wire import ErrResponse, WireClient, WsWireClient
+from wire import ErrResponse, OkResponse, WireClient, WsWireClient
 
 
 def pytest_addoption(parser: pytest.Parser) -> None:
@@ -138,3 +139,25 @@ def needs_verb(capabilities: dict, verb: str) -> None:
     """Helper for tests: skip if the agent does not advertise the verb."""
     if verb not in capabilities:
         pytest.skip(f"agent does not advertise {verb}")
+
+
+@pytest.fixture(scope="session")
+def verb_defs(host: str, port: int, capabilities: dict) -> dict:
+    """Verb name -> strict-tool definition, from `system.verbs` (v2.2+).
+    Empty when the agent does not advertise `system.verbs`."""
+    if "system.verbs" not in capabilities:
+        return {}
+    with WireClient(host, port) as c:
+        c.hello()
+        r = c.request("system.verbs")
+    if not isinstance(r, OkResponse):
+        return {}
+    return json.loads(r.payload).get("verbs", {})
+
+
+def needs_arg(verb_defs: dict, verb: str, arg: str) -> None:
+    """Helper for tests of an argument added to an existing verb: skip
+    unless the agent's own definition of `verb` declares `arg`."""
+    props = verb_defs.get(verb, {}).get("input_schema", {}).get("properties", {})
+    if arg not in props:
+        pytest.skip(f"agent's {verb} does not declare {arg}")

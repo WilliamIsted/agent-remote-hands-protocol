@@ -1,7 +1,20 @@
 {
   "name": "process.shell",
   "strict": true,
-  "description": "Spawn a process via ShellExecuteEx. Handles paths with spaces / unicode without shell-escape hazards, supports non-default Win32 verbs (runas for elevation, print, edit, explore).",
+  "description": "Spawn a process via ShellExecuteEx. Handles paths with spaces / unicode without shell-escape hazards, supports non-default Win32 verbs (runas for elevation, print, edit, explore). Pass `wait_for_window_ms` to also wait for the new process's first window.",
+  "$defs": {
+    "Bounds": {
+      "type": "object",
+      "properties": {
+        "x": { "type": "integer", "description": "Top-left X in virtual-screen coordinates." },
+        "y": { "type": "integer", "description": "Top-left Y in virtual-screen coordinates." },
+        "w": { "type": "integer", "description": "Width in physical pixels." },
+        "h": { "type": "integer", "description": "Height in physical pixels." }
+      },
+      "required": ["x", "y", "w", "h"],
+      "additionalProperties": false
+    }
+  },
   "input_schema": {
     "type": "object",
     "properties": {
@@ -22,6 +35,13 @@
       "cwd": {
         "type": "string",
         "description": "Working directory for the new process. Defaults to the agent's cwd."
+      },
+      "wait_for_window_ms": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 60000,
+        "default": 0,
+        "description": "When greater than 0, block until the first of: a matching window appears (returns `window`); the process exits (returns `window_timeout: true` and `exit_code`); or this many milliseconds pass (returns `window_timeout: true`). A matching window is owned by the new pid, has no owner window, and passes the same filter as `window.list` (visible, non-empty title, not a tool or no-activate window, non-zero size, on a monitor). An app with a splash screen returns the splash screen. Browsers that hand off to an already-running instance return on process exit. 0 or omitted: return immediately, as before. Ignored when no process spawns (`pid: null`); none of the window fields are returned then."
       }
     },
     "required": ["path"],
@@ -36,6 +56,25 @@
       "pid": {
         "type": ["integer", "null"],
         "description": "Process id of the spawned process, or `null` when no process spawns (e.g. `print` on a file that opens in an existing handler instance). Caller must null-check before passing to process.kill / process.wait (both of which require pid >= 1)."
+      },
+      "window": {
+        "type": "object",
+        "description": "Present only when `wait_for_window_ms` > 0 and a matching window appeared.",
+        "properties": {
+          "handle": { "type": "string", "description": "Window handle in `win:0x<hex>` form, as in `window.list`." },
+          "title":  { "type": "string", "description": "Window title when it was matched." },
+          "bounds": { "$ref": "#/$defs/Bounds", "description": "Window's screen position and size." }
+        },
+        "required": ["handle", "title", "bounds"],
+        "additionalProperties": false
+      },
+      "window_timeout": {
+        "type": "boolean",
+        "description": "Present (always `true`) only when `wait_for_window_ms` > 0 and no window matched, because the process exited or the time ran out. Absent when `window` is present."
+      },
+      "exit_code": {
+        "type": "integer",
+        "description": "Present only with `window_timeout` when the wait ended because the process exited."
       }
     },
     "required": ["pid"],
@@ -58,11 +97,11 @@
   ],
   "x-families": {
     "windows-modern": {
-      "description": "ShellExecuteExW. `verb: runas` triggers UAC consent — interactive prompt blocks the agent until the user responds. `user_cancelled` ERR if the user denies the prompt. `no_handler` when no application is registered for the path's file association.",
+      "description": "ShellExecuteExW. `verb: runas` triggers UAC consent — interactive prompt blocks the agent until the user responds. `user_cancelled` ERR if the user denies the prompt. `no_handler` when no application is registered for the path's file association. With wait_for_window_ms, the agent keeps the SEE_MASK_NOCLOSEPROCESS handle open for the duration of the wait and returns on window, exit or timeout.",
       "implementations_in_order": ["shell_execute_ex_w"]
     },
     "windows-classic": {
-      "description": "ShellExecuteExW on NT 5+; ShellExecuteExA on NT 4 / 9x. `runas` is NT 5+ — pre-NT-5 returns ERR not_supported. NT 4 lacks UAC; `runas` simply uses RunAs Service when present, else errors.",
+      "description": "ShellExecuteExW on NT 5+; ShellExecuteExA on NT 4 / 9x. `runas` is NT 5+ — pre-NT-5 returns ERR not_supported. NT 4 lacks UAC; `runas` simply uses RunAs Service when present, else errors. With wait_for_window_ms, the agent keeps the SEE_MASK_NOCLOSEPROCESS handle open for the duration of the wait and returns on window, exit or timeout.",
       "implementations_in_order": ["shell_execute_ex_w", "shell_execute_ex_a"]
     }
   }

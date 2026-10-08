@@ -1,7 +1,20 @@
 {
   "name": "process.start",
   "strict": true,
-  "description": "Spawn a process via CreateProcess. Returns the pid of the new process. For path-with-spaces / unicode filename / shell-verb (runas) cases, prefer process.shell.",
+  "description": "Spawn a process via CreateProcess. Returns the pid of the new process. For path-with-spaces / unicode filename / shell-verb (runas) cases, prefer process.shell. Pass `wait_for_window_ms` to also wait for the new process's first window.",
+  "$defs": {
+    "Bounds": {
+      "type": "object",
+      "properties": {
+        "x": { "type": "integer", "description": "Top-left X in virtual-screen coordinates." },
+        "y": { "type": "integer", "description": "Top-left Y in virtual-screen coordinates." },
+        "w": { "type": "integer", "description": "Width in physical pixels." },
+        "h": { "type": "integer", "description": "Height in physical pixels." }
+      },
+      "required": ["x", "y", "w", "h"],
+      "additionalProperties": false
+    }
+  },
   "input_schema": {
     "type": "object",
     "properties": {
@@ -18,6 +31,13 @@
       "cwd": {
         "type": "string",
         "description": "Working directory for the new process. Defaults to the agent's cwd."
+      },
+      "wait_for_window_ms": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 60000,
+        "default": 0,
+        "description": "When greater than 0, block until the first of: a matching window appears (returns `window`); the process exits (returns `window_timeout: true` and `exit_code`); or this many milliseconds pass (returns `window_timeout: true`). A matching window is owned by the new pid, has no owner window, and passes the same filter as `window.list` (visible, non-empty title, not a tool or no-activate window, non-zero size, on a monitor). An app with a splash screen returns the splash screen. Browsers that hand off to an already-running instance return on process exit. 0 or omitted: return immediately, as before."
       }
     },
     "required": ["argv"],
@@ -33,6 +53,25 @@
         "type": "integer",
         "minimum": 1,
         "description": "Process id of the spawned process. Note: subject to PID reuse if the process exits immediately and the OS recycles the id."
+      },
+      "window": {
+        "type": "object",
+        "description": "Present only when `wait_for_window_ms` > 0 and a matching window appeared.",
+        "properties": {
+          "handle": { "type": "string", "description": "Window handle in `win:0x<hex>` form, as in `window.list`." },
+          "title":  { "type": "string", "description": "Window title when it was matched." },
+          "bounds": { "$ref": "#/$defs/Bounds", "description": "Window's screen position and size." }
+        },
+        "required": ["handle", "title", "bounds"],
+        "additionalProperties": false
+      },
+      "window_timeout": {
+        "type": "boolean",
+        "description": "Present (always `true`) only when `wait_for_window_ms` > 0 and no window matched, because the process exited or the time ran out. Absent when `window` is present."
+      },
+      "exit_code": {
+        "type": "integer",
+        "description": "Present only with `window_timeout` when the wait ended because the process exited."
       }
     },
     "required": ["pid"],
@@ -55,11 +94,11 @@
   ],
   "x-families": {
     "windows-modern": {
-      "description": "CreateProcessW. argv[0] resolution: absolute paths are used directly; bare names search PATH (per the agent's environment, NOT the calling client's). Inherits the agent's environment block by default. The new process runs at the agent's integrity level — UAC elevation requires process.shell with `verb: runas` instead.",
+      "description": "CreateProcessW. argv[0] resolution: absolute paths are used directly; bare names search PATH (per the agent's environment, NOT the calling client's). Inherits the agent's environment block by default. The new process runs at the agent's integrity level — UAC elevation requires process.shell with `verb: runas` instead. With wait_for_window_ms, the agent waits on the process handle and polls for a window matching the window.list filter plus GW_OWNER == NULL, returning on window, exit or timeout.",
       "implementations_in_order": ["create_process_w"]
     },
     "windows-classic": {
-      "description": "CreateProcessW on NT 5+; CreateProcessA on NT 4 / 9x. PATH-search behaviour is the same. NT 4 / 9x lack integrity levels — process inherits the agent's account/permissions wholesale.",
+      "description": "CreateProcessW on NT 5+; CreateProcessA on NT 4 / 9x. PATH-search behaviour is the same. NT 4 / 9x lack integrity levels — process inherits the agent's account/permissions wholesale. With wait_for_window_ms, the agent waits on the process handle and polls for a window matching the window.list filter plus GW_OWNER == NULL, returning on window, exit or timeout.",
       "implementations_in_order": ["create_process_w", "create_process_a"]
     }
   }

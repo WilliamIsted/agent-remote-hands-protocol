@@ -1,13 +1,18 @@
 {
   "name": "watch.window",
   "strict": true,
-  "description": "Subscribe to window appear / disappear events. Emits EVENT frames as windows whose title matches the optional `title_prefix` come into existence or are destroyed.",
+  "description": "Subscribe to window appear / disappear events. Filter by `title_prefix`, `pid`, or both (both must match); at least one is required, and passing neither returns `invalid_args`. Emits EVENT frames as matching top-level windows are created or destroyed.",
   "input_schema": {
     "type": "object",
     "properties": {
       "title_prefix": {
         "type": "string",
-        "description": "Optional prefix filter (case-insensitive). When supplied, EVENT frames fire only for windows whose title starts with this prefix. Omit to receive all top-level window appear/disappear events."
+        "description": "Prefix filter (case-insensitive). EVENT frames fire only for windows whose title starts with this prefix."
+      },
+      "pid": {
+        "type": "integer",
+        "minimum": 1,
+        "description": "Owning-process filter. EVENT frames fire only for windows owned by this process id. Browsers that hand off to an already-running instance (launching `msedge.exe` while Edge is open) open the window in a different process, so this filter never fires for them."
       }
     },
     "additionalProperties": false
@@ -44,7 +49,7 @@
       "name": "set_winevent_hook",
       "detect": { "type": "always" },
       "available_on": ["windows-modern", "windows-classic"],
-      "description": "Win32 `SetWinEventHook(EVENT_OBJECT_CREATE | EVENT_OBJECT_DESTROY, WINEVENT_OUTOFCONTEXT)`. NT 5+ — out-of-process hook with no DLL injection. Filtered to top-level windows + title_prefix in the agent's hook callback."
+      "description": "Win32 `SetWinEventHook(EVENT_OBJECT_CREATE | EVENT_OBJECT_DESTROY, WINEVENT_OUTOFCONTEXT)`. NT 5+ — out-of-process hook with no DLL injection. Filtered to top-level windows, title_prefix and pid in the agent's hook callback; pid via GetWindowThreadProcessId."
     },
     {
       "name": "enum_windows_poll",
@@ -55,7 +60,7 @@
   ],
   "x-families": {
     "windows-modern": {
-      "description": "SetWinEventHook with EVENT_OBJECT_CREATE / EVENT_OBJECT_DESTROY. Out-of-process, no DLL injection. Title prefix filtered in the agent's callback before emitting EVENTs.",
+      "description": "SetWinEventHook with EVENT_OBJECT_CREATE / EVENT_OBJECT_DESTROY. Out-of-process, no DLL injection. Title prefix and pid filtered in the agent's callback before emitting EVENTs.",
       "implementations_in_order": ["set_winevent_hook"]
     },
     "windows-classic": {
