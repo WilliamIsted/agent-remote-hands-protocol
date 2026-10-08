@@ -509,7 +509,7 @@ def check_doc_verb_references(verb_files: list[pathlib.Path],
         # File-name references in prose
         "input.cpp", "PROTOCOL.md", "VERBS.md",
         # Process / executable names in operational prose
-        "explorer.exe", "remote-hands.exe", "msiexec.exe",
+        "explorer.exe", "remote-hands.exe", "msiexec.exe", "msedge.exe",
         # Hypothetical future verbs mentioned in narrative (not yet authored)
         "element.find_msaa", "element.list_msaa",
         "vision.describe", "vision.find", "vision.ocr_tesseract",
