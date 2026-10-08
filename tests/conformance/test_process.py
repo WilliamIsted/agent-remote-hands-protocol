@@ -84,6 +84,33 @@ def test_process_list_include_counters(client: WireClient,
 
 
 # ---------------------------------------------------------------------------
+# process.tree — live tree snapshot (issue #105; since v2.2)
+
+def test_process_tree_live_root_is_first(client: WireClient,
+                                         capabilities: dict) -> None:
+    """PID 4 (System) is always running and is listed first."""
+    needs_verb(capabilities, "process.tree")
+    r = client.request("process.tree", "4")
+    assert isinstance(r, OkResponse)
+    body = json.loads(r.payload)
+    assert body["root_alive"] is True
+    assert body["processes"][0]["pid"] == 4
+    for p in body["processes"]:
+        assert {"pid", "ppid", "image"} <= p.keys()
+
+
+def test_process_tree_unknown_pid_is_empty(client: WireClient,
+                                           capabilities: dict) -> None:
+    """A pid that never existed is not an error."""
+    needs_verb(capabilities, "process.tree")
+    r = client.request("process.tree", "99999999")
+    assert isinstance(r, OkResponse)
+    body = json.loads(r.payload)
+    assert body["root_alive"] is False
+    assert body["processes"] == []
+
+
+# ---------------------------------------------------------------------------
 # process.start — tier-gated; round-trip via process.wait
 
 def test_process_start_requires_create_tier(client: WireClient,

@@ -25,19 +25,19 @@ The verb spec is canonical for each watch.* event payload. Payload format depend
 |---|---|
 | `watch.region` (encoding=binary, default) | Raw image bytes (PNG / WebP / BMP per the `format` argument). Length-prefixed in the EVENT frame; no JSON envelope. |
 | `watch.region` (encoding=base64) | UTF-8 JSON: `{"image":"<base64>","format":"<png\|webp\|bmp>","timestamp_unix_ms":N}` |
-| `watch.process` | UTF-8 JSON: `{"exit_code":N}` |
+| `watch.process` | UTF-8 JSON: `{"kind":"spawned\|exited","pid":N,"ppid":N,"image":"...","exit_code":N}` (`ppid` and `image` on `spawned`; `exit_code` on `exited` when available; without `descendants` only one `exited` event is sent) |
 | `watch.window` | UTF-8 JSON: `{"kind":"created\|destroyed","handle":"win:...","title":"...","pid":N}` |
 | `watch.element` | UTF-8 JSON: `{"reason":"destroyed\|reparented\|structure_changed"}` |
 | `watch.file` | UTF-8 JSON: `{"kind":"created\|modified\|deleted\|renamed","path":"...","old_path":"..."}` (`old_path` only present when `kind: "renamed"`) |
 | `watch.registry` | UTF-8 JSON: `{"path":"..."}` |
 
-**Convention:** the `kind` field is omitted from EVENT payloads whose only possible kind is a single fixed value (e.g. `watch.process`, `watch.registry`). Where a verb produces multiple event kinds, `kind` is required and enumerated.
+**Convention:** the `kind` field is omitted from EVENT payloads whose only possible kind is a single fixed value (e.g. `watch.registry`). Where a verb produces multiple event kinds, `kind` is required and enumerated. `watch.process` always carries `kind`, since 2.2 added `spawned`.
 
 ### 6.3 Auto-cancellation
 
 Some subscriptions end on their own:
 
-- `watch.process` auto-cancels after emitting the exit event.
+- `watch.process` auto-cancels after the root's exit event, or with `descendants: true` after every tracked process has exited.
 - `watch.element` auto-cancels after emitting an invalidation event.
 - `watch.region` with `until_change: true` auto-cancels after emitting one frame.
 

@@ -1,7 +1,7 @@
 {
   "name": "watch.process",
   "strict": true,
-  "description": "Subscribe to one process's exit. Emits a single EVENT carrying the exit code when the process exits, then auto-cancels.",
+  "description": "Subscribe to a process's exit, or with `descendants: true` to every spawn and exit in its process tree. Auto-cancels when the process exits, or with `descendants` when every tracked process has exited.",
   "input_schema": {
     "type": "object",
     "properties": {
@@ -9,6 +9,11 @@
         "type": "integer",
         "minimum": 1,
         "description": "Process id to watch."
+      },
+      "descendants": {
+        "type": "boolean",
+        "default": false,
+        "description": "When true, also report descendants. Existing descendants are emitted as `spawned` right after subscribing, so none are missed between `process.start` and this call. The root itself never gets a `spawned` event. Polled every 250 ms: a child that lives less than that may be missed, including an app that crashes on launch."
       }
     },
     "required": ["pid"],
@@ -30,14 +35,18 @@
   },
   "x-event-schema": {
     "type": "object",
-    "description": "Single EVENT emitted on process exit, then auto-cancellation. Carries the exit code.",
+    "description": "One `exited` EVENT for the root, then auto-cancel. With `descendants: true`, `spawned` and `exited` EVENTs for every tracked process, then auto-cancel once all have exited. If the root has already exited at subscribe, the agent emits `exited` for it (no `exit_code`), then `spawned` for each live orphan, and auto-cancels at once when there are none.",
     "properties": {
-      "exit_code": { "type": "integer", "description": "Process exit code (or value passed to TerminateProcess if killed)." }
+      "kind":      { "type": "string", "enum": ["spawned", "exited"], "description": "`spawned` when a descendant is first seen; `exited` when a tracked process exits." },
+      "pid":       { "type": "integer", "description": "Process the event is about." },
+      "ppid":      { "type": "integer", "description": "Parent process id. Present on `spawned`." },
+      "image":     { "type": "string", "description": "Executable name, as in `process.list`. Present on `spawned`." },
+      "exit_code": { "type": "integer", "description": "Exit code (or the value passed to TerminateProcess). Present on `exited` when the agent held a handle to the process in time." }
     },
-    "required": ["exit_code"],
+    "required": ["kind", "pid"],
     "additionalProperties": false
   },
-  "x-errors": ["not_found", "permission_denied", "invalid_args"],
+  "x-errors": ["not_found", "permission_denied", "invalid_args", "not_supported"],
   "x-implementations": [
     {
       "name": "register_wait_for_single_object",
@@ -50,16 +59,28 @@
       "detect": { "type": "always" },
       "available_on": ["windows-classic"],
       "description": "Dedicated thread + `WaitForSingleObject(hProcess, INFINITE)` legacy fallback for NT 4 / 9x where RegisterWaitForSingleObject is unavailable."
+    },
+    {
+      "name": "toolhelp_poll",
+      "detect": { "type": "always" },
+      "available_on": ["windows-modern"],
+      "description": "Descendant tracking for `descendants: true`. `CreateToolhelp32Snapshot` every 250 ms, diffed against the tracked set. New children of tracked processes emit `spawned`, after the same creation-time pid-reuse check as `process.tree`. A `SYNCHRONIZE` handle is opened on each new process for its exit code."
+    },
+    {
+      "name": "toolhelp_poll_dll",
+      "detect": { "type": "dll", "value": "kernel32.dll", "exports": ["CreateToolhelp32Snapshot", "Process32First", "Process32Next"] },
+      "available_on": ["windows-classic"],
+      "description": "The same poll with Toolhelp resolved at runtime (Windows 9x and 2000+). Absent on NT 4."
     }
   ],
   "x-families": {
     "windows-modern": {
-      "description": "RegisterWaitForSingleObject for efficient async exit notification. Auto-cancels after the single event fires.",
-      "implementations_in_order": ["register_wait_for_single_object"]
+      "description": "RegisterWaitForSingleObject for the root's exit. `descendants: true` selects toolhelp_poll for the tree; the exit-wait entry serves `descendants: false`. These are not a fallback chain for each other.",
+      "implementations_in_order": ["register_wait_for_single_object", "toolhelp_poll"]
     },
     "windows-classic": {
-      "description": "RegisterWaitForSingleObject on NT 5+; dedicated wait thread on NT 4 / 9x.",
-      "implementations_in_order": ["register_wait_for_single_object", "wait_thread"]
+      "description": "RegisterWaitForSingleObject on NT 5+, dedicated wait thread on NT 4 / 9x, for `descendants: false`. `descendants: true` selects toolhelp_poll_dll. On NT 4, where Toolhelp is missing, the verb stays advertised and `descendants: true` returns `ERR not_supported` with a `reason` naming `descendants`; that code normally means a whole verb is unavailable and is used here for one argument.",
+      "implementations_in_order": ["register_wait_for_single_object", "wait_thread", "toolhelp_poll_dll"]
     }
   }
 }
