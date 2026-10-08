@@ -1,0 +1,70 @@
+{
+  "name": "process.tree",
+  "strict": true,
+  "description": "Snapshot of the live process tree under a pid: the root (if still running) and every live descendant, with parent links. Works after the root has exited, so an installer's launched app can still be found. Read-only; for spawn and exit history use `watch.process` with `descendants`.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "pid": {
+        "type": "integer",
+        "minimum": 1,
+        "description": "Root process id. Need not be running."
+      }
+    },
+    "required": ["pid"],
+    "additionalProperties": false
+  },
+  "x-crudx": "R",
+  "x-since": "2.2",
+  "x-namespace": "process",
+  "x-output-schema": {
+    "type": "object",
+    "properties": {
+      "root_alive": {
+        "type": "boolean",
+        "description": "Whether `pid` is a running process. `false` is not an error: orphaned descendants are still listed, and a pid that never existed returns `false` with an empty list."
+      },
+      "processes": {
+        "type": "array",
+        "description": "Live processes only. When the root is alive it is the first entry. Order after that is unspecified; rebuild the tree from `ppid`.",
+        "items": {
+          "type": "object",
+          "properties": {
+            "pid":   { "type": "integer", "description": "Process id." },
+            "ppid":  { "type": "integer", "description": "Parent process id, as recorded at creation. May be a process that has exited." },
+            "image": { "type": "string", "description": "Executable name (filename without path), as in `process.list`. Empty string when it can't be read." }
+          },
+          "required": ["pid", "ppid", "image"],
+          "additionalProperties": false
+        }
+      }
+    },
+    "required": ["root_alive", "processes"],
+    "additionalProperties": false
+  },
+  "x-errors": ["invalid_args"],
+  "x-implementations": [
+    {
+      "name": "create_toolhelp32_snapshot",
+      "detect": { "type": "always" },
+      "available_on": ["windows-modern"],
+      "description": "Win32 `CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS)` + `Process32FirstW` / `Process32NextW`, then a walk of `th32ParentProcessID` links from the root. Each link is checked with `GetProcessTimes`: a child whose creation time is earlier than its parent's is a stale link left by pid reuse and is dropped."
+    },
+    {
+      "name": "create_toolhelp32_snapshot_dll",
+      "detect": { "type": "dll", "value": "kernel32.dll", "exports": ["CreateToolhelp32Snapshot", "Process32First", "Process32Next"] },
+      "available_on": ["windows-classic"],
+      "description": "Toolhelp resolved at runtime from kernel32 (Windows 9x and 2000+). NT 4 has no Toolhelp in kernel32 and PSAPI gives no parent id, so detection fails there and the verb is not advertised."
+    }
+  ],
+  "x-families": {
+    "windows-modern": {
+      "description": "Toolhelp walk plus the creation-time guard. When either creation time can't be read (protected processes refuse OpenProcess), the link is kept. When the root has exited there is no root creation time, so its direct children are matched by pid alone and may include children of an earlier process that had the same pid.",
+      "implementations_in_order": ["create_toolhelp32_snapshot"]
+    },
+    "windows-classic": {
+      "description": "Toolhelp walk on 9x and 2000+, without the creation-time guard on 9x. Not advertised on NT 4.",
+      "implementations_in_order": ["create_toolhelp32_snapshot_dll"]
+    }
+  }
+}
