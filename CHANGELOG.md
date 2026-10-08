@@ -39,8 +39,10 @@ by `system.info.agent_protocol`.
 - New `process.tree`: live processes under a pid, with parent links. An exited root is not
   an error, so an installer's launched app can still be found from the installer's pid.
 - `watch.process` gains `descendants`. Events are now always `kind`-tagged (`spawned` or
-  `exited`) with `pid`; the old bare `{exit_code}` payload is replaced. Current agents
-  already send `kind` and `pid`, so callers reading `exit_code` are unaffected.
+  `exited`) with `pid`; the old bare `{exit_code}` payload is replaced and `exit_code`
+  becomes optional. Current agents already send `kind` and `pid`, so callers reading
+  `exit_code` are unaffected; callers matching `kind` must switch from the agent's
+  `process_exit` to `exited`.
 - `watch.process` `x-errors` gains `not_supported` for `descendants` on NT 4.
 
 ## v2.2.0-rc.1 — 2026-05-07
