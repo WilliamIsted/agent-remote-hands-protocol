@@ -142,7 +142,8 @@ def test_process_start_wait_zero_is_unchanged(create_client: WireClient,
     """`--wait-for-window-ms 0` behaves exactly like omitting it."""
     needs_verb(capabilities, "process.start")
     needs_arg(verb_defs, "process.start", "wait_for_window_ms")
-    r = create_client.request("process.start", "cmd.exe /c exit 0",
+    r = create_client.request("process.start",
+                              "--argv", ["cmd.exe", "/c", "exit 0"],
                               "--wait-for-window-ms", "0")
     assert isinstance(r, OkResponse)
     body = json.loads(r.payload)
@@ -159,7 +160,8 @@ def test_process_start_wait_returns_on_exit(create_client: WireClient,
     needs_verb(capabilities, "process.start")
     needs_arg(verb_defs, "process.start", "wait_for_window_ms")
     started = time.monotonic()
-    r = create_client.request("process.start", "cmd.exe /c exit 3",
+    r = create_client.request("process.start",
+                              "--argv", ["cmd.exe", "/c", "exit 3"],
                               "--wait-for-window-ms", "20000")
     elapsed = time.monotonic() - started
     assert isinstance(r, OkResponse)
@@ -180,7 +182,7 @@ def test_process_start_wait_times_out(delete_client: WireClient,
     needs_verb(capabilities, "process.kill")
     needs_arg(verb_defs, "process.start", "wait_for_window_ms")
     r = delete_client.request("process.start",
-                              "cmd.exe /c ping -n 5 127.0.0.1",
+                              "--argv", ["cmd.exe", "/c", "ping -n 5 127.0.0.1"],
                               "--wait-for-window-ms", "1000")
     assert isinstance(r, OkResponse)
     body = json.loads(r.payload)
