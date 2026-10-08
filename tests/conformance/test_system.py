@@ -180,6 +180,41 @@ def test_verbs_superset_of_capabilities(
 
 
 # ---------------------------------------------------------------------------
+# system.apps.installed — Uninstall-key inventory (issue #101; since v2.2)
+
+def test_apps_installed_returns_apps(client: WireClient,
+                                     capabilities: dict) -> None:
+    """Every entry has a non-empty name; other fields are optional."""
+    needs_verb(capabilities, "system.apps.installed")
+    r = client.request("system.apps.installed")
+    assert isinstance(r, OkResponse)
+    body = json.loads(r.payload)
+    assert isinstance(body["apps"], list)
+    for app in body["apps"]:
+        assert isinstance(app["name"], str) and app["name"]
+
+
+def test_apps_installed_pattern_filter(client: WireClient,
+                                       capabilities: dict) -> None:
+    """`--pattern` is a case-insensitive substring on name."""
+    needs_verb(capabilities, "system.apps.installed")
+    r = client.request("system.apps.installed", "--pattern", "MICROSOFT")
+    assert isinstance(r, OkResponse)
+    for app in json.loads(r.payload)["apps"]:
+        assert "microsoft" in app["name"].lower()
+
+
+def test_apps_installed_no_match_is_empty(client: WireClient,
+                                          capabilities: dict) -> None:
+    """A pattern nothing matches returns an empty list, not an error."""
+    needs_verb(capabilities, "system.apps.installed")
+    r = client.request("system.apps.installed",
+                       "--pattern", "zz-no-such-app-conformance-zz")
+    assert isinstance(r, OkResponse)
+    assert json.loads(r.payload)["apps"] == []
+
+
+# ---------------------------------------------------------------------------
 # system.health
 
 def test_health_succeeds(client: WireClient, capabilities: dict) -> None:

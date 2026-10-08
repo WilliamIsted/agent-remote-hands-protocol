@@ -1,0 +1,60 @@
+{
+  "name": "system.apps.installed",
+  "strict": true,
+  "description": "List installed programs from the Windows Uninstall registry keys (the data behind Programs and Features). Store / MSIX apps, including Windows 11 Notepad, Calculator and Photos, are not listed. Pass `pattern` to filter by name. Read-only.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "pattern": {
+        "type": "string",
+        "description": "Case-insensitive substring matched against `name` (e.g. `chrome` matches `Google Chrome`). Omit to list every entry. No match returns an empty `apps` array."
+      }
+    },
+    "additionalProperties": false
+  },
+  "x-crudx": "R",
+  "x-since": "2.2",
+  "x-namespace": "system",
+  "x-output-schema": {
+    "type": "object",
+    "properties": {
+      "apps": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "name":             { "type": "string", "description": "`DisplayName` value." },
+            "version":          { "type": "string", "description": "`DisplayVersion` value, when present." },
+            "publisher":        { "type": "string", "description": "`Publisher` value, when present." },
+            "install_location": { "type": "string", "description": "`InstallLocation` value, when present." },
+            "uninstall_string": { "type": "string", "description": "`UninstallString` value, when present." },
+            "install_date":     { "type": "string", "description": "`InstallDate` value as stored, usually `YYYYMMDD`. Not normalised; installers write it inconsistently." }
+          },
+          "required": ["name"],
+          "additionalProperties": false
+        }
+      }
+    },
+    "required": ["apps"],
+    "additionalProperties": false
+  },
+  "x-errors": ["invalid_args"],
+  "x-implementations": [
+    {
+      "name": "uninstall_keys",
+      "detect": { "type": "always" },
+      "available_on": ["windows-modern", "windows-classic"],
+      "description": "Read-only walk of the Uninstall subkeys under `HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall`, `HKLM\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall` and `HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall` (`RegOpenKeyEx` / `RegEnumKeyEx` / `RegQueryValueEx`). Entries are skipped when they have no `DisplayName`, when `SystemComponent` is 1, or when `ParentKeyName` is set (patches and updates)."
+    }
+  ],
+  "x-families": {
+    "windows-modern": {
+      "description": "All three Uninstall roots. The filter is the subset of Programs and Features filtering the agent applies, not an exact mirror: Programs and Features may also hide some update entries that this list includes. Store / MSIX packages are not in these keys and are not listed.",
+      "implementations_in_order": ["uninstall_keys"]
+    },
+    "windows-classic": {
+      "description": "Same walk. Roots that do not exist are skipped: Windows 9x has no `WOW6432Node` and older systems may have no per-user Uninstall key.",
+      "implementations_in_order": ["uninstall_keys"]
+    }
+  }
+}
