@@ -505,7 +505,7 @@ def check_doc_verb_references(verb_files: list[pathlib.Path],
         # Tooling references
         "agent_client.py", "wire.py", "gen.py", "check_spec.py", "families.json",
         # Windows DLL names (detect-type `dll` and the MSAA notes, issue #106)
-        "oleacc.dll",
+        "oleacc.dll", "shlwapi.dll", "kernel32.dll",
         # File-name references in prose
         "input.cpp", "PROTOCOL.md", "VERBS.md",
         # Process / executable names in operational prose

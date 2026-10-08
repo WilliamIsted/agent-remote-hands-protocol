@@ -215,6 +215,44 @@ def test_apps_installed_no_match_is_empty(client: WireClient,
 
 
 # ---------------------------------------------------------------------------
+# system.apps.defaults — registered default handlers (issue #100; since v2.2)
+
+def test_apps_defaults_returns_defaults(client: WireClient,
+                                        capabilities: dict) -> None:
+    """Default call resolves the curated set; each entry has key and name."""
+    needs_verb(capabilities, "system.apps.defaults")
+    r = client.request("system.apps.defaults")
+    assert isinstance(r, OkResponse)
+    entries = json.loads(r.payload)["defaults"]
+    assert isinstance(entries, list)
+    for e in entries:
+        assert isinstance(e["key"], str) and e["key"]
+        assert isinstance(e["name"], str) and e["name"]
+
+
+def test_apps_defaults_single_key(client: WireClient,
+                                  capabilities: dict) -> None:
+    """An explicit key list replaces the curated set: `.txt` alone returns
+    at most one entry, and it is for `.txt`."""
+    needs_verb(capabilities, "system.apps.defaults")
+    r = client.request("system.apps.defaults", "--keys", ".txt")
+    assert isinstance(r, OkResponse)
+    entries = json.loads(r.payload)["defaults"]
+    assert len(entries) <= 1
+    for e in entries:
+        assert e["key"] == ".txt"
+
+
+def test_apps_defaults_rejects_malformed_key(client: WireClient,
+                                             capabilities: dict) -> None:
+    """Multi-dot extensions are outside the key grammar."""
+    needs_verb(capabilities, "system.apps.defaults")
+    r = client.request("system.apps.defaults", "--keys", ".tar.gz")
+    assert isinstance(r, ErrResponse)
+    assert r.code == "invalid_args"
+
+
+# ---------------------------------------------------------------------------
 # system.health
 
 def test_health_succeeds(client: WireClient, capabilities: dict) -> None:

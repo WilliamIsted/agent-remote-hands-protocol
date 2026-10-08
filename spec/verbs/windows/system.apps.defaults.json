@@ -1,0 +1,65 @@
+{
+  "name": "system.apps.defaults",
+  "strict": true,
+  "description": "Return the OS-registered default app for URL schemes and file extensions (e.g. which browser opens `https`, which app opens `.pdf`). Omit `keys` for a curated set of common protocols and extensions. Keys with no registered handler are left out. Read-only.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "keys": {
+        "type": "array",
+        "items": { "type": "string", "minLength": 1 },
+        "default": ["http", "https", "mailto", "ftp", "file", ".txt", ".html", ".htm", ".md", ".pdf", ".docx", ".xlsx", ".pptx", ".csv", ".json", ".xml", ".zip", ".7z", ".mp3", ".mp4", ".png", ".jpg"],
+        "description": "Protocols and extensions to resolve. An extension is `.` followed by 1 to 32 characters from A-Z, a-z, 0-9, `_` and `-`, with no further dots. A protocol is a URI scheme (RFC 3986): a letter followed by zero or more letters, digits, `+`, `.` or `-`, with no trailing colon. Any other key returns `invalid_args` (for example `.`, `.tar.gz`, `http:`, `foo/bar`)."
+      }
+    },
+    "additionalProperties": false
+  },
+  "x-crudx": "R",
+  "x-since": "2.2",
+  "x-namespace": "system",
+  "x-output-schema": {
+    "type": "object",
+    "properties": {
+      "defaults": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "key":  { "type": "string", "description": "The requested protocol or extension, echoed as given." },
+            "name": { "type": "string", "description": "Friendly name of the handler, e.g. `Google Chrome`." },
+            "exe":  { "type": "string", "description": "Absolute path of the handler executable. Omitted when the handler does not resolve to an executable, which is typical for Store app handlers." }
+          },
+          "required": ["key", "name"],
+          "additionalProperties": false
+        }
+      }
+    },
+    "required": ["defaults"],
+    "additionalProperties": false
+  },
+  "x-errors": ["invalid_args"],
+  "x-implementations": [
+    {
+      "name": "assoc_query_string_w",
+      "detect": { "type": "always" },
+      "available_on": ["windows-modern"],
+      "description": "`AssocQueryStringW` with `ASSOCSTR_FRIENDLYAPPNAME` and `ASSOCSTR_EXECUTABLE` per key. Protocol keys (no leading dot) pass `ASSOCF_IS_PROTOCOL` so the user's default-app choice is honoured; extension keys pass no flag."
+    },
+    {
+      "name": "assoc_query_string_a",
+      "detect": { "type": "dll", "value": "shlwapi.dll", "exports": ["AssocQueryStringA"] },
+      "available_on": ["windows-classic"],
+      "description": "`AssocQueryStringA` from shlwapi (Windows 2000, or any system with IE5 installed). ANSI results transcoded to UTF-8 by the agent."
+    }
+  ],
+  "x-families": {
+    "windows-modern": {
+      "description": "AssocQueryStringW. `ASSOCF_IS_PROTOCOL` (Windows 8+) is required for protocol keys: without it `http` resolves through `HKCR\\http\\shell\\open\\command` and ignores the user's choice. The agent may also pass `ASSOCF_APP_TO_APP` (Windows 10 1803+) so packaged handlers resolve a friendly name; without it a Store handler may come back with no usable `name` and is then left out.",
+      "implementations_in_order": ["assoc_query_string_w"]
+    },
+    "windows-classic": {
+      "description": "AssocQueryStringA when shlwapi exports it; otherwise the verb is not advertised. There is no `ASSOCF_IS_PROTOCOL` on these systems, so protocol keys resolve from the `HKCR\\<scheme>\\shell\\open\\command` registration.",
+      "implementations_in_order": ["assoc_query_string_a"]
+    }
+  }
+}
