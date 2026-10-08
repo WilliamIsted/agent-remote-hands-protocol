@@ -34,6 +34,17 @@ by `system.info.agent_protocol`.
 - `spec/narrative/element.find.md` / `element.list.md` rewritten: the earlier recommendation of
   separate `*_msaa` verbs is reversed, with the reasoning.
 
+### system.apps.* (issues #100, #101)
+
+- New `system.apps.installed`: installed programs from the Windows Uninstall keys, with a
+  case-insensitive `pattern` on name. Store / MSIX apps are not listed.
+- New `system.apps.defaults`: the registered default app for URL schemes and file extensions,
+  with a curated default key set. Protocol keys honour the user's default-app choice on
+  Windows 8 and later.
+- Both verbs have `windows-classic` fills while classic's `protocol_versions_spoken` stays
+  `["2.0","2.1"]`. This matches `system.verbs`, also `x-since "2.2"` with a classic fill;
+  whether classic advertises 2.2 is decided at the rc.3 tag.
+
 ## v2.2.0-rc.1 — 2026-05-07
 
 **Wire-breaking from v2.0 / v2.1.** v2.1 clients connecting to a v2.2+ agent

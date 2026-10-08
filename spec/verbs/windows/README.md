@@ -1,6 +1,6 @@
 # Windows-specific verb surface
 
-This directory contains the 33 verbs that depend on Windows-specific APIs. They are implemented by `windows-modern` and `windows-classic` families where the underlying API is available.
+This directory contains the 35 verbs that depend on Windows-specific APIs. They are implemented by `windows-modern` and `windows-classic` families where the underlying API is available.
 
 ## Why these verbs are Windows-only
 
@@ -11,6 +11,7 @@ This directory contains the 33 verbs that depend on Windows-specific APIs. They 
 | `process.*` (1 verb) | `process.shell` | ShellExecuteEx — opens files and URLs using the registered shell verb handler. |
 | `registry.*` (6 verbs) | `registry.key.delete`, `registry.key.read`, `registry.value.create`, `registry.value.delete`, `registry.value.read`, `registry.value.update` | Windows registry. No cross-platform equivalent. |
 | `system.power.*` (8 verbs) | `system.power.blockers`, `system.power.cancel`, `system.power.hibernate`, `system.power.lock`, `system.power.logoff`, `system.power.reboot`, `system.power.shutdown`, `system.power.sleep` | ExitWindowsEx, InitiateSystemShutdownExW, SetSuspendState, ShutdownBlockReasonQuery — Windows-only power management API. |
+| `system.apps.*` (2 verbs) | `system.apps.defaults`, `system.apps.installed` | Windows Uninstall registry keys and shell associations (AssocQueryString). |
 | `watch.*` (2 verbs) | `watch.element`, `watch.registry` | UI Automation event hooks and registry change notifications (RegNotifyChangeKeyValue). |
 
 ## Declaring non-support in a non-Windows family
