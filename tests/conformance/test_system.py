@@ -235,7 +235,7 @@ def test_apps_defaults_single_key(client: WireClient,
     """An explicit key list replaces the curated set: `.txt` alone returns
     at most one entry, and it is for `.txt`."""
     needs_verb(capabilities, "system.apps.defaults")
-    r = client.request("system.apps.defaults", "--keys", ".txt")
+    r = client.request("system.apps.defaults", "--keys", [".txt"])
     assert isinstance(r, OkResponse)
     entries = json.loads(r.payload)["defaults"]
     assert len(entries) <= 1
@@ -247,7 +247,7 @@ def test_apps_defaults_rejects_malformed_key(client: WireClient,
                                              capabilities: dict) -> None:
     """Multi-dot extensions are outside the key grammar."""
     needs_verb(capabilities, "system.apps.defaults")
-    r = client.request("system.apps.defaults", "--keys", ".tar.gz")
+    r = client.request("system.apps.defaults", "--keys", [".tar.gz"])
     assert isinstance(r, ErrResponse)
     assert r.code == "invalid_args"
 
