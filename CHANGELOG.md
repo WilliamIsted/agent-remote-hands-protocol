@@ -29,6 +29,8 @@ by `system.info.agent_protocol`.
   becomes `uia`, matching what the modern agent already sends.
 - `x-errors`: `element.at` gains `target_gone` (hung window at the point); `element.find` gains
   `invalid_args` (simple-child `root`) and `target_gone` (hung or stale `root`).
+- `element.find` / `.find_invoke` / `.wait`: `root` is documented as an element handle (`elt:N`),
+  as the modern agent already treats it, not a window handle. `element.wait` gains `target_gone` for a stale `root`.
 - `spec/narrative/element.find.md` / `element.list.md` rewritten: the earlier recommendation of
   separate `*_msaa` verbs is reversed, with the reasoning.
 

@@ -7,7 +7,7 @@
     "properties": {
       "root": {
         "type": "string",
-        "description": "Optional window handle to scope the search. If omitted, searches the desktop root."
+        "description": "Optional element handle (`elt:N`) to scope the search; the root itself is a candidate. If omitted, searches the desktop root. A handle that is no longer valid gives `ERR target_gone`."
       },
       "name": {
         "type": "string",

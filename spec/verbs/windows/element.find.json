@@ -37,7 +37,7 @@
     "properties": {
       "root": {
         "type": "string",
-        "description": "Optional window handle to scope the search. If omitted, searches the desktop root."
+        "description": "Optional element handle (`elt:N`) to scope the search; the root itself is a candidate. If omitted, searches the desktop root. A handle that is no longer valid gives `ERR target_gone`."
       },
       "name": {
         "type": "string",
@@ -141,7 +141,7 @@
       ]
     },
     "windows-classic": {
-      "description": "MSAA walk with the same FindFirst semantics as modern: the root itself is a candidate. `automation_id` is always `\"\"`; a query on `automation_id` returns `ERR not_found` at once rather than polling, since nothing can match. A `root` handle naming a simple child (no subtree) gives `ERR invalid_args`. Shared MSAA rules (roles, tree shape, hidden elements, hung windows, handle limits): PROTOCOL.md §10.7.",
+      "description": "MSAA walk with the same FindFirst semantics as modern: the root itself is a candidate. `automation_id` is always `\"\"`; a query on `automation_id` returns `ERR not_found` at once rather than polling, since nothing can match. A `root` element handle that names a simple MSAA child (no subtree, e.g. a list item) gives `ERR invalid_args` rather than silently searching its parent. Shared MSAA rules (roles, tree shape, hidden elements, hung windows, handle limits): PROTOCOL.md §10.7.",
       "implementations_in_order": ["msaa_iaccessible"]
     }
   }
