@@ -50,6 +50,13 @@ The per-row **Conformance** columns below name the test file that exercises each
 | 15 | `system.power.blockers` | ✅ | ✅ (renamed from `system.shutdown_blockers`; output `hwnd`→`handle`) | ❌ | `test_system.py` |
 | 16 | `system.power.lock` | ✅ | ✅ (renamed from `system.lock`; CRUDX R→X) | `LOCK` | ❌ |
 
+## `system.apps.*` (2 verbs — new in v2.2.0-rc.3)
+
+| # | Verb | Status | spec/verbs | v1 archive | Conformance |
+|---|---|---|---|---|---|
+| 16a | `system.apps.installed` | ✅ | ✅ (NEW; Uninstall-key inventory per #101; Store apps not listed) | ❌ | `test_system.py` |
+| 16b | `system.apps.defaults` | ✅ | ✅ (NEW; default handler per protocol / extension per #100) | ❌ | `test_system.py` |
+
 ## `screen.*` (1 verb)
 
 | # | Verb | Status | PROTOCOL.md | VERBS.md | spec/verbs | v1 archive | Conformance |
@@ -195,10 +202,10 @@ The PROTOCOL.md columns are dropped post-audit (PROTOCOL.md being deleted; mock-
 | Status | Count |
 |---|---|
 | Total v2.1 verbs | 87 |
-| Total v2.2 verbs | 88 (v2.1 surface + `system.verbs` per #97) |
-| Currently exercised by conformance suite | 88 (every verb has a `needs_verb(capabilities, "<verb>")` gate; enforced by `tests/check_spec.py`) |
+| Total v2.2 verbs | 90 (v2.1 surface + `system.verbs` per #97 + `system.apps.*` per #100 / #101) |
+| Currently exercised by conformance suite | 90 (every verb has a `needs_verb(capabilities, "<verb>")` gate; enforced by `tests/check_spec.py`) |
 | With v1 ancestor verb(s) | 47 |
-| v2-only (no v1 ancestor) | 41 |
+| v2-only (no v1 ancestor) | 43 |
 
 Verb-count history: rc.1 had 77; rc.2 took it to 80 (file.write split, registry restructure); rc.3 takes it to 86 (input.* split into input.mouse.* + input.keyboard.* sub-namespaces, plus 6 new verbs to close v1.0.0 milestone parity issues).
 
