@@ -50,9 +50,6 @@ def test_info_family_is_known(client: WireClient) -> None:
 
 
 UI_AUTOMATION_VALUES = {"uia", "msaa", "no"}
-ELEMENT_VERBS = {"element.at", "element.at_invoke", "element.list", "element.find",
-                 "element.find_invoke", "element.wait", "element.tree", "element.text",
-                 "element.set_text", "element.invoke", "element.focus"}
 
 
 def test_info_ui_automation_value(client: WireClient) -> None:
@@ -66,7 +63,7 @@ def test_info_ui_automation_matches_capabilities(client: WireClient,
                                                  capabilities: dict) -> None:
     """element.* is advertised if and only if ui_automation is not `no`."""
     backend = client.info()["capabilities"].get("ui_automation")
-    advertised = ELEMENT_VERBS & set(capabilities)
+    advertised = {v for v in capabilities if v.startswith("element.")}
     if backend == "no":
         assert not advertised, f"ui_automation is 'no' but advertises {advertised}"
     else:

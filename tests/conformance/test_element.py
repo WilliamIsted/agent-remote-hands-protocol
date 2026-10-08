@@ -210,15 +210,26 @@ def test_element_text_invalid_handle(client: WireClient,
 # ---------------------------------------------------------------------------
 # Search root — `root` is an elt:N handle (find / find_invoke / wait)
 
-@pytest.mark.parametrize("verb", ["element.find", "element.find_invoke", "element.wait"])
-def test_element_search_stale_root_target_gone(verb: str, update_client: WireClient,
+def _assert_stale_root_target_gone(c: WireClient, verb: str) -> None:
+    r = c.request(verb, "--name", "anything", "--root", "elt:99999",
+                  "--timeout-ms", "0")
+    assert isinstance(r, ErrResponse)
+    assert r.code == "target_gone"
+
+
+@pytest.mark.parametrize("verb", ["element.find", "element.wait"])
+def test_element_search_stale_root_target_gone(verb: str, client: WireClient,
                                                capabilities: dict) -> None:
     """`root` is an elt:N handle; one that is no longer valid gives target_gone."""
     needs_verb(capabilities, verb)
-    r = update_client.request(verb, "--name", "anything", "--root", "elt:99999",
-                              "--timeout-ms", "0")
-    assert isinstance(r, ErrResponse)
-    assert r.code == "target_gone"
+    _assert_stale_root_target_gone(client, verb)
+
+
+def test_element_find_invoke_stale_root_target_gone(update_client: WireClient,
+                                                    capabilities: dict) -> None:
+    """As above; find_invoke is update tier, so it needs the elevated client."""
+    needs_verb(capabilities, "element.find_invoke")
+    _assert_stale_root_target_gone(update_client, "element.find_invoke")
 
 
 # ---------------------------------------------------------------------------
