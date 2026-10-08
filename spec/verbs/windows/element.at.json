@@ -95,7 +95,8 @@
     "not_found",
     "uia_blind",
     "permission_denied",
-    "invalid_args"
+    "invalid_args",
+    "target_gone"
   ],
   "x-implementations": [
     {
