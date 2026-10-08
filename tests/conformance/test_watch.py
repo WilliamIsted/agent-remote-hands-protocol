@@ -23,7 +23,7 @@ import pathlib
 import tempfile
 import uuid
 
-from conftest import needs_verb
+from conftest import needs_arg, needs_verb
 from wire import ErrResponse, OkResponse, WireClient
 
 
@@ -68,6 +68,18 @@ def test_watch_process_returns_subscription_id(client: WireClient,
     subscription registers; we cancel before its thread delivers an event."""
     needs_verb(capabilities, "watch.process")
     r = client.request("watch.process", "4")
+    assert isinstance(r, OkResponse)
+    body = json.loads(r.payload)
+    assert body["subscription_id"].startswith("sub:")
+    client.request("watch.cancel", body["subscription_id"])
+
+
+def test_watch_process_descendants_returns_subscription_id(
+        client: WireClient, capabilities: dict, verb_defs: dict) -> None:
+    """`--descendants` registers a tree watch (issue #105)."""
+    needs_verb(capabilities, "watch.process")
+    needs_arg(verb_defs, "watch.process", "descendants")
+    r = client.request("watch.process", "4", "--descendants")
     assert isinstance(r, OkResponse)
     body = json.loads(r.payload)
     assert body["subscription_id"].startswith("sub:")
