@@ -23,6 +23,10 @@ by `system.info.agent_protocol`.
 - New PROTOCOL.md §10.7 (MSAA element model: role table, tree shape, hidden elements, hung
   windows, limits) and a classic exception in §10.3 (element ID lifetime).
 - `families.json`: classic gains the `msaa` capability.
+- `system.info.capabilities.ui_automation` is defined as the backend the agent loaded: `uia`,
+  `msaa` or `no`, decided per host at startup and consistent with `system.capabilities`.
+  Classic reports `msaa` when `oleacc.dll` loads, otherwise `no`. The modern example's `yes`
+  becomes `uia`, matching what the modern agent already sends.
 - `spec/narrative/element.find.md` / `element.list.md` rewritten: the earlier recommendation of
   separate `*_msaa` verbs is reversed, with the reasoning.
 

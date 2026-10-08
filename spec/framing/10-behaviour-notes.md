@@ -34,7 +34,7 @@ If a client sends a malformed request (mis-stated payload length, header exceedi
 
 `windows-classic` implements `element.*` through Microsoft Active Accessibility (`oleacc.dll`, `IAccessible`) rather than UI Automation. The verbs, inputs and outputs are the same as on the UIA families; this section records where MSAA's model shows through. Per-verb details are in each verb's `windows-classic` family entry.
 
-**Availability.** MSAA ships with Windows 98, 2000 and XP, and as the Active Accessibility redistributable for 95 and NT 4 SP6. The agent resolves it at runtime (`detect: {"type": "dll"}`, see the authoring checklist). When it is missing the agent still starts, `element.*` is absent from `system.capabilities`, and calls return `ERR not_supported`.
+**Availability.** MSAA ships with Windows 98, 2000 and XP, and as the Active Accessibility redistributable for 95 and NT 4 SP6. The agent resolves it at runtime (`detect: {"type": "dll"}`, see the authoring checklist). When it loads, `system.info.capabilities.ui_automation` is `msaa`. When it is missing the agent still starts, `ui_automation` is `no`, `element.*` is absent from `system.capabilities`, and calls return `ERR not_supported`.
 
 **Roles.** `role` reports the UIA control-type name, mapped from the MSAA role:
 
