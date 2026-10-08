@@ -34,6 +34,15 @@ by `system.info.agent_protocol`.
 - `spec/narrative/element.find.md` / `element.list.md` rewritten: the earlier recommendation of
   separate `*_msaa` verbs is reversed, with the reasoning.
 
+### Process trees (issue #105)
+
+- New `process.tree`: live processes under a pid, with parent links. An exited root is not
+  an error, so an installer's launched app can still be found from the installer's pid.
+- `watch.process` gains `descendants`. Events are now always `kind`-tagged (`spawned` or
+  `exited`) with `pid`; the old bare `{exit_code}` payload is replaced. Current agents
+  already send `kind` and `pid`, so callers reading `exit_code` are unaffected.
+- `watch.process` `x-errors` gains `not_supported` for `descendants` on NT 4.
+
 ## v2.2.0-rc.1 — 2026-05-07
 
 **Wire-breaking from v2.0 / v2.1.** v2.1 clients connecting to a v2.2+ agent

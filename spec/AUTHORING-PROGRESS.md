@@ -148,7 +148,7 @@ The PROTOCOL.md columns are dropped post-audit (PROTOCOL.md being deleted; mock-
 | 59 | `directory.rename` | ✅ | ✅ (mock) | ❌ | `test_directory.py` |
 | 60 | `directory.delete` | ✅ | ✅ (renamed from `directory.remove`; `removed: true` always-true field dropped) | ❌ | `test_directory.py` |
 
-## `process.*` (5 verbs)
+## `process.*` (6 verbs)
 
 | # | Verb | Status | spec/verbs | v1 archive | Conformance |
 |---|---|---|---|---|---|
@@ -157,6 +157,7 @@ The PROTOCOL.md columns are dropped post-audit (PROTOCOL.md being deleted; mock-
 | 63 | `process.shell` | ✅ | ✅ (output `pid` widened to `[integer, null]`) | ❌ | ❌ |
 | 64 | `process.kill` | ✅ | ❌ | `KILL` | `test_process.py` |
 | 65 | `process.wait` | ✅ | ✅ (stripped `Per issue #76:` prefix from description) | `WAIT` | `test_process.py` |
+| 65a | `process.tree` | ✅ | ✅ (NEW; live tree snapshot per #105) | ❌ | `test_process.py` |
 
 ## `registry.*` (6 verbs — restructured to resource-first CRUD in v2.1.0-rc.2; `registry.wait` consolidated into `watch.registry`)
 
@@ -181,7 +182,7 @@ The PROTOCOL.md columns are dropped post-audit (PROTOCOL.md being deleted; mock-
 | # | Verb | Status | spec/verbs | v1 archive | Conformance |
 |---|---|---|---|---|---|
 | 74 | `watch.region` | ✅ | ✅ (gained `encoding` input enum [binary, base64]; binary mode emits raw bytes, base64 mode emits JSON envelope) | `WATCH` (screen-only — narrowed in v2) | `test_watch.py` |
-| 75 | `watch.process` | ✅ | ✅ (event payload reconciled with framing) | ❌ | `test_watch.py` |
+| 75 | `watch.process` | ✅ | ✅ (event payload reconciled with framing; v2.2 adds `descendants` and `kind`-tagged spawned / exited events per #105) | ❌ | `test_watch.py` |
 | 76 | `watch.window` | ✅ | ✅ (event payload reconciled with framing) | ❌ | `test_watch.py` |
 | 77 | `watch.element` | ✅ | ✅ (event payload `reason` enum kept verbatim; framing updated) | ❌ | ❌ |
 | 78 | `watch.file` | ✅ | ✅ (event payload `old_path` made optional) | ❌ | ❌ |
@@ -195,10 +196,10 @@ The PROTOCOL.md columns are dropped post-audit (PROTOCOL.md being deleted; mock-
 | Status | Count |
 |---|---|
 | Total v2.1 verbs | 87 |
-| Total v2.2 verbs | 88 (v2.1 surface + `system.verbs` per #97) |
-| Currently exercised by conformance suite | 88 (every verb has a `needs_verb(capabilities, "<verb>")` gate; enforced by `tests/check_spec.py`) |
+| Total v2.2 verbs | 89 (v2.1 surface + `system.verbs` per #97 + `process.tree` per #105) |
+| Currently exercised by conformance suite | 89 (every verb has a `needs_verb(capabilities, "<verb>")` gate; enforced by `tests/check_spec.py`) |
 | With v1 ancestor verb(s) | 47 |
-| v2-only (no v1 ancestor) | 41 |
+| v2-only (no v1 ancestor) | 42 |
 
 Verb-count history: rc.1 had 77; rc.2 took it to 80 (file.write split, registry restructure); rc.3 takes it to 86 (input.* split into input.mouse.* + input.keyboard.* sub-namespaces, plus 6 new verbs to close v1.0.0 milestone parity issues).
 
